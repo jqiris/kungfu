@@ -1,0 +1,5 @@
+discover:
+  use_type: etcd
+  dial_timeout: 5
+  endpoints:
+    - "172.27.43.50:2379"
