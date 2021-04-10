@@ -1,4 +1,4 @@
-package main
+package tests
 
 import (
 	"github.com/jqiris/kungfu/conf"
@@ -7,12 +7,11 @@ import (
 )
 
 var (
-	logger = logrus.WithField("package", "main")
+	logger = logrus.WithField("package", "tests")
 )
 
-func main() {
-	//init conf
-	if err := conf.InitConf("config.yaml"); err != nil {
+func init() {
+	if err := conf.InitConf("../config.yaml"); err != nil {
 		logger.Fatal(err)
 	}
 	//init discover

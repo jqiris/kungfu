@@ -2,6 +2,7 @@ package discover
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/jqiris/kungfu/common"
@@ -49,7 +50,9 @@ func (e *EtcdDiscoverer) Register(server common.Server) error {
 		return errors.New("ServerId cannot less than MinServerId")
 	}
 	kv := clientv3.NewKV(e.Client)
-	if resp, err := kv.Put(context.TODO(), "/server/"+server.RegId(), server.String()); err != nil {
+	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
+	defer cancel()
+	if resp, err := kv.Put(ctx, "/server/"+server.RegId(), server.String()); err != nil {
 		return err
 	} else {
 		logger.Infof("EtcdDiscoverer register resp:%+v", resp)
@@ -59,7 +62,9 @@ func (e *EtcdDiscoverer) Register(server common.Server) error {
 
 func (e *EtcdDiscoverer) UnRegister(server common.Server) error {
 	kv := clientv3.NewKV(e.Client)
-	if resp, err := kv.Delete(context.TODO(), "/server/"+server.RegId(), clientv3.WithPrevKV()); err != nil {
+	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
+	defer cancel()
+	if resp, err := kv.Delete(ctx, "/server/"+server.RegId(), clientv3.WithPrevKV()); err != nil {
 		return err
 	} else {
 		logger.Infof("EtcdDiscoverer unregister resp:%+v", resp)
@@ -69,22 +74,48 @@ func (e *EtcdDiscoverer) UnRegister(server common.Server) error {
 
 func (e *EtcdDiscoverer) DiscoverServer(serverType common.ServerType) []common.Server {
 	kv := clientv3.NewKV(e.Client)
-	if resp, err := kv.Get(context.TODO(), fmt.Sprintf("/server/%d/", serverType), clientv3.WithPrefix()); err != nil {
+	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
+	defer cancel()
+	if resp, err := kv.Get(ctx, fmt.Sprintf("/server/%d/", serverType), clientv3.WithPrefix()); err != nil {
 		logger.Errorf("EtcdDiscoverer DiscoverServer err:%v", err)
 		return nil
 	} else {
-		logger.Errorf("EtcdDiscoverer DiscoverServer resp:%v", resp)
+		if resp.Count > 0 {
+			res := make([]common.Server, 0)
+			for _, v := range resp.Kvs {
+				var server common.Server
+				if err := json.Unmarshal(v.Value, &server); err == nil {
+					res = append(res, server)
+				} else {
+					logger.Errorf("EtcdDiscoverer DiscoverServer err:%+v", err)
+				}
+			}
+			return res
+		}
 	}
 	return nil
 }
 
-func (e *EtcdDiscoverer) DiscoverServerList() []common.Server {
+func (e *EtcdDiscoverer) DiscoverServerList() map[common.ServerType][]common.Server {
 	kv := clientv3.NewKV(e.Client)
-	if resp, err := kv.Get(context.TODO(), "/server/", clientv3.WithPrefix()); err != nil {
+	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
+	defer cancel()
+	if resp, err := kv.Get(ctx, "/server/", clientv3.WithPrefix()); err != nil {
 		logger.Errorf("EtcdDiscoverer DiscoverServerList err:%v", err)
 		return nil
 	} else {
-		logger.Errorf("EtcdDiscoverer DiscoverServerList resp:%v", resp)
+		if resp.Count > 0 {
+			res := make(map[common.ServerType][]common.Server)
+			for _, v := range resp.Kvs {
+				var server common.Server
+				if err := json.Unmarshal(v.Value, &server); err == nil {
+					res[server.ServerType] = append(res[server.ServerType], server)
+				} else {
+					logger.Errorf("EtcdDiscoverer DiscoverServerList err:%+v", err)
+				}
+			}
+			return res
+		}
 	}
 	return nil
 }
