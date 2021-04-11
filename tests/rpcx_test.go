@@ -2,18 +2,18 @@ package tests
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/common"
 	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/treaty"
 	"testing"
 )
 
 func TestRpc(t *testing.T) {
 	cfg := conf.GetRpcxConf()
 	//gate
-	s1 := common.Server{
+	s1 := treaty.Server{
 		ServerId:   1001,
-		ServerType: common.ServerGate,
+		ServerType: treaty.ServerGate,
 		ServerName: "gate",
 		ServerHost: "127.0.0.1:123",
 	}
@@ -31,9 +31,9 @@ func TestRpc(t *testing.T) {
 		logger.Errorf("gate2 err:%v", err)
 	}
 	//connector
-	s2 := common.Server{
+	s2 := treaty.Server{
 		ServerId:   1002,
-		ServerType: common.ServerConnector,
+		ServerType: treaty.ServerConnector,
 		ServerName: "connector",
 		ServerHost: "127.0.0.1:456",
 	}
@@ -51,9 +51,9 @@ func TestRpc(t *testing.T) {
 		logger.Errorf("connector2 err:%v", err)
 	}
 	//connector
-	s3 := common.Server{
+	s3 := treaty.Server{
 		ServerId:   1003,
-		ServerType: common.ServerGame,
+		ServerType: treaty.ServerGame,
 		ServerName: "game",
 		ServerHost: "127.0.0.1:789",
 	}

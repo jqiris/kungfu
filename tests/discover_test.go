@@ -1,15 +1,15 @@
 package tests
 
 import (
-	"github.com/jqiris/kungfu/common"
 	"github.com/jqiris/kungfu/discover"
+	"github.com/jqiris/kungfu/treaty"
 	"testing"
 )
 
 func TestEtcdDisCover(t *testing.T) {
-	server := common.Server{
+	server := treaty.Server{
 		ServerId:   1001,
-		ServerType: common.ServerGate,
+		ServerType: treaty.ServerGate,
 		ServerName: "gate",
 		ServerHost: "127.0.0.1:1234",
 	}
@@ -22,7 +22,7 @@ func TestEtcdDisCover(t *testing.T) {
 	//get sever list
 	res := discover.DiscoverServerList()
 	logger.Infof("the server list:%+v", res)
-	res2 := discover.DiscoverServer(common.ServerGate)
+	res2 := discover.DiscoverServer(treaty.ServerGate)
 	logger.Infof("the server list:%+v", res2)
 	//unregister server
 	err := discover.UnRegister(server)

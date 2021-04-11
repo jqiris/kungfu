@@ -1,4 +1,4 @@
-package common
+package treaty
 
 import (
 	"encoding/json"

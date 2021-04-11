@@ -1,8 +1,8 @@
 package rpcx
 
 import (
-	"github.com/jqiris/kungfu/common"
 	"github.com/jqiris/kungfu/conf"
+	"github.com/jqiris/kungfu/treaty"
 	"github.com/nats-io/nats.go"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -16,9 +16,9 @@ type CallbackFunc func(req []byte) []byte
 
 //rpc interface
 type RpcBase interface {
-	Subscribe(server common.Server, callback CallbackFunc) error //self Subscribe
-	Publish(server common.Server, data []byte) error             //publish
-	Request(server common.Server, data []byte) ([]byte, error)   //request
+	Subscribe(server treaty.Server, callback CallbackFunc) error //self Subscribe
+	Publish(server treaty.Server, data []byte) error             //publish
+	Request(server treaty.Server, data []byte) ([]byte, error)   //request
 }
 
 type RpcGate interface {

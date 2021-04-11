@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jqiris/kungfu/common"
+	"github.com/jqiris/kungfu/treaty"
 	"go.etcd.io/etcd/client/v3"
 	"time"
 )
@@ -45,8 +45,8 @@ func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 }
 
 //register
-func (e *EtcdDiscoverer) Register(server common.Server) error {
-	if server.ServerId < common.MinServerId {
+func (e *EtcdDiscoverer) Register(server treaty.Server) error {
+	if server.ServerId < treaty.MinServerId {
 		return errors.New("ServerId cannot less than MinServerId")
 	}
 	kv := clientv3.NewKV(e.Client)
@@ -60,7 +60,7 @@ func (e *EtcdDiscoverer) Register(server common.Server) error {
 	return nil
 }
 
-func (e *EtcdDiscoverer) UnRegister(server common.Server) error {
+func (e *EtcdDiscoverer) UnRegister(server treaty.Server) error {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
@@ -72,7 +72,7 @@ func (e *EtcdDiscoverer) UnRegister(server common.Server) error {
 	return nil
 }
 
-func (e *EtcdDiscoverer) DiscoverServer(serverType common.ServerType) []common.Server {
+func (e *EtcdDiscoverer) DiscoverServer(serverType treaty.ServerType) []treaty.Server {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
@@ -81,9 +81,9 @@ func (e *EtcdDiscoverer) DiscoverServer(serverType common.ServerType) []common.S
 		return nil
 	} else {
 		if resp.Count > 0 {
-			res := make([]common.Server, 0)
+			res := make([]treaty.Server, 0)
 			for _, v := range resp.Kvs {
-				var server common.Server
+				var server treaty.Server
 				if err := json.Unmarshal(v.Value, &server); err == nil {
 					res = append(res, server)
 				} else {
@@ -96,7 +96,7 @@ func (e *EtcdDiscoverer) DiscoverServer(serverType common.ServerType) []common.S
 	return nil
 }
 
-func (e *EtcdDiscoverer) DiscoverServerList() map[common.ServerType][]common.Server {
+func (e *EtcdDiscoverer) DiscoverServerList() map[treaty.ServerType][]treaty.Server {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
@@ -105,9 +105,9 @@ func (e *EtcdDiscoverer) DiscoverServerList() map[common.ServerType][]common.Ser
 		return nil
 	} else {
 		if resp.Count > 0 {
-			res := make(map[common.ServerType][]common.Server)
+			res := make(map[treaty.ServerType][]treaty.Server)
 			for _, v := range resp.Kvs {
-				var server common.Server
+				var server treaty.Server
 				if err := json.Unmarshal(v.Value, &server); err == nil {
 					res[server.ServerType] = append(res[server.ServerType], server)
 				} else {
