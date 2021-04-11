@@ -29,3 +29,7 @@ func InitConf(filename string) error {
 func GetDiscoverConf() DiscoverConf {
 	return config.Discover
 }
+
+func GetRpcxConf() RpcxConf {
+	return config.Rpcx
+}

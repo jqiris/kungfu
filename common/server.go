@@ -21,6 +21,7 @@ const (
 	ServerNone      ServerType = iota + 1000
 	ServerGate                 // gate服务器
 	ServerConnector            // connector服务器
+	ServerGame                 //游戏服务器
 )
 
 //server struct

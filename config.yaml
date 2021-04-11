@@ -3,3 +3,8 @@ discover:
   dial_timeout: 5
   endpoints:
     - "127.0.0.1:2379"
+rpcx:
+   use_type: nats
+   dial_timeout: 5
+   endpoints:
+     - "nats://127.0.0.1:4222"

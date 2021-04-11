@@ -1,8 +1,18 @@
 package rpcx
 
-import "github.com/jqiris/kungfu/common"
+import (
+	"github.com/jqiris/kungfu/common"
+	"github.com/jqiris/kungfu/conf"
+	"github.com/nats-io/nats.go"
+	"github.com/sirupsen/logrus"
+	"time"
+)
 
-type CallbackFunc func(resp []byte)
+var (
+	logger = logrus.WithField("package", "rpcx")
+)
+
+type CallbackFunc func(req []byte) []byte
 
 //rpc interface
 type RpcBase interface {
@@ -30,4 +40,43 @@ type RpcServer interface {
 	SubscribeServer(callback CallbackFunc) error //server subscribe
 	PublishConnector(data []byte) error          //connect publish
 	PublishServer(data []byte) error             //server publish
+}
+
+//create rpc gate
+func NewRpcGate(cfg conf.RpcxConf) RpcGate {
+	timeout := time.Duration(cfg.DialTimeout) * time.Second
+	var r RpcGate
+	switch cfg.UseType {
+	case "nats":
+		r = NewRpcNats(WithNatsEndpoints(cfg.Endpoints), WithNatsDialTimeout(timeout), WithNatsOptions(nats.Timeout(timeout)))
+	default:
+		logger.Fatal("NewRpcGate failed")
+	}
+	return r
+}
+
+//create rpc gate
+func NewRpcConnector(cfg conf.RpcxConf) RpcConnector {
+	timeout := time.Duration(cfg.DialTimeout) * time.Second
+	var r RpcConnector
+	switch cfg.UseType {
+	case "nats":
+		r = NewRpcNats(WithNatsEndpoints(cfg.Endpoints), WithNatsDialTimeout(timeout), WithNatsOptions(nats.Timeout(timeout)))
+	default:
+		logger.Fatal("NewRpcConnector failed")
+	}
+	return r
+}
+
+//create rpc server
+func NewRpcServer(cfg conf.RpcxConf) RpcServer {
+	timeout := time.Duration(cfg.DialTimeout) * time.Second
+	var r RpcServer
+	switch cfg.UseType {
+	case "nats":
+		r = NewRpcNats(WithNatsEndpoints(cfg.Endpoints), WithNatsDialTimeout(timeout), WithNatsOptions(nats.Timeout(timeout)))
+	default:
+		logger.Fatal("NewRpcConnector failed")
+	}
+	return r
 }

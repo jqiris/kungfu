@@ -1,0 +1,77 @@
+package tests
+
+import (
+	"fmt"
+	"github.com/jqiris/kungfu/common"
+	"github.com/jqiris/kungfu/conf"
+	"github.com/jqiris/kungfu/rpcx"
+	"testing"
+)
+
+func TestRpc(t *testing.T) {
+	cfg := conf.GetRpcxConf()
+	//gate
+	s1 := common.Server{
+		ServerId:   1001,
+		ServerType: common.ServerGate,
+		ServerName: "gate",
+		ServerHost: "127.0.0.1:123",
+	}
+	w1 := rpcx.NewRpcGate(cfg)
+	if err := w1.Subscribe(s1, func(req []byte) []byte {
+		logger.Infof("gate received: %v", string(req))
+		return []byte(fmt.Sprintf("gate received: %v", string(req)))
+	}); err != nil {
+		logger.Errorf("gate err:%v", err)
+	}
+	if err := w1.SubscribeGate(func(req []byte) []byte {
+		logger.Infof("gate2 received: %v", string(req))
+		return []byte(fmt.Sprintf("gate2 received: %v", string(req)))
+	}); err != nil {
+		logger.Errorf("gate2 err:%v", err)
+	}
+	//connector
+	s2 := common.Server{
+		ServerId:   1002,
+		ServerType: common.ServerConnector,
+		ServerName: "connector",
+		ServerHost: "127.0.0.1:456",
+	}
+	w2 := rpcx.NewRpcConnector(cfg)
+	if err := w2.Subscribe(s2, func(req []byte) []byte {
+		logger.Infof("connector received: %v", string(req))
+		return []byte(fmt.Sprintf("connector received: %v", string(req)))
+	}); err != nil {
+		logger.Errorf("connector err:%v", err)
+	}
+	if err := w2.SubscribeConnector(func(req []byte) []byte {
+		logger.Infof("connector2 received: %v", string(req))
+		return []byte(fmt.Sprintf("connector2 received: %v", string(req)))
+	}); err != nil {
+		logger.Errorf("connector2 err:%v", err)
+	}
+	//connector
+	s3 := common.Server{
+		ServerId:   1003,
+		ServerType: common.ServerGame,
+		ServerName: "game",
+		ServerHost: "127.0.0.1:789",
+	}
+	w3 := rpcx.NewRpcServer(cfg)
+	if err := w3.Subscribe(s3, func(req []byte) []byte {
+		logger.Infof("server received: %v", string(req))
+		return []byte(fmt.Sprintf("server received: %v", string(req)))
+	}); err != nil {
+		logger.Errorf("server err:%v", err)
+	}
+	if err := w3.SubscribeServer(func(req []byte) []byte {
+		logger.Infof("server2 received: %v", string(req))
+		return []byte(fmt.Sprintf("server2 received: %v", string(req)))
+	}); err != nil {
+		logger.Errorf("server2 err:%v", err)
+	}
+
+	//s1 请求 s2
+	reply, err := w1.Request(s2, []byte("from gate"))
+	logger.Infof("s1=>s2, reply:%v, err:%v", string(reply), err)
+}
