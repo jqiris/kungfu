@@ -8,3 +8,10 @@ rpcx:
    dial_timeout: 5
    endpoints:
      - "nats://127.0.0.1:4222"
+stores:
+    use_type: redis
+    dial_timeout: 5
+    password: ""
+    db: 0
+    endpoints:
+      - "127.0.0.1:6379"

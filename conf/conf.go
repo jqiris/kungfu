@@ -33,3 +33,7 @@ func GetDiscoverConf() DiscoverConf {
 func GetRpcxConf() RpcxConf {
 	return config.Rpcx
 }
+
+func GetStoresConf() StoresConf {
+	return config.Stores
+}
