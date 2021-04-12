@@ -44,7 +44,7 @@ func NewRpcNats(opts ...RpcNatsOption) *RpcNats {
 	return r
 }
 
-func (r *RpcNats) Subscribe(server treaty.Server, callback CallbackFunc) error {
+func (r *RpcNats) Subscribe(server *treaty.Server, callback CallbackFunc) error {
 	if _, err := r.Client.Subscribe("/rpcx/"+server.RegId(), func(msg *nats.Msg) {
 		resp := callback(msg.Data)
 		if resp != nil {
@@ -58,14 +58,14 @@ func (r *RpcNats) Subscribe(server treaty.Server, callback CallbackFunc) error {
 	return nil
 }
 
-func (r *RpcNats) Publish(server treaty.Server, data []byte) error {
+func (r *RpcNats) Publish(server *treaty.Server, data []byte) error {
 	if err := r.Client.Publish("/rpcx/"+server.RegId(), data); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *RpcNats) Request(server treaty.Server, data []byte) ([]byte, error) {
+func (r *RpcNats) Request(server *treaty.Server, data []byte) ([]byte, error) {
 	var msg *nats.Msg
 	var err error
 	if msg, err = r.Client.Request("/rpcx/"+server.RegId(), data, r.DialTimeout); err == nil {
@@ -74,7 +74,7 @@ func (r *RpcNats) Request(server treaty.Server, data []byte) ([]byte, error) {
 	return nil, err
 }
 
-func (r *RpcNats) SubscribeGate(callback CallbackFunc) error {
+func (r *RpcNats) SubscribeBalancer(callback CallbackFunc) error {
 	if _, err := r.Client.Subscribe("/rpcx/gate", func(msg *nats.Msg) {
 		resp := callback(msg.Data)
 		if resp != nil {

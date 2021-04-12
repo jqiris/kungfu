@@ -11,27 +11,27 @@ import (
 func TestRpc(t *testing.T) {
 	cfg := conf.GetRpcxConf()
 	//gate
-	s1 := treaty.Server{
+	s1 := &treaty.Server{
 		ServerId:   1001,
-		ServerType: treaty.ServerType_Gate,
+		ServerType: treaty.ServerType_Balancer,
 		ServerName: "gate",
 		ServerHost: "127.0.0.1:123",
 	}
-	w1 := rpcx.NewRpcGate(cfg)
+	w1 := rpcx.NewRpcBalancer(cfg)
 	if err := w1.Subscribe(s1, func(req []byte) []byte {
 		logger.Infof("gate received: %v", string(req))
 		return []byte(fmt.Sprintf("gate received: %v", string(req)))
 	}); err != nil {
 		logger.Errorf("gate err:%v", err)
 	}
-	if err := w1.SubscribeGate(func(req []byte) []byte {
+	if err := w1.SubscribeBalancer(func(req []byte) []byte {
 		logger.Infof("gate2 received: %v", string(req))
 		return []byte(fmt.Sprintf("gate2 received: %v", string(req)))
 	}); err != nil {
 		logger.Errorf("gate2 err:%v", err)
 	}
 	//connector
-	s2 := treaty.Server{
+	s2 := &treaty.Server{
 		ServerId:   1002,
 		ServerType: treaty.ServerType_Connector,
 		ServerName: "connector",
@@ -51,7 +51,7 @@ func TestRpc(t *testing.T) {
 		logger.Errorf("connector2 err:%v", err)
 	}
 	//connector
-	s3 := treaty.Server{
+	s3 := &treaty.Server{
 		ServerId:   1003,
 		ServerType: treaty.ServerType_Game,
 		ServerName: "game",

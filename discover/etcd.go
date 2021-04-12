@@ -45,7 +45,7 @@ func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 }
 
 //register
-func (e *EtcdDiscoverer) Register(server treaty.Server) error {
+func (e *EtcdDiscoverer) Register(server *treaty.Server) error {
 	if server.ServerId < treaty.MinServerId {
 		return errors.New("ServerId cannot less than MinServerId")
 	}
@@ -60,7 +60,7 @@ func (e *EtcdDiscoverer) Register(server treaty.Server) error {
 	return nil
 }
 
-func (e *EtcdDiscoverer) UnRegister(server treaty.Server) error {
+func (e *EtcdDiscoverer) UnRegister(server *treaty.Server) error {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
@@ -72,22 +72,22 @@ func (e *EtcdDiscoverer) UnRegister(server treaty.Server) error {
 	return nil
 }
 
-func (e *EtcdDiscoverer) DiscoverServer(serverType treaty.ServerType) []treaty.Server {
+func (e *EtcdDiscoverer) FindServer(serverType treaty.ServerType) []*treaty.Server {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
 	if resp, err := kv.Get(ctx, fmt.Sprintf("/server/%d/", serverType), clientv3.WithPrefix()); err != nil {
-		logger.Errorf("EtcdDiscoverer DiscoverServer err:%v", err)
+		logger.Errorf("EtcdDiscoverer FindServer err:%v", err)
 		return nil
 	} else {
 		if resp.Count > 0 {
-			res := make([]treaty.Server, 0)
+			res := make([]*treaty.Server, 0)
 			for _, v := range resp.Kvs {
-				var server treaty.Server
+				var server *treaty.Server
 				if err := json.Unmarshal(v.Value, &server); err == nil {
 					res = append(res, server)
 				} else {
-					logger.Errorf("EtcdDiscoverer DiscoverServer err:%+v", err)
+					logger.Errorf("EtcdDiscoverer FindServer err:%+v", err)
 				}
 			}
 			return res
@@ -96,22 +96,22 @@ func (e *EtcdDiscoverer) DiscoverServer(serverType treaty.ServerType) []treaty.S
 	return nil
 }
 
-func (e *EtcdDiscoverer) DiscoverServerList() map[treaty.ServerType][]treaty.Server {
+func (e *EtcdDiscoverer) FindServerList() map[treaty.ServerType][]*treaty.Server {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
 	if resp, err := kv.Get(ctx, "/server/", clientv3.WithPrefix()); err != nil {
-		logger.Errorf("EtcdDiscoverer DiscoverServerList err:%v", err)
+		logger.Errorf("EtcdDiscoverer FindServerList err:%v", err)
 		return nil
 	} else {
 		if resp.Count > 0 {
-			res := make(map[treaty.ServerType][]treaty.Server)
+			res := make(map[treaty.ServerType][]*treaty.Server)
 			for _, v := range resp.Kvs {
-				var server treaty.Server
+				var server *treaty.Server
 				if err := json.Unmarshal(v.Value, &server); err == nil {
 					res[server.ServerType] = append(res[server.ServerType], server)
 				} else {
-					logger.Errorf("EtcdDiscoverer DiscoverServerList err:%+v", err)
+					logger.Errorf("EtcdDiscoverer FindServerList err:%+v", err)
 				}
 			}
 			return res

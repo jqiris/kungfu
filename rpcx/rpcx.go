@@ -16,16 +16,16 @@ type CallbackFunc func(req []byte) []byte
 
 //rpc interface
 type RpcBase interface {
-	Subscribe(server treaty.Server, callback CallbackFunc) error //self Subscribe
-	Publish(server treaty.Server, data []byte) error             //publish
-	Request(server treaty.Server, data []byte) ([]byte, error)   //request
+	Subscribe(server *treaty.Server, callback CallbackFunc) error //self Subscribe
+	Publish(server *treaty.Server, data []byte) error             //publish
+	Request(server *treaty.Server, data []byte) ([]byte, error)   //request
 }
 
-type RpcGate interface {
+type RpcBalancer interface {
 	RpcBase
-	SubscribeGate(callback CallbackFunc) error //gate subscribe
-	PublishConnector(data []byte) error        //connect publish
-	PublishServer(data []byte) error           //server publish
+	SubscribeBalancer(callback CallbackFunc) error //gate subscribe
+	PublishConnector(data []byte) error            //connect publish
+	PublishServer(data []byte) error               //server publish
 }
 
 type RpcConnector interface {
@@ -43,14 +43,14 @@ type RpcServer interface {
 }
 
 //create rpc gate
-func NewRpcGate(cfg conf.RpcxConf) RpcGate {
+func NewRpcBalancer(cfg conf.RpcxConf) RpcBalancer {
 	timeout := time.Duration(cfg.DialTimeout) * time.Second
-	var r RpcGate
+	var r RpcBalancer
 	switch cfg.UseType {
 	case "nats":
 		r = NewRpcNats(WithNatsEndpoints(cfg.Endpoints), WithNatsDialTimeout(timeout), WithNatsOptions(nats.Timeout(timeout)))
 	default:
-		logger.Fatal("NewRpcGate failed")
+		logger.Fatal("NewRpcBalancer failed")
 	}
 	return r
 }

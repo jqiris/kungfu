@@ -26,24 +26,24 @@ func InitDiscoverer(cfg conf.DiscoverConf) {
 
 //find service role
 type Discoverer interface {
-	Register(server treaty.Server) error                         //注册服务器
-	UnRegister(server treaty.Server) error                       //注册服务器
-	DiscoverServer(serverType treaty.ServerType) []treaty.Server //获取某个类型的服务器信息
-	DiscoverServerList() map[treaty.ServerType][]treaty.Server   //获取所有的服务器信息
+	Register(server *treaty.Server) error                     //注册服务器
+	UnRegister(server *treaty.Server) error                   //注册服务器
+	FindServer(serverType treaty.ServerType) []*treaty.Server //获取某个类型的服务器信息
+	FindServerList() map[treaty.ServerType][]*treaty.Server   //获取所有的服务器信息
 }
 
-func Register(server treaty.Server) error {
+func Register(server *treaty.Server) error {
 	return defDiscoverer.Register(server)
 }
 
-func UnRegister(server treaty.Server) error {
+func UnRegister(server *treaty.Server) error {
 	return defDiscoverer.UnRegister(server)
 }
 
-func DiscoverServerList() map[treaty.ServerType][]treaty.Server {
-	return defDiscoverer.DiscoverServerList()
+func FindServerList() map[treaty.ServerType][]*treaty.Server {
+	return defDiscoverer.FindServerList()
 }
 
-func DiscoverServer(serverType treaty.ServerType) []treaty.Server {
-	return defDiscoverer.DiscoverServer(serverType)
+func FindServer(serverType treaty.ServerType) []*treaty.Server {
+	return defDiscoverer.FindServer(serverType)
 }

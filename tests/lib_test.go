@@ -74,3 +74,10 @@ func TestNats(t *testing.T) {
 	// Close connection
 	nc.Close()
 }
+
+func TestHttp(t *testing.T) {
+	//http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+	//	fmt.Fprintf(writer, "hello world")
+	//})
+	//http.ListenAndServe(":8888", nil)
+}

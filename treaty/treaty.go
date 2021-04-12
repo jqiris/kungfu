@@ -10,11 +10,17 @@ const (
 	MinServerId = 1000
 )
 
+type CodeType int
+
+const (
+	CodeSussess CodeType = iota
+	CodeFailed
+)
+
 //server entity
 type ServerEntity interface {
-	OnInit() error
-	OnRun() error
-	OnRegister() error
-	UnRegister() error
-	OnStop() error
+	Init()           //初始化
+	AfterInit()      //初始化后执行操作
+	BeforeShutdown() //服务关闭前操作
+	Shutdown()       //服务关闭操作
 }
