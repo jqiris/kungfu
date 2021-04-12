@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package treaty;
+option go_package = ".;treaty";
+
+enum ServerType{
+  SNone = 0;
+  Gate = 1; //gate server
+  Connector = 2; //connector server
+  Game = 3; //game server
+}
+
+message Server{
+  int32 server_id = 1;
+  ServerType server_type = 2;
+  string server_name = 3;
+  string server_host = 4;
+}

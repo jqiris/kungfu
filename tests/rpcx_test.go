@@ -13,7 +13,7 @@ func TestRpc(t *testing.T) {
 	//gate
 	s1 := treaty.Server{
 		ServerId:   1001,
-		ServerType: treaty.ServerGate,
+		ServerType: treaty.ServerType_Gate,
 		ServerName: "gate",
 		ServerHost: "127.0.0.1:123",
 	}
@@ -33,7 +33,7 @@ func TestRpc(t *testing.T) {
 	//connector
 	s2 := treaty.Server{
 		ServerId:   1002,
-		ServerType: treaty.ServerConnector,
+		ServerType: treaty.ServerType_Connector,
 		ServerName: "connector",
 		ServerHost: "127.0.0.1:456",
 	}
@@ -53,7 +53,7 @@ func TestRpc(t *testing.T) {
 	//connector
 	s3 := treaty.Server{
 		ServerId:   1003,
-		ServerType: treaty.ServerGame,
+		ServerType: treaty.ServerType_Game,
 		ServerName: "game",
 		ServerHost: "127.0.0.1:789",
 	}

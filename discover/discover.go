@@ -14,7 +14,7 @@ var (
 
 func InitDiscoverer(cfg conf.DiscoverConf) {
 	switch cfg.UseType {
-	case treaty.DiscoverEtcd:
+	case "etcd":
 		defDiscoverer = NewEtcdDiscoverer(
 			WithEtcdDialTimeOut(time.Duration(cfg.DialTimeout)*time.Second),
 			WithEtcdEndpoints(cfg.Endpoints),
