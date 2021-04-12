@@ -14,10 +14,11 @@ import (
 )
 
 type BaseBalancer struct {
-	Server      *treaty.Server
-	Rpcx        rpcx.RpcBalancer
-	ClientPort  int //客户端端口
-	ClientCoder coder.Coder
+	Server       *treaty.Server
+	Rpcx         rpcx.RpcBalancer
+	ClientPort   int //客户端端口
+	ClientServer *http.Server
+	ClientCoder  coder.Coder
 }
 
 type BalanceResult struct {
@@ -50,10 +51,13 @@ func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (b *BaseBalancer) Init() {
+	//set the server
+	b.ClientServer = &http.Server{Addr: fmt.Sprintf(":%d", b.ClientPort)}
+	//handle the blance
+	http.HandleFunc("/blance", b.HandleBalance)
 	//run the server
 	go func() {
-		http.HandleFunc("/blance", b.HandleBalance)
-		err := http.ListenAndServe(fmt.Sprintf(":%d", b.ClientPort), nil)
+		err := b.ClientServer.ListenAndServe()
 		if err != nil {
 			log.Error(err.Error())
 		}
@@ -88,7 +92,11 @@ func (b *BaseBalancer) BeforeShutdown() {
 }
 
 func (b *BaseBalancer) Shutdown() {
-	panic("implement me")
+	if b.ClientServer != nil {
+		if err := b.ClientServer.Close(); err != nil {
+			logger.Error(err)
+		}
+	}
 }
 
 func (b *BaseBalancer) Balance(remoteAddr string) (*treaty.Server, error) {
