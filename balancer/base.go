@@ -21,16 +21,11 @@ type BaseBalancer struct {
 	ClientCoder  coder.Coder
 }
 
-type BalanceResult struct {
-	Code   int            `json:"code"` // 0-成功 1-失败
-	Server *treaty.Server `json:"server"`
-}
-
 func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
 	server, err := b.Balance(r.RemoteAddr)
 	if err != nil {
-		res := &BalanceResult{
-			Code: int(treaty.CodeFailed),
+		res := &treaty.BalanceResult{
+			Code: treaty.CodeType_CodeFailed,
 		}
 		if v, e := b.ClientCoder.Marshal(res); e == nil {
 			if _, e2 := w.Write(v); e2 != nil {
@@ -39,8 +34,8 @@ func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	res := &BalanceResult{
-		Code:   int(treaty.CodeSussess),
+	res := &treaty.BalanceResult{
+		Code:   treaty.CodeType_CodeSuccess,
 		Server: server,
 	}
 	if v, e := b.ClientCoder.Marshal(res); e == nil {

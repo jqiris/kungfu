@@ -10,9 +10,19 @@ enum ServerType{
   Game = 3; //game server
 }
 
+enum CodeType{
+  CodeSuccess = 0; //成功
+  CodeFailed = 1;//失败
+}
+
 message Server{
   int32 server_id = 1;
   ServerType server_type = 2;
   string server_name = 3;
   string server_host = 4;
+}
+
+message BalanceResult{
+  CodeType code =1 ; //0-成功 1-失败
+  Server server = 2;
 }

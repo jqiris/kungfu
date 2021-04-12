@@ -10,13 +10,6 @@ const (
 	MinServerId = 1000
 )
 
-type CodeType int
-
-const (
-	CodeSussess CodeType = iota
-	CodeFailed
-)
-
 //server entity
 type ServerEntity interface {
 	Init()           //初始化
