@@ -15,3 +15,5 @@ stores:
     db: 0
     endpoints:
       - "127.0.0.1:6379"
+coder:
+    use_type: proto

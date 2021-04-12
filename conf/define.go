@@ -4,6 +4,7 @@ type Config struct {
 	Discover DiscoverConf `yaml:"discover"`
 	Rpcx     RpcxConf     `yaml:"rpcx"`
 	Stores   StoresConf   `yaml:"stores"`
+	Coder    CoderConf    `yaml:"coder"`
 }
 
 type DiscoverConf struct {
@@ -24,4 +25,8 @@ type StoresConf struct {
 	Endpoints   []string `yaml:"endpoints"`
 	Password    string   `yaml:"password"`
 	DB          int      `yaml:"db"`
+}
+
+type CoderConf struct {
+	UseType string `yaml:"use_type"`
 }

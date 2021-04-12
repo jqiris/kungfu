@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/jqiris/kungfu/coder"
 	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/stores"
@@ -21,4 +22,7 @@ func main() {
 
 	//init stores
 	stores.InitStoreKeeper(conf.GetStoresConf())
+
+	//init coder
+	coder.InitCoder(conf.GetCoderConf())
 }

@@ -37,3 +37,7 @@ func GetRpcxConf() RpcxConf {
 func GetStoresConf() StoresConf {
 	return config.Stores
 }
+
+func GetCoderConf() CoderConf {
+	return config.Coder
+}
