@@ -101,3 +101,12 @@ func (s *StoreRedis) GetString(key string) string {
 	}
 	return resp
 }
+
+func (s *StoreRedis) Del(keys ...string) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	if _, err := s.Client.Del(ctx, keys...).Result(); err != nil {
+		return err
+	}
+	return nil
+}

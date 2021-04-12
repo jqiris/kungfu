@@ -32,6 +32,7 @@ type StoreKeeper interface {
 	Get(key string) (interface{}, error)
 	GetInt(key string) int
 	GetString(key string) string
+	Del(keys ...string) error
 }
 
 func Set(key string, value interface{}, expire time.Duration) error {
@@ -48,4 +49,8 @@ func GetInt(key string) int {
 }
 func GetString(key string) string {
 	return defStoreKeeper.GetString(key)
+}
+
+func Del(keys ...string) error {
+	return defStoreKeeper.Del(keys...)
 }
