@@ -15,7 +15,8 @@ func TestRpc(t *testing.T) {
 		ServerId:   1001,
 		ServerType: treaty.ServerType_Balancer,
 		ServerName: "gate",
-		ServerHost: "127.0.0.1:123",
+		ServerIp:   "127.0.0.1",
+		ServerPort: 123,
 	}
 	w1 := rpcx.NewRpcBalancer(cfg)
 	if err := w1.Subscribe(s1, func(req []byte) []byte {
@@ -35,7 +36,8 @@ func TestRpc(t *testing.T) {
 		ServerId:   1002,
 		ServerType: treaty.ServerType_Connector,
 		ServerName: "connector",
-		ServerHost: "127.0.0.1:456",
+		ServerIp:   "127.0.0.1",
+		ServerPort: 456,
 	}
 	w2 := rpcx.NewRpcConnector(cfg)
 	if err := w2.Subscribe(s2, func(req []byte) []byte {
@@ -55,7 +57,8 @@ func TestRpc(t *testing.T) {
 		ServerId:   1003,
 		ServerType: treaty.ServerType_Game,
 		ServerName: "game",
-		ServerHost: "127.0.0.1:789",
+		ServerIp:   "127.0.0.1",
+		ServerPort: 789,
 	}
 	w3 := rpcx.NewRpcServer(cfg)
 	if err := w3.Subscribe(s3, func(req []byte) []byte {

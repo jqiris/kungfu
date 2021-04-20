@@ -11,7 +11,8 @@ func TestEtcdDisCover(t *testing.T) {
 		ServerId:   1001,
 		ServerType: treaty.ServerType_Balancer,
 		ServerName: "gate",
-		ServerHost: "127.0.0.1:1234",
+		ServerIp:   "127.0.0.1",
+		ServerPort: 1234,
 	}
 	////reg server
 	//err := discover.Register(server)

@@ -16,7 +16,6 @@ import (
 type BaseBalancer struct {
 	Server       *treaty.Server
 	Rpcx         rpcx.RpcBalancer
-	ClientPort   int //客户端端口
 	ClientServer *http.Server
 	ClientCoder  coder.Coder
 }
@@ -47,7 +46,7 @@ func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
 }
 func (b *BaseBalancer) Init() {
 	//set the server
-	b.ClientServer = &http.Server{Addr: fmt.Sprintf(":%d", b.ClientPort)}
+	b.ClientServer = &http.Server{Addr: fmt.Sprintf(":%d", b.Server.ClientPort)}
 	//handle the blance
 	http.HandleFunc("/blance", b.HandleBalance)
 	//run the server

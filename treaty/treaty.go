@@ -7,7 +7,8 @@ var (
 )
 
 const (
-	MinServerId = 1000
+	MinServerId       = 1000
+	MessageHeaderSize = 20
 )
 
 //server entity
