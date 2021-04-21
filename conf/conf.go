@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"github.com/jqiris/zinx/utils"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
@@ -40,4 +41,8 @@ func GetStoresConf() StoresConf {
 
 func GetCoderConf() CoderConf {
 	return config.Coder
+}
+
+func GetConnectorConf() utils.GlobalObj {
+	return config.Connector
 }

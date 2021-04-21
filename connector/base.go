@@ -2,6 +2,7 @@ package connector
 
 import (
 	"github.com/jqiris/kungfu/coder"
+	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/jqiris/zinx/ziface"
@@ -17,8 +18,8 @@ type BaseConnector struct {
 
 func (b *BaseConnector) Init() {
 	//run the front server
-	b.ClientServer = znet.NewServer()
-	b.ClientServer.Serve()
+	b.ClientServer = znet.NewServer(conf.GetConnectorConf())
+	go b.ClientServer.Serve()
 }
 
 func (b *BaseConnector) AfterInit() {
