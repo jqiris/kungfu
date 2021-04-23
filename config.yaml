@@ -17,9 +17,8 @@ stores:
       - "127.0.0.1:6379"
 coder:
     use_type: proto
+balancer:
+    - {server_id: 1001, name: "kungfu balancer", host: "0.0.0.0", http_port: 8188}
 connector:
-    name: "kungfu connector"
-    host: "0.0.0.0"
-    tcp_port: 8999
-    max_conn: 3000
-    worker_pool_size: 10
+    - {server_id: 2001, name: "kungfu connector",host: "0.0.0.0",tcp_port: 8999,max_conn: 3000, worker_pool_size: 10}
+

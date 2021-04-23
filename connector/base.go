@@ -2,24 +2,25 @@ package connector
 
 import (
 	"github.com/jqiris/kungfu/coder"
-	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/zinx/utils"
 	"github.com/jqiris/zinx/ziface"
 	"github.com/jqiris/zinx/znet"
 )
 
 type BaseConnector struct {
-	Server       *treaty.Server
-	Rpcx         rpcx.RpcConnector
-	ClientServer ziface.IServer
-	ClientCoder  coder.Coder
+	Server        *treaty.Server
+	Rpcx          rpcx.RpcConnector
+	ClientServer  ziface.IServer
+	ClientCoder   coder.Coder
+	ConnectorConf utils.GlobalObj
 }
 
 func (b *BaseConnector) Init() {
 	//run the front server
-	b.ClientServer = znet.NewServer(conf.GetConnectorConf())
+	b.ClientServer = znet.NewServer(b.ConnectorConf)
 	go b.ClientServer.Serve()
 }
 

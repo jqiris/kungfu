@@ -3,14 +3,15 @@ package balancer
 import (
 	"errors"
 	"fmt"
+	"math/rand"
+	"net/http"
+
 	"github.com/apex/log"
 	"github.com/jqiris/kungfu/coder"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/stores"
 	"github.com/jqiris/kungfu/treaty"
-	"math/rand"
-	"net/http"
 )
 
 type BaseBalancer struct {
@@ -45,6 +46,7 @@ func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (b *BaseBalancer) Init() {
+
 	//set the server
 	b.ClientServer = &http.Server{Addr: fmt.Sprintf(":%d", b.Server.ClientPort)}
 	//handle the blance

@@ -1,10 +1,11 @@
 package conf
 
 import (
+	"io/ioutil"
+
 	"github.com/jqiris/zinx/utils"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
 )
 
 var (
@@ -43,6 +44,10 @@ func GetCoderConf() CoderConf {
 	return config.Coder
 }
 
-func GetConnectorConf() utils.GlobalObj {
+func GetConnectorConf() []utils.GlobalObj {
 	return config.Connector
+}
+
+func GetBalancerConf() []BalancerConf {
+	return config.Balancer
 }
