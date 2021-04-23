@@ -26,7 +26,7 @@ func (b *BaseBackEnd) AfterInit() {
 		logger.Error(err)
 	}
 	if err := b.Rpcx.SubscribeServer(func(req []byte) []byte {
-		logger.Infof("BaseBalancer SubscribeBalancer received: %+v", req)
+		logger.Infof("BaseBackEnd SubscribeServer received: %+v", req)
 		return nil
 	}); err != nil {
 		logger.Error(err)
