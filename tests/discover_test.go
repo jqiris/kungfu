@@ -1,9 +1,10 @@
 package tests
 
 import (
+	"testing"
+
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/treaty"
-	"testing"
 )
 
 func TestEtcdDisCover(t *testing.T) {
@@ -12,7 +13,7 @@ func TestEtcdDisCover(t *testing.T) {
 		ServerType: treaty.ServerType_Balancer,
 		ServerName: "gate",
 		ServerIp:   "127.0.0.1",
-		ServerPort: 1234,
+		ClientPort: 1234,
 	}
 	////reg server
 	//err := discover.Register(server)

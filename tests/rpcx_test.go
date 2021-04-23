@@ -2,10 +2,11 @@ package tests
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/treaty"
-	"testing"
 )
 
 func TestRpc(t *testing.T) {
@@ -16,7 +17,7 @@ func TestRpc(t *testing.T) {
 		ServerType: treaty.ServerType_Balancer,
 		ServerName: "gate",
 		ServerIp:   "127.0.0.1",
-		ServerPort: 123,
+		ClientPort: 123,
 	}
 	w1 := rpcx.NewRpcBalancer(cfg)
 	if err := w1.Subscribe(s1, func(req []byte) []byte {
@@ -37,7 +38,7 @@ func TestRpc(t *testing.T) {
 		ServerType: treaty.ServerType_Connector,
 		ServerName: "connector",
 		ServerIp:   "127.0.0.1",
-		ServerPort: 456,
+		ClientPort: 456,
 	}
 	w2 := rpcx.NewRpcConnector(cfg)
 	if err := w2.Subscribe(s2, func(req []byte) []byte {
@@ -58,7 +59,7 @@ func TestRpc(t *testing.T) {
 		ServerType: treaty.ServerType_Game,
 		ServerName: "game",
 		ServerIp:   "127.0.0.1",
-		ServerPort: 789,
+		ClientPort: 789,
 	}
 	w3 := rpcx.NewRpcServer(cfg)
 	if err := w3.Subscribe(s3, func(req []byte) []byte {
