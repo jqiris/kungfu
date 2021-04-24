@@ -47,3 +47,11 @@ func (b *BaseBackEnd) BeforeShutdown() {
 func (b *BaseBackEnd) Shutdown() {
 	//shutdown server
 }
+
+func (b *BaseBackEnd) GetServerId() int32 {
+	return b.Server.ServerId
+}
+
+func (b *BaseBackEnd) GetServerType() treaty.ServerType {
+	return b.Server.ServerType
+}

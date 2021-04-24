@@ -28,6 +28,11 @@ message Server{
   int32  client_port = 5;
 }
 
+message Launch{
+  int32 server_id = 1;
+  ServerType server_type = 2;
+}
+
 message BalanceResult{
   CodeType code =1 ; //0-成功 1-失败
   Server server = 2;

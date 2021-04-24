@@ -56,3 +56,7 @@ func GetBalancerConf() []*treaty.Server {
 func GetBackendConf() []*treaty.Server {
 	return config.Backend
 }
+
+func GetLauchConf() []*treaty.Launch {
+	return config.Launch
+}

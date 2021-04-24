@@ -116,3 +116,11 @@ func (b *BaseBalancer) Balance(remoteAddr string) (*treaty.Server, error) {
 	}
 	return nil, errors.New("no suitable connector found")
 }
+
+func (b *BaseBalancer) GetServerId() int32 {
+	return b.Server.ServerId
+}
+
+func (b *BaseBalancer) GetServerType() treaty.ServerType {
+	return b.Server.ServerType
+}

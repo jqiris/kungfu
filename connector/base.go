@@ -57,3 +57,11 @@ func (b *BaseConnector) Shutdown() {
 		b.ClientServer.Stop()
 	}
 }
+
+func (b *BaseConnector) GetServerId() int32 {
+	return b.Server.ServerId
+}
+
+func (b *BaseConnector) GetServerType() treaty.ServerType {
+	return b.Server.ServerType
+}

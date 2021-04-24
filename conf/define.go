@@ -5,15 +5,15 @@ import (
 	"github.com/jqiris/zinx/utils"
 )
 
-
 type Config struct {
-	Discover  DiscoverConf      `json:"discover"`
-	Rpcx      RpcxConf          `json:"rpcx"`
-	Stores    StoresConf        `json:"stores"`
-	Coder     CoderConf         `json:"coder"`
-	Balancer  []*treaty.Server    `json:"balancer"`
-	Connector []*utils.GlobalObj  `json:"connector"`
-	Backend   []*treaty.Server    `json:"backend"`
+	Discover  DiscoverConf       `json:"discover"`
+	Rpcx      RpcxConf           `json:"rpcx"`
+	Stores    StoresConf         `json:"stores"`
+	Coder     CoderConf          `json:"coder"`
+	Balancer  []*treaty.Server   `json:"balancer"`
+	Connector []*utils.GlobalObj `json:"connector"`
+	Backend   []*treaty.Server   `json:"backend"`
+	Launch    []*treaty.Launch   `json:"launch"`
 }
 
 type DiscoverConf struct {

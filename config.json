@@ -2,21 +2,29 @@
   "discover": {
     "use_type": "etcd",
     "dial_timeout": 5,
-    "endpoints": ["127.0.0.1:2379"]
+    "endpoints": [
+      "127.0.0.1:2379"
+    ]
   },
   "rpcx": {
     "use_type": "nats",
     "dial_timeout": 5,
-    "endpoints": ["nats://127.0.0.1:4222"]
+    "endpoints": [
+      "nats://127.0.0.1:4222"
+    ]
   },
   "stores": {
     "use_type": "redis",
     "dial_timeout": 5,
-    "endpoints": ["127.0.0.1:6379"],
+    "endpoints": [
+      "127.0.0.1:6379"
+    ],
     "password": "",
     "db": 0
   },
-  "coder": { "use_type": "proto" },
+  "coder": {
+    "use_type": "proto"
+  },
   "balancer": [
     {
       "server_id": 1001,
@@ -44,6 +52,20 @@
       "server_name": "kungfu backend",
       "server_ip": "0.0.0.0",
       "client_port": 8388
+    }
+  ],
+  "launch": [
+    {
+      "server_id": 1001,
+      "server_type": 1
+    },
+    {
+      "server_id": 2001,
+      "server_type": 2
+    },
+    {
+      "server_id": 3001,
+      "server_type": 3
     }
   ]
 }
