@@ -21,7 +21,7 @@ enum MsgId{
 }
 
 message Server{
-  int32 server_id = 1; //唯一的
+  int32 server_id = 1;
   ServerType server_type = 2;
   string server_name = 3;
   string server_ip = 4;
@@ -31,12 +31,4 @@ message Server{
 message BalanceResult{
   CodeType code =1 ; //0-成功 1-失败
   Server server = 2;
-}
-
-message MessageHeader{
-  int32 data_len = 1;
-  int32 server_type = 2;
-  int32 server_id = 3;
-  int32 connector_id = 4;
-  int32 message_id = 5;
 }

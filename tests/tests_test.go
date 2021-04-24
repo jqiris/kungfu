@@ -13,7 +13,7 @@ var (
 )
 
 func init() {
-	if err := conf.InitConf("../config.yaml"); err != nil {
+	if err := conf.InitConf("../config.json"); err != nil {
 		logger.Fatal(err)
 	}
 	//init discover

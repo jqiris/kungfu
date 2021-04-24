@@ -1,43 +1,40 @@
 package conf
 
-import "github.com/jqiris/zinx/utils"
+import (
+	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/zinx/utils"
+)
+
 
 type Config struct {
-	Discover  DiscoverConf      `yaml:"discover"`
-	Rpcx      RpcxConf          `yaml:"rpcx"`
-	Stores    StoresConf        `yaml:"stores"`
-	Coder     CoderConf         `yaml:"coder"`
-	Balancer  []BalancerConf    `yaml:"balancer"`
-	Connector []utils.GlobalObj `yaml:"connector"`
+	Discover  DiscoverConf      `json:"discover"`
+	Rpcx      RpcxConf          `json:"rpcx"`
+	Stores    StoresConf        `json:"stores"`
+	Coder     CoderConf         `json:"coder"`
+	Balancer  []treaty.Server    `json:"balancer"`
+	Connector []utils.GlobalObj `json:"connector"`
 }
 
 type DiscoverConf struct {
-	UseType     string   `yaml:"use_type"`
-	DialTimeout int      `yaml:"dial_timeout"`
-	Endpoints   []string `yaml:"endpoints"`
+	UseType     string   `json:"use_type"`
+	DialTimeout int      `json:"dial_timeout"`
+	Endpoints   []string `json:"endpoints"`
 }
 
 type RpcxConf struct {
-	UseType     string   `yaml:"use_type"`
-	DialTimeout int      `yaml:"dial_timeout"`
-	Endpoints   []string `yaml:"endpoints"`
+	UseType     string   `json:"use_type"`
+	DialTimeout int      `json:"dial_timeout"`
+	Endpoints   []string `json:"endpoints"`
 }
 
 type StoresConf struct {
-	UseType     string   `yaml:"use_type"`
-	DialTimeout int      `yaml:"dial_timeout"`
-	Endpoints   []string `yaml:"endpoints"`
-	Password    string   `yaml:"password"`
-	DB          int      `yaml:"db"`
+	UseType     string   `json:"use_type"`
+	DialTimeout int      `json:"dial_timeout"`
+	Endpoints   []string `json:"endpoints"`
+	Password    string   `json:"password"`
+	DB          int      `json:"db"`
 }
 
 type CoderConf struct {
-	UseType string `yaml:"use_type"`
-}
-
-type BalancerConf struct {
-	ServerId int    `yaml:"server_id"`
-	Name     string `yaml:"name"`
-	Host     string `yaml:"host"`
-	HttpPort int    `yaml:"http_port"`
+	UseType string `json:"use_type"`
 }

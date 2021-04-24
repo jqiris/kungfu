@@ -1,11 +1,12 @@
 package conf
 
 import (
+	"encoding/json"
 	"io/ioutil"
 
+	"github.com/jqiris/kungfu/treaty"
 	"github.com/jqiris/zinx/utils"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -19,9 +20,9 @@ func InitConf(filename string) error {
 		logger.Error("read file: %v error:%v", filename, err)
 		return err
 	}
-	err = yaml.Unmarshal(content, config)
+	err = json.Unmarshal(content, config)
 	if err != nil {
-		logger.Error("decode yaml error: %v", err)
+		logger.Error("decode json error: %v", err)
 		return err
 	}
 	logger.Warnf("the conf is:%+v", config)
@@ -48,6 +49,6 @@ func GetConnectorConf() []utils.GlobalObj {
 	return config.Connector
 }
 
-func GetBalancerConf() []BalancerConf {
+func GetBalancerConf() []treaty.Server {
 	return config.Balancer
 }
