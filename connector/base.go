@@ -15,12 +15,12 @@ type BaseConnector struct {
 	Rpcx          rpcx.RpcConnector
 	ClientServer  ziface.IServer
 	ClientCoder   coder.Coder
-	ConnectorConf utils.GlobalObj
+	ConnectorConf *utils.GlobalObj
 }
 
 func (b *BaseConnector) Init() {
 	//run the front server
-	b.ClientServer = znet.NewServer(b.ConnectorConf)
+	b.ClientServer = znet.NewServer(*b.ConnectorConf)
 	go b.ClientServer.Serve()
 }
 

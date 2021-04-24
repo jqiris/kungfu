@@ -11,8 +11,9 @@ type Config struct {
 	Rpcx      RpcxConf          `json:"rpcx"`
 	Stores    StoresConf        `json:"stores"`
 	Coder     CoderConf         `json:"coder"`
-	Balancer  []treaty.Server    `json:"balancer"`
-	Connector []utils.GlobalObj `json:"connector"`
+	Balancer  []*treaty.Server    `json:"balancer"`
+	Connector []*utils.GlobalObj  `json:"connector"`
+	Backend   []*treaty.Server    `json:"backend"`
 }
 
 type DiscoverConf struct {

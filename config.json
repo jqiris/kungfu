@@ -32,9 +32,18 @@
       "server_type": 2,
       "server_name": "kungfu connector",
       "server_ip": "0.0.0.0",
-      "client_port": 8999,
+      "client_port": 8288,
       "max_conn": 3000,
       "worker_pool_size": 10
+    }
+  ],
+  "backend": [
+    {
+      "server_id": 3001,
+      "server_type": 3,
+      "server_name": "kungfu backend",
+      "server_ip": "0.0.0.0",
+      "client_port": 8388
     }
   ]
 }

@@ -45,10 +45,14 @@ func GetCoderConf() CoderConf {
 	return config.Coder
 }
 
-func GetConnectorConf() []utils.GlobalObj {
+func GetConnectorConf() []*utils.GlobalObj {
 	return config.Connector
 }
 
-func GetBalancerConf() []treaty.Server {
+func GetBalancerConf() []*treaty.Server {
 	return config.Balancer
+}
+
+func GetBackendConf() []*treaty.Server {
+	return config.Backend
 }
