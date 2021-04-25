@@ -57,6 +57,6 @@ func GetBackendConf() []*treaty.Server {
 	return config.Backend
 }
 
-func GetLauchConf() []*treaty.Launch {
+func GetLauchConf() []int32 {
 	return config.Launch
 }

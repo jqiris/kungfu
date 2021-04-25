@@ -13,7 +13,7 @@ type Config struct {
 	Balancer  []*treaty.Server   `json:"balancer"`
 	Connector []*utils.GlobalObj `json:"connector"`
 	Backend   []*treaty.Server   `json:"backend"`
-	Launch    []*treaty.Launch   `json:"launch"`
+	Launch    []int32            `json:"launch"`
 }
 
 type DiscoverConf struct {
