@@ -24,6 +24,7 @@ func (b *BaseBackEnd) Init() {
 	}
 	//init the rpcx
 	b.Rpcx = rpcx.NewRpcServer(conf.GetRpcxConf())
+	logger.Infoln("init the backend:", b.ServerId)
 }
 
 func (b *BaseBackEnd) AfterInit() {

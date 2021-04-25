@@ -68,6 +68,7 @@ func (b *BaseBalancer) Init() {
 			log.Error(err.Error())
 		}
 	}()
+	logger.Infoln("init the balancer:", b.ServerId)
 }
 
 func (b *BaseBalancer) AfterInit() {

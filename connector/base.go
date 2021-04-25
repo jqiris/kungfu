@@ -41,6 +41,8 @@ func (b *BaseConnector) Init() {
 	//run the front server
 	b.ClientServer = znet.NewServer(*b.ConnectorConf)
 	go b.ClientServer.Serve()
+
+	logger.Infoln("init the connector:", b.ServerId)
 }
 
 func (b *BaseConnector) AfterInit() {
