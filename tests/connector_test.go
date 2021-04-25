@@ -12,5 +12,6 @@ func TestConnector(t *testing.T) {
 	cont := &connector.BaseConnector{
 		ConnectorConf: confs[0],
 	}
+	cont.SetServerId(2001)
 	cont.Init()
 }

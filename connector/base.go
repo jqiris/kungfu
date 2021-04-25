@@ -2,7 +2,9 @@ package connector
 
 import (
 	"github.com/jqiris/kungfu/coder"
+	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/discover"
+	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/jqiris/zinx/utils"
@@ -11,6 +13,7 @@ import (
 )
 
 type BaseConnector struct {
+	ServerId              int32
 	Server                *treaty.Server
 	Rpcx                  rpcx.RpcConnector
 	ClientServer          ziface.IServer
@@ -21,6 +24,20 @@ type BaseConnector struct {
 }
 
 func (b *BaseConnector) Init() {
+	//find the  server config
+	if b.ConnectorConf = helper.FindConnectorConfig(conf.GetConnectorConf(), b.GetServerId()); b.ConnectorConf == nil {
+		logger.Fatal("BaseConnector can find the server config")
+	} else {
+		b.Server = &treaty.Server{
+			ServerId:   b.ConnectorConf.ServerId,
+			ServerType: treaty.ServerType(b.ConnectorConf.ServerType),
+			ServerName: b.ConnectorConf.ServerName,
+			ServerIp:   b.ConnectorConf.ServerIp,
+			ClientPort: int32(b.ConnectorConf.ClientPort),
+		}
+	}
+	//init the rpcx
+	b.Rpcx = rpcx.NewRpcConnector(conf.GetRpcxConf())
 	//run the front server
 	b.ClientServer = znet.NewServer(*b.ConnectorConf)
 	go b.ClientServer.Serve()
@@ -70,4 +87,11 @@ func (b *BaseConnector) RegEventHandlerSelf(handler func(req []byte) []byte) { /
 
 func (b *BaseConnector) RegEventHandlerBroadcast(handler func(req []byte) []byte) { //注册广播事件处理器
 	b.EventHandlerBroadcast = handler
+}
+func (b *BaseConnector) SetServerId(serverId int32) {
+	b.ServerId = serverId
+}
+
+func (b *BaseConnector) GetServerId() int32 {
+	return b.ServerId
 }

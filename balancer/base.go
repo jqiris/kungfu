@@ -8,13 +8,16 @@ import (
 
 	"github.com/apex/log"
 	"github.com/jqiris/kungfu/coder"
+	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/discover"
+	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/stores"
 	"github.com/jqiris/kungfu/treaty"
 )
 
 type BaseBalancer struct {
+	ServerId              int32
 	Server                *treaty.Server
 	Rpcx                  rpcx.RpcBalancer
 	ClientServer          *http.Server
@@ -48,7 +51,12 @@ func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (b *BaseBalancer) Init() {
-
+	//find the  server config
+	if b.Server = helper.FindServerConfig(conf.GetBalancerConf(), b.GetServerId()); b.Server == nil {
+		logger.Fatal("BaseBalancer can find the server config")
+	}
+	//init the rpcx
+	b.Rpcx = rpcx.NewRpcBalancer(conf.GetRpcxConf())
 	//set the server
 	b.ClientServer = &http.Server{Addr: fmt.Sprintf(":%d", b.Server.ClientPort)}
 	//handle the blance
@@ -129,4 +137,11 @@ func (b *BaseBalancer) RegEventHandlerSelf(handler func(req []byte) []byte) { //
 
 func (b *BaseBalancer) RegEventHandlerBroadcast(handler func(req []byte) []byte) { //注册广播事件处理器
 	b.EventHandlerBroadcast = handler
+}
+func (b *BaseBalancer) SetServerId(serverId int32) {
+	b.ServerId = serverId
+}
+
+func (b *BaseBalancer) GetServerId() int32 {
+	return b.ServerId
 }

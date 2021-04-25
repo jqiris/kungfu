@@ -22,4 +22,6 @@ type ServerEntity interface {
 	GetServer() *Server                                       //获取服务
 	RegEventHandlerSelf(handler func(req []byte) []byte)      //注册自己事件处理器
 	RegEventHandlerBroadcast(handler func(req []byte) []byte) //注册广播事件处理器
+	SetServerId(serverId int32)                               //设置SetServerId
+	GetServerId() int32                                       //获取serverId
 }

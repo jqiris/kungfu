@@ -1,13 +1,16 @@
 package backend
 
 import (
+	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/discover"
+	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/treaty"
 )
 
 //mt BackEnd
 type BaseBackEnd struct {
+	ServerId              int32
 	Server                *treaty.Server
 	Rpcx                  rpcx.RpcServer
 	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
@@ -15,8 +18,12 @@ type BaseBackEnd struct {
 }
 
 func (b *BaseBackEnd) Init() {
-	//run the server
-
+	//find the  server config
+	if b.Server = helper.FindServerConfig(conf.GetBackendConf(), b.GetServerId()); b.Server == nil {
+		logger.Fatal("BaseBackEnd can find the server config")
+	}
+	//init the rpcx
+	b.Rpcx = rpcx.NewRpcServer(conf.GetRpcxConf())
 }
 
 func (b *BaseBackEnd) AfterInit() {
@@ -60,4 +67,12 @@ func (b *BaseBackEnd) RegEventHandlerSelf(handler func(req []byte) []byte) { //�
 
 func (b *BaseBackEnd) RegEventHandlerBroadcast(handler func(req []byte) []byte) { //注册广播事件处理器
 	b.EventHandlerBroadcast = handler
+}
+
+func (b *BaseBackEnd) SetServerId(serverId int32) {
+	b.ServerId = serverId
+}
+
+func (b *BaseBackEnd) GetServerId() int32 {
+	return b.ServerId
 }
