@@ -60,3 +60,12 @@ func GetBackendConf() []*treaty.Server {
 func GetLauchConf() []int32 {
 	return config.Launch
 }
+
+func IsInLauch(serverId int32) bool {
+	for _, v := range config.Launch {
+		if v == serverId {
+			return true
+		}
+	}
+	return false
+}
