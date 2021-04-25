@@ -56,6 +56,7 @@ func (b *BaseBackEnd) BeforeShutdown() {
 
 func (b *BaseBackEnd) Shutdown() {
 	//shutdown server
+	logger.Infoln("stop the backend:", b.ServerId)
 }
 
 func (b *BaseBackEnd) GetServer() *treaty.Server {

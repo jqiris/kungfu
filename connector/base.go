@@ -77,6 +77,7 @@ func (b *BaseConnector) Shutdown() {
 	if b.ClientServer != nil {
 		b.ClientServer.Stop()
 	}
+	logger.Infoln("stop the connector:", b.ServerId)
 }
 
 func (b *BaseConnector) GetServer() *treaty.Server {

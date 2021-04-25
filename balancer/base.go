@@ -104,6 +104,7 @@ func (b *BaseBalancer) Shutdown() {
 			logger.Error(err)
 		}
 	}
+	logger.Infoln("stop the balancer:", b.ServerId)
 }
 
 func (b *BaseBalancer) Balance(remoteAddr string) (*treaty.Server, error) {
