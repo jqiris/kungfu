@@ -12,34 +12,34 @@ var (
 )
 
 func RegisterServer(server treaty.ServerEntity) {
-	if _, ok := servers[server.GetServerId()]; !ok {
-		servers[server.GetServerId()] = server
+	conf := server.GetServer()
+	if _, ok := servers[conf.ServerId]; !ok {
+		servers[conf.ServerId] = server
 	} else {
 		logger.Errorf("RegisterServer duplicate, error: %+v", server)
 	}
 }
 
 func UnRegisterServer(server treaty.ServerEntity) {
-	delete(servers, server.GetServerId())
+	conf := server.GetServer()
+	delete(servers, conf.ServerId)
 }
 
 func LaunchServers(done chan struct{}) {
-	//init servers
+	//run servers
 	for _, server := range servers {
-		go server.Init()
+		go func(srv treaty.ServerEntity) {
+			srv.Init()
+			srv.AfterInit()
+		}(server)
 	}
 
-	//after init servers
-	for _, server := range servers {
-		go server.AfterInit()
-	}
 	<-done
-	//server stop
+	//stop servers
 	for _, server := range servers {
-		go server.BeforeShutdown()
-	}
-
-	for _, server := range servers {
-		go server.Shutdown()
+		go func(srv treaty.ServerEntity) {
+			srv.BeforeShutdown()
+			srv.Shutdown()
+		}(server)
 	}
 }

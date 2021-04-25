@@ -8,8 +8,10 @@ import (
 
 //mt BackEnd
 type BaseBackEnd struct {
-	Server *treaty.Server
-	Rpcx   rpcx.RpcServer
+	Server                *treaty.Server
+	Rpcx                  rpcx.RpcServer
+	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
+	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
 }
 
 func (b *BaseBackEnd) Init() {
@@ -21,13 +23,13 @@ func (b *BaseBackEnd) AfterInit() {
 	//Subscribe event
 	if err := b.Rpcx.Subscribe(b.Server, func(req []byte) []byte {
 		logger.Infof("BaseBackEnd Subscribe received: %+v", req)
-		return nil
+		return b.EventHandlerSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
 	if err := b.Rpcx.SubscribeServer(func(req []byte) []byte {
 		logger.Infof("BaseBackEnd SubscribeServer received: %+v", req)
-		return nil
+		return b.EventHandlerBroadcast(req)
 	}); err != nil {
 		logger.Error(err)
 	}
@@ -48,10 +50,14 @@ func (b *BaseBackEnd) Shutdown() {
 	//shutdown server
 }
 
-func (b *BaseBackEnd) GetServerId() int32 {
-	return b.Server.ServerId
+func (b *BaseBackEnd) GetServer() *treaty.Server {
+	return b.Server
 }
 
-func (b *BaseBackEnd) GetServerType() treaty.ServerType {
-	return b.Server.ServerType
+func (b *BaseBackEnd) RegEventHandlerSelf(handler func(req []byte) []byte) { //注册自己事件处理器
+	b.EventHandlerSelf = handler
+}
+
+func (b *BaseBackEnd) RegEventHandlerBroadcast(handler func(req []byte) []byte) { //注册广播事件处理器
+	b.EventHandlerBroadcast = handler
 }

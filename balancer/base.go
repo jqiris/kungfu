@@ -15,10 +15,12 @@ import (
 )
 
 type BaseBalancer struct {
-	Server       *treaty.Server
-	Rpcx         rpcx.RpcBalancer
-	ClientServer *http.Server
-	ClientCoder  coder.Coder
+	Server                *treaty.Server
+	Rpcx                  rpcx.RpcBalancer
+	ClientServer          *http.Server
+	ClientCoder           coder.Coder
+	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
+	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
 }
 
 func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
@@ -64,13 +66,13 @@ func (b *BaseBalancer) AfterInit() {
 	//Subscribe event
 	if err := b.Rpcx.Subscribe(b.Server, func(req []byte) []byte {
 		logger.Infof("BaseBalancer Subscribe received: %+v", req)
-		return nil
+		return b.EventHandlerSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
 	if err := b.Rpcx.SubscribeBalancer(func(req []byte) []byte {
 		logger.Infof("BaseBalancer SubscribeBalancer received: %+v", req)
-		return nil
+		return b.EventHandlerBroadcast(req)
 	}); err != nil {
 		logger.Error(err)
 	}
@@ -117,10 +119,14 @@ func (b *BaseBalancer) Balance(remoteAddr string) (*treaty.Server, error) {
 	return nil, errors.New("no suitable connector found")
 }
 
-func (b *BaseBalancer) GetServerId() int32 {
-	return b.Server.ServerId
+func (b *BaseBalancer) GetServer() *treaty.Server {
+	return b.Server
 }
 
-func (b *BaseBalancer) GetServerType() treaty.ServerType {
-	return b.Server.ServerType
+func (b *BaseBalancer) RegEventHandlerSelf(handler func(req []byte) []byte) { //注册自己事件处理器
+	b.EventHandlerSelf = handler
+}
+
+func (b *BaseBalancer) RegEventHandlerBroadcast(handler func(req []byte) []byte) { //注册广播事件处理器
+	b.EventHandlerBroadcast = handler
 }
