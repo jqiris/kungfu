@@ -58,7 +58,7 @@ func (b *BaseBalancer) Init() {
 	//init the rpcx
 	b.Rpcx = rpcx.NewRpcBalancer(conf.GetRpcxConf())
 	//set the server
-	b.ClientServer = &http.Server{Addr: fmt.Sprintf(":%d", b.Server.ClientPort)}
+	b.ClientServer = &http.Server{Addr: fmt.Sprintf("%s:%d", b.Server.ServerIp, b.Server.ClientPort)}
 	//handle the blance
 	http.HandleFunc("/blance", b.HandleBalance)
 	//run the server
