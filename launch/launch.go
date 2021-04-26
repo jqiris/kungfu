@@ -1,8 +1,6 @@
 package launch
 
 import (
-	"sync"
-
 	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/sirupsen/logrus"
@@ -10,16 +8,14 @@ import (
 
 //服务器集群管理
 var (
-	logger     = logrus.WithField("package", "launch")
-	servers    map[int32]treaty.ServerEntity
-	launched   map[int32]treaty.ServerEntity
-	launchLock *sync.Mutex
+	logger   = logrus.WithField("package", "launch")
+	servers  map[int32]treaty.ServerEntity
+	launched map[int32]treaty.ServerEntity
 )
 
 func init() {
 	servers = make(map[int32]treaty.ServerEntity)
 	launched = make(map[int32]treaty.ServerEntity)
-	launchLock = new(sync.Mutex)
 }
 
 func RegisterServer(server treaty.ServerEntity) {
@@ -38,22 +34,16 @@ func LaunchServers(done chan struct{}) {
 	//run servers
 	for _, server := range servers {
 		if conf.IsInLauch(server.GetServerId()) {
-			go func(srv treaty.ServerEntity) {
-				srv.Init()
-				srv.AfterInit()
-				launchLock.Lock()
-				defer launchLock.Unlock()
-				launched[srv.GetServerId()] = srv
-			}(server)
+			server.Init()
+			server.AfterInit()
+			launched[server.GetServerId()] = server
 		}
 	}
 
 	<-done
 	//stop servers
 	for _, server := range launched {
-		go func(srv treaty.ServerEntity) {
-			srv.BeforeShutdown()
-			srv.Shutdown()
-		}(server)
+		server.BeforeShutdown()
+		server.Shutdown()
 	}
 }

@@ -57,10 +57,12 @@ func (b *BaseBalancer) Init() {
 	}
 	//init the rpcx
 	b.Rpcx = rpcx.NewRpcBalancer(conf.GetRpcxConf())
+	//init the coder
+	b.ClientCoder = coder.NewJsonCoder()
 	//set the server
 	b.ClientServer = &http.Server{Addr: fmt.Sprintf("%s:%d", b.Server.ServerIp, b.Server.ClientPort)}
 	//handle the blance
-	http.HandleFunc("/blance", b.HandleBalance)
+	http.HandleFunc("/balance", b.HandleBalance)
 	//run the server
 	go func() {
 		err := b.ClientServer.ListenAndServe()

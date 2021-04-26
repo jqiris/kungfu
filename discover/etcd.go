@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jqiris/kungfu/treaty"
-	"go.etcd.io/etcd/client/v3"
 	"time"
+
+	"github.com/jqiris/kungfu/treaty"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 //etcd discoverer
@@ -52,7 +53,9 @@ func (e *EtcdDiscoverer) Register(server *treaty.Server) error {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
-	if resp, err := kv.Put(ctx, "/server/"+server.RegId(), server.String()); err != nil {
+	key, val := "/server/"+server.RegId(), server.String()
+	logger.Infof("discover Register server,k=>v,%s=>%s", key, val)
+	if resp, err := kv.Put(ctx, key, val); err != nil {
 		return err
 	} else {
 		logger.Infof("EtcdDiscoverer register resp:%+v", resp)
