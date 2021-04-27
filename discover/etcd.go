@@ -11,7 +11,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-//etcd discoverer
+// EtcdDiscoverer etcd discoverer
 type EtcdDiscoverer struct {
 	Config clientv3.Config
 	Client *clientv3.Client
@@ -30,7 +30,7 @@ func WithEtcdDialTimeOut(d time.Duration) EtcdOption {
 	}
 }
 
-//init EtcdDiscoverer
+// NewEtcdDiscoverer init EtcdDiscoverer
 func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 	e := &EtcdDiscoverer{}
 	for _, opt := range opts {
@@ -45,7 +45,7 @@ func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 	return e
 }
 
-//register
+// Register register
 func (e *EtcdDiscoverer) Register(server *treaty.Server) error {
 	if server.ServerId < treaty.MinServerId {
 		return errors.New("ServerId cannot less than MinServerId")
