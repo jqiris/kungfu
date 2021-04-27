@@ -1,6 +1,7 @@
 package balancer
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -114,8 +115,13 @@ func (b *BaseBalancer) Balance(remoteAddr string) (*treaty.Server, error) {
 	key := "/user_connector/" + remoteAddr
 	//find from store
 	if res, err := stores.Get(key); err == nil && res != nil {
-		if server, ok := res.(*treaty.Server); ok {
-			return server, nil
+		if srvStr, ok := res.(string); ok {
+			server := &treaty.Server{}
+			if err2 := json.Unmarshal([]byte(srvStr), server); err2 == nil{
+				return server, nil
+			} else {
+				logger.Errorf("BaseBalancer Balance err:%v", err2)
+			}
 		}
 	}
 	//find connector
@@ -123,7 +129,7 @@ func (b *BaseBalancer) Balance(remoteAddr string) (*treaty.Server, error) {
 	if listLen := len(list); listLen > 0 {
 		server := list[rand.Intn(listLen)]
 		//store the server
-		if err := stores.Set(key, server, 0); err != nil {
+		if err := stores.Set(key, server.Serialize(), 0); err != nil {
 			logger.Error(err)
 		}
 		return server, nil

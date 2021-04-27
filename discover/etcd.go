@@ -53,7 +53,7 @@ func (e *EtcdDiscoverer) Register(server *treaty.Server) error {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
-	key, val := "/server/"+server.RegId(), server.String()
+	key, val := "/server/"+server.RegId(), server.Serialize()
 	logger.Infof("discover Register server,k=>v,%s=>%s", key, val)
 	if resp, err := kv.Put(ctx, key, val); err != nil {
 		return err
