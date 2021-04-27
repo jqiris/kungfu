@@ -34,13 +34,12 @@ func main() {
 	coder.InitCoder(conf.GetCoderConf())
 
 	//launch servers
-	done := make(chan struct{}, 1)
-	launch.LaunchServers(done)
-	sg := make(chan os.Signal)
+	launch.Startup()
+	sg := make(chan os.Signal, 1)
 	signal.Notify(sg, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
 	select {
 	case s := <-sg:
-		close(done)
 		log.Println("server got shutdown signal", s)
 	}
+	launch.Shutdown()
 }

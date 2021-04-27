@@ -30,7 +30,8 @@ func UnRegisterServer(server treaty.ServerEntity) {
 	delete(servers, server.GetServerId())
 }
 
-func LaunchServers(done chan struct{}) {
+//Startup 启动服务器
+func Startup() {
 	//run servers
 	for _, server := range servers {
 		if conf.IsInLauch(server.GetServerId()) {
@@ -39,8 +40,10 @@ func LaunchServers(done chan struct{}) {
 			launched[server.GetServerId()] = server
 		}
 	}
+}
 
-	<-done
+//Shutdown 关闭服务器
+func Shutdown() {
 	//stop servers
 	for _, server := range launched {
 		server.BeforeShutdown()
