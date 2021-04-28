@@ -1,14 +1,7 @@
 syntax = "proto3";
 
 package treaty;
-option go_package = ".;treaty";
-
-enum ServerType{
-  SNone = 0;
-  Balancer = 1; //gate server
-  Connector = 2; //connector server
-  Game = 3; //game server
-}
+option go_package = "./.;treaty";
 
 enum CodeType{
   CodeSuccess = 0; //成功
@@ -21,14 +14,14 @@ enum MsgId{
 }
 
 message Server{
-  int32 server_id = 1;
-  ServerType server_type = 2;
-  string server_name = 3;
-  string server_ip = 4;
-  int32  client_port = 5;
+  string server_type = 1; //服务器类型
+  string server_id = 2; //服务器ID
+  string server_name = 3; //服务器名字
+  string server_ip = 4; //服务器IP
+  int32  client_port = 5; //客户端端口
 }
 
 message BalanceResult{
-  CodeType code =1 ; //0-成功 1-失败
+  CodeType code = 1; //0-成功 1-失败
   Server server = 2;
 }
