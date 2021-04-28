@@ -3,7 +3,9 @@
     "use_type": "etcd",
     "dial_timeout": 5,
     "endpoints": [
-      "127.0.0.1:2379"
+      "127.0.0.1:23791",
+      "127.0.0.1:23792",
+      "127.0.0.1:23793"
     ]
   },
   "rpcx": {
@@ -25,38 +27,34 @@
   "coder": {
     "use_type": "proto"
   },
-  "balancer": [
+  "servers": [
     {
-      "server_id": 1001,
-      "server_type": 1,
+      "server_id": "c123369d-39cb-4456-bedb-fa66449b4951",
+      "server_type": "balancer",
       "server_name": "kungfu balancer",
-      "server_ip": "0.0.0.0",
+      "server_ip": "127.0.0.1",
       "client_port": 8188
-    }
-  ],
-  "connector": [
+    },
     {
-      "server_id": 2001,
-      "server_type": 2,
+      "server_id": "6da239d1-2c13-4a09-ad4c-4df05c78b0dc",
+      "server_type": "connector",
       "server_name": "kungfu connector",
-      "server_ip": "0.0.0.0",
+      "server_ip": "127.0.0.1",
       "client_port": 8288,
       "max_conn": 3000,
       "worker_pool_size": 10
-    }
-  ],
-  "backend": [
+    },
     {
-      "server_id": 3001,
-      "server_type": 3,
+      "server_id": "bb3e1874-2441-4a00-9f1b-6600a14013d3",
+      "server_type": "backend",
       "server_name": "kungfu backend",
-      "server_ip": "0.0.0.0",
+      "server_ip": "127.0.0.1",
       "client_port": 8388
     }
   ],
   "launch": [
-    1001,
-    2001,
-    3001
+    "c123369d-39cb-4456-bedb-fa66449b4951",
+    "6da239d1-2c13-4a09-ad4c-4df05c78b0dc",
+    "bb3e1874-2441-4a00-9f1b-6600a14013d3"
   ]
 }
