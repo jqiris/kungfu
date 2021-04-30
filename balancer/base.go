@@ -1,10 +1,8 @@
 package balancer
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
 	"net/http"
 
 	"github.com/apex/log"
@@ -13,7 +11,6 @@ import (
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/rpcx"
-	"github.com/jqiris/kungfu/stores"
 	"github.com/jqiris/kungfu/treaty"
 )
 
@@ -111,29 +108,10 @@ func (b *BaseBalancer) Shutdown() {
 }
 
 func (b *BaseBalancer) Balance(remoteAddr string) (*treaty.Server, error) {
-	//set the key
-	key := "/user_connector/" + remoteAddr
-	//find from store
-	if res, err := stores.Get(key); err == nil && res != nil {
-		if srvStr, ok := res.(string); ok {
-			server := &treaty.Server{}
-			if err2 := json.Unmarshal([]byte(srvStr), server); err2 == nil {
-				return server, nil
-			} else {
-				logger.Errorf("BaseBalancer Balance err:%v", err2)
-			}
-		}
-	}
-	//find connector
-	list := discover.FindServer("connector")
-	if listLen := len(list); listLen > 0 {
-		server := list[rand.Intn(listLen)]
-		//store the server
-		if err := stores.Set(key, treaty.RegSerialize(server), 0); err != nil {
-			logger.Error(err)
-		}
+	if server := discover.GetServerByType("connector", remoteAddr); server != nil {
 		return server, nil
 	}
+
 	return nil, errors.New("no suitable connector found")
 }
 

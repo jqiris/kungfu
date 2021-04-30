@@ -2,6 +2,8 @@ package discover
 
 import (
 	"context"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/jqiris/kungfu/treaty"
@@ -12,8 +14,9 @@ import (
 type EtcdDiscoverer struct {
 	Config        clientv3.Config
 	Client        *clientv3.Client
-	ServerList    map[string]*treaty.Server
-	ServerTypeMap map[string]ServerTypeItem
+	ServerList    map[string]*treaty.Server  //serverid=>server
+	ServerTypeMap map[string]*ServerTypeItem //servertype=>serverTypeItem
+	ServerLock    *sync.RWMutex
 }
 type EtcdOption func(e *EtcdDiscoverer)
 
@@ -33,7 +36,8 @@ func WithEtcdDialTimeOut(d time.Duration) EtcdOption {
 func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 	e := &EtcdDiscoverer{
 		ServerList:    make(map[string]*treaty.Server),
-		ServerTypeMap: make(map[string]ServerTypeItem),
+		ServerTypeMap: make(map[string]*ServerTypeItem),
+		ServerLock:    new(sync.RWMutex),
 	}
 	for _, opt := range opts {
 		opt(e)
@@ -44,16 +48,32 @@ func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 		return nil
 	}
 	e.Client = cli
+	e.Init()
 	return e
 }
 
 // Init init
 func (e *EtcdDiscoverer) Init() {
+	//监听服务器变化
 	go e.Watcher()
+	//统计所有服务器
 	list := e.FindServerList()
 	if len(list) > 0 {
-
+		for k, v := range list {
+			e.ServerLock.Lock()
+			if _, ok := e.ServerTypeMap[k]; !ok {
+				item := NewServerTypeItem()
+				for _, vv := range v {
+					e.ServerList[vv.ServerId] = vv
+					item.list[vv.ServerId] = vv
+					item.hash.Add(vv.ServerId)
+				}
+				e.ServerTypeMap[k] = item
+			}
+			e.ServerLock.Unlock()
+		}
 	}
+	e.DumpServers()
 }
 
 func (e *EtcdDiscoverer) Watcher() {
@@ -67,9 +87,51 @@ func (e *EtcdDiscoverer) Watcher() {
 			}
 			for _, ev := range wresp.Events {
 				logger.Infof("%s %q %q", ev.Type, ev.Kv.Key, ev.Kv.Value)
+				switch ev.Type {
+				case clientv3.EventTypePut:
+					if server, err := treaty.RegUnSerialize(ev.Kv.Value); err == nil {
+						e.ServerLock.Lock()
+						e.ServerList[server.ServerId] = server
+						if item, ok := e.ServerTypeMap[server.ServerType]; ok {
+							if _, ok := item.list[server.ServerId]; !ok {
+								item.hash.Add(server.ServerId)
+							}
+							item.list[server.ServerId] = server
+						} else {
+							item := NewServerTypeItem()
+							item.hash.Add(server.ServerId)
+							item.list[server.ServerId] = server
+							e.ServerTypeMap[server.ServerType] = item
+						}
+						e.ServerLock.Unlock()
+					}
+				case clientv3.EventTypeDelete:
+					ks := strings.Split(string(ev.Kv.Key), "/")
+					if len(ks) > 2 {
+						stype, sid := ks[len(ks)-2], ks[len(ks)-1]
+						e.ServerLock.Lock()
+						delete(e.ServerList, sid)
+						if item, ok := e.ServerTypeMap[stype]; ok {
+							if _, ok := item.list[sid]; ok {
+								item.hash.Remove(sid)
+								delete(item.list, sid)
+							}
+							if len(item.list) == 0 {
+								delete(e.ServerTypeMap, stype)
+							}
+						}
+						e.ServerLock.Unlock()
+					}
+				}
+				e.DumpServers()
 			}
 		}
 	}
+}
+
+func (e *EtcdDiscoverer) DumpServers() {
+	logger.Infof("the server list is:%+v", e.ServerList)
+	logger.Infof("the server type map is:%+v", e.ServerTypeMap)
 }
 
 // Register register
@@ -140,6 +202,32 @@ func (e *EtcdDiscoverer) FindServerList() map[string][]*treaty.Server {
 				}
 			}
 			return res
+		}
+	}
+	return nil
+}
+
+func (e *EtcdDiscoverer) GetServerList() map[string]*treaty.Server {
+	e.ServerLock.RLock()
+	defer e.ServerLock.RUnlock()
+	return e.ServerList
+}
+
+func (e *EtcdDiscoverer) GetServerById(serverId string) *treaty.Server {
+	e.ServerLock.RLock()
+	defer e.ServerLock.RUnlock()
+	if v, ok := e.ServerList[serverId]; ok {
+		return v
+	}
+	return nil
+}
+
+func (e *EtcdDiscoverer) GetServerByType(serverType, serverArg string) *treaty.Server {
+	e.ServerLock.RLock()
+	defer e.ServerLock.RUnlock()
+	if item, ok := e.ServerTypeMap[serverType]; ok {
+		if sid, err := item.hash.Get(serverArg); err == nil {
+			return item.list[sid]
 		}
 	}
 	return nil
