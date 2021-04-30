@@ -27,34 +27,36 @@
   "coder": {
     "use_type": "proto"
   },
-  "servers": [
-    {
-      "server_id": "c123369d-39cb-4456-bedb-fa66449b4951",
+  "servers": {
+    "balancer_1001": {
+      "server_id": "balancer_1001",
       "server_type": "balancer",
       "server_name": "kungfu balancer",
       "server_ip": "127.0.0.1",
       "client_port": 8188
     },
-    {
-      "server_id": "6da239d1-2c13-4a09-ad4c-4df05c78b0dc",
+    "connector_2001": {
+      "server_id": "connector_2001",
       "server_type": "connector",
       "server_name": "kungfu connector",
       "server_ip": "127.0.0.1",
-      "client_port": 8288,
-      "max_conn": 3000,
-      "worker_pool_size": 10
+      "client_port": 8288
     },
-    {
-      "server_id": "bb3e1874-2441-4a00-9f1b-6600a14013d3",
+    "backend_3001": {
+      "server_id": "backend_3001",
       "server_type": "backend",
       "server_name": "kungfu backend",
       "server_ip": "127.0.0.1",
       "client_port": 8388
     }
-  ],
+  },
+  "connector": {
+    "max_conn": 3000,
+    "worker_pool_size": 10
+  },
   "launch": [
-    "c123369d-39cb-4456-bedb-fa66449b4951",
-    "6da239d1-2c13-4a09-ad4c-4df05c78b0dc",
-    "bb3e1874-2441-4a00-9f1b-6600a14013d3"
+    "balancer_1001",
+    "connector_2001",
+    "backend_3001"
   ]
 }

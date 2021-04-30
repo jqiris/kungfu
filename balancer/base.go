@@ -18,7 +18,7 @@ import (
 )
 
 type BaseBalancer struct {
-	ServerId              int32
+	ServerId              string
 	Server                *treaty.Server
 	Rpcx                  rpcx.RpcBalancer
 	ClientServer          *http.Server
@@ -53,7 +53,7 @@ func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
 }
 func (b *BaseBalancer) Init() {
 	//find the  server config
-	if b.Server = helper.FindServerConfig(conf.GetBalancerConf(), b.GetServerId()); b.Server == nil {
+	if b.Server = helper.FindServerConfig(conf.GetServersConf(), b.GetServerId()); b.Server == nil {
 		logger.Fatal("BaseBalancer can find the server config")
 	}
 	//init the rpcx
@@ -117,7 +117,7 @@ func (b *BaseBalancer) Balance(remoteAddr string) (*treaty.Server, error) {
 	if res, err := stores.Get(key); err == nil && res != nil {
 		if srvStr, ok := res.(string); ok {
 			server := &treaty.Server{}
-			if err2 := json.Unmarshal([]byte(srvStr), server); err2 == nil{
+			if err2 := json.Unmarshal([]byte(srvStr), server); err2 == nil {
 				return server, nil
 			} else {
 				logger.Errorf("BaseBalancer Balance err:%v", err2)
@@ -125,7 +125,7 @@ func (b *BaseBalancer) Balance(remoteAddr string) (*treaty.Server, error) {
 		}
 	}
 	//find connector
-	list := discover.FindServer(treaty.ServerType_Connector)
+	list := discover.FindServer("connector")
 	if listLen := len(list); listLen > 0 {
 		server := list[rand.Intn(listLen)]
 		//store the server
@@ -148,10 +148,10 @@ func (b *BaseBalancer) RegEventHandlerSelf(handler func(req []byte) []byte) { //
 func (b *BaseBalancer) RegEventHandlerBroadcast(handler func(req []byte) []byte) { //注册广播事件处理器
 	b.EventHandlerBroadcast = handler
 }
-func (b *BaseBalancer) SetServerId(serverId int32) {
+func (b *BaseBalancer) SetServerId(serverId string) {
 	b.ServerId = serverId
 }
 
-func (b *BaseBalancer) GetServerId() int32 {
+func (b *BaseBalancer) GetServerId() string {
 	return b.ServerId
 }

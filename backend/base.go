@@ -10,7 +10,7 @@ import (
 
 //mt BackEnd
 type BaseBackEnd struct {
-	ServerId              int32
+	ServerId              string
 	Server                *treaty.Server
 	Rpcx                  rpcx.RpcServer
 	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
@@ -19,7 +19,7 @@ type BaseBackEnd struct {
 
 func (b *BaseBackEnd) Init() {
 	//find the  server config
-	if b.Server = helper.FindServerConfig(conf.GetBackendConf(), b.GetServerId()); b.Server == nil {
+	if b.Server = helper.FindServerConfig(conf.GetServersConf(), b.GetServerId()); b.Server == nil {
 		logger.Fatal("BaseBackEnd can find the server config")
 	}
 	//init the rpcx
@@ -71,10 +71,10 @@ func (b *BaseBackEnd) RegEventHandlerBroadcast(handler func(req []byte) []byte) 
 	b.EventHandlerBroadcast = handler
 }
 
-func (b *BaseBackEnd) SetServerId(serverId int32) {
+func (b *BaseBackEnd) SetServerId(serverId string) {
 	b.ServerId = serverId
 }
 
-func (b *BaseBackEnd) GetServerId() int32 {
+func (b *BaseBackEnd) GetServerId() string {
 	return b.ServerId
 }

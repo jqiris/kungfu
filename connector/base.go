@@ -25,7 +25,7 @@ type BaseConnector struct {
 
 func (b *BaseConnector) Init() {
 	//find the  server config
-	if b.ConnectorConf = helper.FindConnectorConfig(conf.GetConnectorConf(), b.GetServerId()); b.ConnectorConf == nil {
+	if b.ConnectorConf = helper.FindServersConfig(conf.GetConnectorConf(), b.GetServerId()); b.ConnectorConf == nil {
 		logger.Fatal("BaseConnector can find the server config")
 	} else {
 		b.Server = &treaty.Server{

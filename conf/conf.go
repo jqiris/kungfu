@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 
 	"github.com/jqiris/kungfu/treaty"
-	"github.com/jqiris/zinx/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -45,23 +44,19 @@ func GetCoderConf() CoderConf {
 	return config.Coder
 }
 
-func GetConnectorConf() []*utils.GlobalObj {
+func GetConnectorConf() ConnectorConf {
 	return config.Connector
 }
 
-func GetBalancerConf() []*treaty.Server {
-	return config.Balancer
+func GetServersConf() map[string]*treaty.Server {
+	return config.Servers
 }
 
-func GetBackendConf() []*treaty.Server {
-	return config.Backend
-}
-
-func GetLauchConf() []int32 {
+func GetLauchConf() []string {
 	return config.Launch
 }
 
-func IsInLauch(serverId int32) bool {
+func IsInLauch(serverId string) bool {
 	for _, v := range config.Launch {
 		if v == serverId {
 			return true
