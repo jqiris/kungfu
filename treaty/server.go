@@ -19,9 +19,9 @@ func RegSerialize(x *Server) string {
 	return ""
 }
 
-func RegUnSerialize(s string) (*Server, error) {
+func RegUnSerialize(s []byte) (*Server, error) {
 	x := &Server{}
-	if err := json.Unmarshal([]byte(s), x); err != nil {
+	if err := json.Unmarshal(s, x); err != nil {
 		return nil, err
 	}
 	return x, nil

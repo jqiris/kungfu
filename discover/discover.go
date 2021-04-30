@@ -1,6 +1,7 @@
 package discover
 
 import (
+	"stathat.com/c/consistent"
 	"time"
 
 	"github.com/jqiris/kungfu/conf"
@@ -9,8 +10,13 @@ import (
 )
 
 var (
-	logger        = logrus.WithField("package", "discover")
+	logger = logrus.WithField("package", "discover")
+
 	defDiscoverer Discoverer
+)
+
+const (
+	DiscorverPrefix = "/server/"
 )
 
 func InitDiscoverer(cfg conf.DiscoverConf) {
@@ -47,4 +53,18 @@ func FindServerList() map[string][]*treaty.Server {
 
 func FindServer(serverType string) []*treaty.Server {
 	return defDiscoverer.FindServer(serverType)
+}
+
+//serverType stores
+
+type ServerTypeItem struct {
+	hash *consistent.Consistent
+	list []*treaty.Server
+}
+
+func NewServerTypeItem() *ServerTypeItem {
+	return &ServerTypeItem{
+		hash: consistent.New(),
+		list: make([]*treaty.Server, 0),
+	}
 }
