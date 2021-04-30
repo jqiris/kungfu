@@ -10,7 +10,7 @@ import (
 func TestEtcdDisCover(t *testing.T) {
 	server := &treaty.Server{
 		ServerId:   1001,
-		ServerType: treaty.ServerType_Balancer,
+		ServerType: string_Balancer,
 		ServerName: "gate",
 		ServerIp:   "127.0.0.1",
 		ClientPort: 1234,
@@ -24,7 +24,7 @@ func TestEtcdDisCover(t *testing.T) {
 	//get sever list
 	res := discover.FindServerList()
 	logger.Infof("the server list:%+v", res)
-	res2 := discover.FindServer(treaty.ServerType_Balancer)
+	res2 := discover.FindServer(string_Balancer)
 	logger.Infof("the server list:%+v", res2)
 	//unregister server
 	err := discover.UnRegister(server)

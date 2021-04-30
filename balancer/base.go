@@ -129,7 +129,7 @@ func (b *BaseBalancer) Balance(remoteAddr string) (*treaty.Server, error) {
 	if listLen := len(list); listLen > 0 {
 		server := list[rand.Intn(listLen)]
 		//store the server
-		if err := stores.Set(key, server.Serialize(), 0); err != nil {
+		if err := stores.Set(key, treaty.RegSerialize(server), 0); err != nil {
 			logger.Error(err)
 		}
 		return server, nil

@@ -13,33 +13,44 @@ import (
 )
 
 type BaseConnector struct {
-	ServerId              int32
+	ServerId              string
 	Server                *treaty.Server
 	Rpcx                  rpcx.RpcConnector
 	ClientServer          ziface.IServer
 	ClientCoder           coder.Coder
-	ConnectorConf         *utils.GlobalObj
+	ConnectorConf         utils.GlobalObj
 	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
 	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
 }
 
 func (b *BaseConnector) Init() {
 	//find the  server config
-	if b.ConnectorConf = helper.FindServersConfig(conf.GetConnectorConf(), b.GetServerId()); b.ConnectorConf == nil {
-		logger.Fatal("BaseConnector can find the server config")
+	if serverConf := helper.FindServerConfig(conf.GetServersConf(), b.GetServerId()); serverConf == nil {
+		logger.Fatal("BaseConnector can't find the server config")
 	} else {
-		b.Server = &treaty.Server{
-			ServerId:   b.ConnectorConf.ServerId,
-			ServerType: treaty.ServerType(b.ConnectorConf.ServerType),
-			ServerName: b.ConnectorConf.ServerName,
-			ServerIp:   b.ConnectorConf.ServerIp,
-			ClientPort: int32(b.ConnectorConf.ClientPort),
+		connectorConf := conf.GetConnectorConf()
+		b.Server = serverConf
+		b.ConnectorConf = utils.GlobalObj{
+			ServerId:         serverConf.ServerId,
+			ServerType:       serverConf.ServerType,
+			ServerName:       serverConf.ServerName,
+			ServerIp:         serverConf.ServerIp,
+			ClientPort:       int(serverConf.ClientPort),
+			Version:          connectorConf.Version,
+			MaxPacketSize:    connectorConf.MaxPacketSize,
+			MaxConn:          connectorConf.MaxConn,
+			WorkerPoolSize:   connectorConf.WorkerPoolSize,
+			MaxWorkerTaskLen: connectorConf.MaxWorkerTaskLen,
+			MaxMsgChanLen:    connectorConf.MaxMsgChanLen,
+			LogDir:           connectorConf.LogDir,
+			LogFile:          connectorConf.LogFile,
+			LogDebugClose:    connectorConf.LogDebugClose,
 		}
 	}
 	//init the rpcx
 	b.Rpcx = rpcx.NewRpcConnector(conf.GetRpcxConf())
 	//run the front server
-	b.ClientServer = znet.NewServer(*b.ConnectorConf)
+	b.ClientServer = znet.NewServer(b.ConnectorConf)
 	go b.ClientServer.Serve()
 
 	logger.Infoln("init the connector:", b.ServerId)
@@ -91,10 +102,10 @@ func (b *BaseConnector) RegEventHandlerSelf(handler func(req []byte) []byte) { /
 func (b *BaseConnector) RegEventHandlerBroadcast(handler func(req []byte) []byte) { //注册广播事件处理器
 	b.EventHandlerBroadcast = handler
 }
-func (b *BaseConnector) SetServerId(serverId int32) {
+func (b *BaseConnector) SetServerId(serverId string) {
 	b.ServerId = serverId
 }
 
-func (b *BaseConnector) GetServerId() int32 {
+func (b *BaseConnector) GetServerId() string {
 	return b.ServerId
 }

@@ -23,7 +23,7 @@ func (b *MyBackend) EventHandleBroasdcast(req []byte) []byte {
 
 func init() {
 	srv := &MyBackend{}
-	srv.SetServerId(3001)
+	srv.SetServerId("backend_3001")
 	srv.RegEventHandlerSelf(srv.EventHandlerSelf)
 	srv.RegEventHandlerBroadcast(srv.EventHandleBroasdcast)
 	launch.RegisterServer(srv)

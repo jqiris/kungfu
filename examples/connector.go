@@ -23,7 +23,7 @@ func (b *MyConnector) EventHandleBroasdcast(req []byte) []byte {
 
 func init() {
 	srv := &MyConnector{}
-	srv.SetServerId(2001)
+	srv.SetServerId("connector_2001")
 	srv.RegEventHandlerSelf(srv.EventHandlerSelf)
 	srv.RegEventHandlerBroadcast(srv.EventHandleBroasdcast)
 	launch.RegisterServer(srv)

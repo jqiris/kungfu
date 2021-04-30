@@ -3,7 +3,6 @@ package discover
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -47,13 +46,10 @@ func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 
 // Register register
 func (e *EtcdDiscoverer) Register(server *treaty.Server) error {
-	if server.ServerId < treaty.MinServerId {
-		return errors.New("ServerId cannot less than MinServerId")
-	}
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
-	key, val := "/server/"+server.RegId(), server.Serialize()
+	key, val := "/server/"+treaty.RegSeverItem(server), treaty.RegSerialize(server)
 	logger.Infof("discover Register server,k=>v,%s=>%s", key, val)
 	if resp, err := kv.Put(ctx, key, val); err != nil {
 		return err
@@ -67,7 +63,7 @@ func (e *EtcdDiscoverer) UnRegister(server *treaty.Server) error {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
-	if resp, err := kv.Delete(ctx, "/server/"+server.RegId(), clientv3.WithPrevKV()); err != nil {
+	if resp, err := kv.Delete(ctx, "/server/"+treaty.RegSeverItem(server), clientv3.WithPrevKV()); err != nil {
 		return err
 	} else {
 		logger.Infof("EtcdDiscoverer unregister resp:%+v", resp)
@@ -75,7 +71,7 @@ func (e *EtcdDiscoverer) UnRegister(server *treaty.Server) error {
 	return nil
 }
 
-func (e *EtcdDiscoverer) FindServer(serverType treaty.ServerType) []*treaty.Server {
+func (e *EtcdDiscoverer) FindServer(serverType string) []*treaty.Server {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
@@ -99,7 +95,7 @@ func (e *EtcdDiscoverer) FindServer(serverType treaty.ServerType) []*treaty.Serv
 	return nil
 }
 
-func (e *EtcdDiscoverer) FindServerList() map[treaty.ServerType][]*treaty.Server {
+func (e *EtcdDiscoverer) FindServerList() map[string][]*treaty.Server {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
@@ -108,7 +104,7 @@ func (e *EtcdDiscoverer) FindServerList() map[treaty.ServerType][]*treaty.Server
 		return nil
 	} else {
 		if resp.Count > 0 {
-			res := make(map[treaty.ServerType][]*treaty.Server)
+			res := make(map[string][]*treaty.Server)
 			for _, v := range resp.Kvs {
 				var server *treaty.Server
 				if err := json.Unmarshal(v.Value, &server); err == nil {

@@ -23,7 +23,7 @@ func (b *MyBalancer) EventHandleBroasdcast(req []byte) []byte {
 
 func init() {
 	srv := &MyBalancer{}
-	srv.SetServerId(1001)
+	srv.SetServerId("balancer_1001")
 	srv.RegEventHandlerSelf(srv.EventHandlerSelf)
 	srv.RegEventHandlerBroadcast(srv.EventHandleBroasdcast)
 	launch.RegisterServer(srv)

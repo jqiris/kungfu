@@ -9,13 +9,13 @@ import (
 //服务器集群管理
 var (
 	logger   = logrus.WithField("package", "launch")
-	servers  map[int32]treaty.ServerEntity
-	launched map[int32]treaty.ServerEntity
+	servers  map[string]treaty.ServerEntity
+	launched map[string]treaty.ServerEntity
 )
 
 func init() {
-	servers = make(map[int32]treaty.ServerEntity)
-	launched = make(map[int32]treaty.ServerEntity)
+	servers = make(map[string]treaty.ServerEntity)
+	launched = make(map[string]treaty.ServerEntity)
 }
 
 func RegisterServer(server treaty.ServerEntity) {
