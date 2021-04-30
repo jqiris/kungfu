@@ -27,4 +27,10 @@ func init() {
 	srv.RegEventHandlerSelf(srv.EventHandlerSelf)
 	srv.RegEventHandlerBroadcast(srv.EventHandleBroasdcast)
 	launch.RegisterServer(srv)
+
+	srv2 := &MyConnector{}
+	srv2.SetServerId("connector_2002")
+	srv2.RegEventHandlerSelf(srv2.EventHandlerSelf)
+	srv2.RegEventHandlerBroadcast(srv2.EventHandleBroasdcast)
+	launch.RegisterServer(srv2)
 }
