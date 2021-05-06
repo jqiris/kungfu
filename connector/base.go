@@ -21,6 +21,7 @@ type BaseConnector struct {
 	ConnectorConf         utils.GlobalObj
 	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
 	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
+	Routers               map[uint32]ziface.IRouter
 }
 
 func (b *BaseConnector) Init() {
@@ -51,6 +52,7 @@ func (b *BaseConnector) Init() {
 	b.Rpcx = rpcx.NewRpcConnector(conf.GetRpcxConf())
 	//run the front server
 	b.ClientServer = znet.NewServer(b.ConnectorConf)
+	b.ClientServer.AddRouters(b.Routers)
 	go b.ClientServer.Serve()
 
 	logger.Infoln("init the connector:", b.ServerId)
@@ -108,4 +110,9 @@ func (b *BaseConnector) SetServerId(serverId string) {
 
 func (b *BaseConnector) GetServerId() string {
 	return b.ServerId
+}
+
+//RegRouters 注册路由函数
+func (b *BaseConnector) RegRouters(routers map[uint32]ziface.IRouter) {
+	b.Routers = routers
 }

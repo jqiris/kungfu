@@ -28,9 +28,9 @@ func init() {
 	srv.RegEventHandlerBroadcast(srv.EventHandleBroasdcast)
 	launch.RegisterServer(srv)
 
-	// srv2 := &MyBalancer{}
-	// srv2.SetServerId("balancer_1002")
-	// srv2.RegEventHandlerSelf(srv2.EventHandlerSelf)
-	// srv2.RegEventHandlerBroadcast(srv2.EventHandleBroasdcast)
-	// launch.RegisterServer(srv2)
+	srv2 := &MyBalancer{}
+	srv2.SetServerId("balancer_1002")
+	srv2.RegEventHandlerSelf(srv2.EventHandlerSelf)
+	srv2.RegEventHandlerBroadcast(srv2.EventHandleBroasdcast)
+	launch.RegisterServer(srv2)
 }

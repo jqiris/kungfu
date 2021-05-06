@@ -2,6 +2,8 @@ package examples
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/examples/handler"
+	"github.com/jqiris/zinx/ziface"
 
 	"github.com/jqiris/kungfu/connector"
 	"github.com/jqiris/kungfu/launch"
@@ -22,15 +24,20 @@ func (b *MyConnector) EventHandleBroasdcast(req []byte) []byte {
 }
 
 func init() {
+	routers := map[uint32]ziface.IRouter{
+		1: &handler.LogingHandler{},
+	}
 	srv := &MyConnector{}
 	srv.SetServerId("connector_2001")
 	srv.RegEventHandlerSelf(srv.EventHandlerSelf)
 	srv.RegEventHandlerBroadcast(srv.EventHandleBroasdcast)
+	srv.RegRouters(routers)
 	launch.RegisterServer(srv)
 
 	srv2 := &MyConnector{}
 	srv2.SetServerId("connector_2002")
 	srv2.RegEventHandlerSelf(srv2.EventHandlerSelf)
 	srv2.RegEventHandlerBroadcast(srv2.EventHandleBroasdcast)
+	srv2.RegRouters(routers)
 	launch.RegisterServer(srv2)
 }
