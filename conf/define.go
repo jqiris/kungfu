@@ -48,4 +48,5 @@ type ConnectorConf struct {
 	LogDir           string `json:"log_dir"`             //日志所在文件夹 默认"./log"
 	LogFile          string `json:"log_file"`            //日志文件名称   默认""  --如果没有设置日志文件，打印信息将打印至stderr
 	LogDebugClose    bool   `json:"log_debug_close"`     //是否关闭Debug日志级别调试信息 默认false  -- 默认打开debug信息
+	TokenKey         string `json:"token_key"`           //token生成key
 }

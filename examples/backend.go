@@ -16,8 +16,8 @@ func (b *MyBackend) EventHandleSelf(req []byte) []byte {
 	return nil
 }
 
-func (b *MyBackend) EventHandleBroasdcast(req []byte) []byte {
-	fmt.Printf("MyBackend EventHandleBroasdcast received: %+v \n", string(req))
+func (b *MyBackend) EventHandleBroadcast(req []byte) []byte {
+	fmt.Printf("MyBackend EventHandleBroadcast received: %+v \n", string(req))
 	return nil
 }
 
@@ -25,6 +25,6 @@ func init() {
 	srv := &MyBackend{}
 	srv.SetServerId("backend_3001")
 	srv.RegEventHandlerSelf(srv.EventHandlerSelf)
-	srv.RegEventHandlerBroadcast(srv.EventHandleBroasdcast)
+	srv.RegEventHandlerBroadcast(srv.EventHandleBroadcast)
 	launch.RegisterServer(srv)
 }

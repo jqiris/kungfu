@@ -68,7 +68,8 @@
   },
   "connector": {
     "max_conn": 3000,
-    "worker_pool_size": 10
+    "worker_pool_size": 10,
+    "token_key": "kungfu token"
   },
   "launch": [
     "balancer_1001",

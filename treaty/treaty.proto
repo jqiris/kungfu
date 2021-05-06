@@ -10,7 +10,8 @@ enum CodeType{
 
 enum MsgId{
   Msg_None = 0;
-
+  Msg_Login_Request = 1; //登录请求
+  Msg_Login_Response = 2; //登录回复
 }
 
 message Server{
@@ -24,4 +25,15 @@ message Server{
 message BalanceResult{
   CodeType code = 1; //0-成功 1-失败
   Server server = 2;
+}
+
+message LoginRequest{
+    int32 uid = 1; //用户ID
+    string nickname = 2; //用户昵称
+    string token = 3; //用户token
+}
+
+message LoginResponse{
+    CodeType code = 1; //登录结果
+    string msg = 2;   //登录消息
 }
