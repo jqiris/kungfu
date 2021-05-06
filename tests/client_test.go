@@ -29,7 +29,7 @@ func TestClientLogin(t *testing.T) {
 		logger.Fatal("no suitable connector find")
 	}
 	//根据balancer获得connector连接地址，并发送登录消息
-	conn, err := net.Dial("tcp", fmt.Sprintf(":%d", res.Server.ClientPort))
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", res.Server.ServerIp, res.Server.ClientPort))
 	if err != nil {
 		logger.Fatal("client start err, exit!")
 	}
