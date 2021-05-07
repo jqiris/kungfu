@@ -2,7 +2,7 @@ package handler
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/coder"
+
 	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/treaty"
@@ -15,7 +15,7 @@ type LogingHandler struct {
 }
 
 func (s *LogingHandler) Handle(request ziface.IRequest) {
-	encoder := coder.NewProtoCoder()
+
 	//先读取客户端的数据
 	logger.Println("recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
 
@@ -25,15 +25,10 @@ func (s *LogingHandler) Handle(request ziface.IRequest) {
 	conn := request.GetConnection()
 	//解析登录数据
 	loginRequest := &treaty.LoginRequest{}
-	if err := encoder.Unmarshal(request.GetData(), loginRequest); err != nil {
+	if err := GetRequest(request, loginRequest); err != nil {
 		resp.Code = 1
 		resp.Msg = err.Error()
-		if res, err := encoder.Marshal(resp); err == nil {
-			if err = conn.SendBuffMsg(uint32(treaty.MsgId_Msg_Login_Response), res); err != nil {
-				logger.Error(err)
-			}
-		}
-
+		SendMsg(conn, treaty.MsgId_Msg_Login_Response, resp)
 	}
 	logger.Printf("login request is:%+v", loginRequest)
 	//判断登录信息的正确性
@@ -43,18 +38,10 @@ func (s *LogingHandler) Handle(request ziface.IRequest) {
 	if loginRequest.Token != token {
 		resp.Code = 1
 		resp.Msg = "token不正确"
-		if res, err := encoder.Marshal(resp); err == nil {
-			if err = conn.SendBuffMsg(uint32(treaty.MsgId_Msg_Login_Response), res); err != nil {
-				logger.Error(err)
-			}
-		}
+		SendMsg(conn, treaty.MsgId_Msg_Login_Response, resp)
 	}
 
 	resp.Code = 0
 	resp.Msg = "登录成功"
-	if res, err := encoder.Marshal(resp); err == nil {
-		if err = conn.SendBuffMsg(uint32(treaty.MsgId_Msg_Login_Response), res); err != nil {
-			logger.Error(err)
-		}
-	}
+	SendMsg(conn, treaty.MsgId_Msg_Login_Response, resp)
 }
