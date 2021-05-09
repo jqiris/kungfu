@@ -2,10 +2,11 @@ package stores
 
 import (
 	"context"
-	"github.com/go-redis/redis/v8"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-redis/redis/v8"
 )
 
 type StoreRedis struct {
@@ -69,10 +70,10 @@ func (s *StoreRedis) SetNx(key string, value interface{}, expire time.Duration) 
 	return s.Client.SetNX(ctx, key, value, expire).Err()
 }
 
-func (s *StoreRedis) Get(key string) (interface{}, error) {
+func (s *StoreRedis) Get(key string, val interface{}) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	return s.Client.Get(ctx, key).Result()
+	return s.Client.Get(ctx, key).Scan(val)
 }
 
 func (s *StoreRedis) GetInt(key string) int {
@@ -109,4 +110,53 @@ func (s *StoreRedis) Del(keys ...string) error {
 		return err
 	}
 	return nil
+}
+
+func (s *StoreRedis) Exists(keys ...string) bool {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	if val, err := s.Client.Exists(ctx, keys...).Result(); err != nil {
+		logger.Error(err)
+		return false
+	} else {
+		return val == 1
+	}
+}
+
+func (s *StoreRedis) HSet(key string, values ...interface{}) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	if _, err := s.Client.HSet(ctx, key, values...).Result(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *StoreRedis) HGet(key, field string, val interface{}) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	if err := s.Client.HGet(ctx, key, field).Scan(val); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *StoreRedis) HDel(key string, fields ...string) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	if _, err := s.Client.HDel(ctx, key, fields...).Result(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *StoreRedis) HExists(key, field string) bool {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	if val, err := s.Client.HExists(ctx, key, field).Result(); err != nil {
+		logger.Error(err)
+		return false
+	} else {
+		return val
+	}
 }

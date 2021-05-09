@@ -1,9 +1,10 @@
 package stores
 
 import (
+	"time"
+
 	"github.com/jqiris/kungfu/conf"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 var (
@@ -29,10 +30,15 @@ func InitStoreKeeper(cfg conf.StoresConf) {
 type StoreKeeper interface {
 	Set(key string, value interface{}, expire time.Duration) error
 	SetNx(key string, value interface{}, expire time.Duration) error //set if not exist
-	Get(key string) (interface{}, error)
+	Get(key string, val interface{}) error
 	GetInt(key string) int
 	GetString(key string) string
 	Del(keys ...string) error
+	Exists(keys ...string) bool
+	HSet(key string, values ...interface{}) error
+	HGet(key, field string, val interface{}) error
+	HDel(key string, fields ...string) error
+	HExists(key, field string) bool
 }
 
 func Set(key string, value interface{}, expire time.Duration) error {
@@ -41,8 +47,8 @@ func Set(key string, value interface{}, expire time.Duration) error {
 func SetNx(key string, value interface{}, expire time.Duration) error {
 	return defStoreKeeper.SetNx(key, value, expire)
 }
-func Get(key string) (interface{}, error) {
-	return defStoreKeeper.Get(key)
+func Get(key string, val interface{}) error {
+	return defStoreKeeper.Get(key, val)
 }
 func GetInt(key string) int {
 	return defStoreKeeper.GetInt(key)
@@ -53,4 +59,24 @@ func GetString(key string) string {
 
 func Del(keys ...string) error {
 	return defStoreKeeper.Del(keys...)
+}
+
+func Exists(keys ...string) bool {
+	return defStoreKeeper.Exists(keys...)
+}
+
+func HSet(key string, values ...interface{}) error {
+	return defStoreKeeper.HSet(key, values...)
+}
+
+func HGet(key, field string, val interface{}) error {
+	return defStoreKeeper.HGet(key, field, val)
+}
+
+func HDel(key string, fields ...string) error {
+	return defStoreKeeper.HDel(key, fields...)
+}
+
+func HExists(key, field string) bool {
+	return defStoreKeeper.HExists(key, field)
 }
