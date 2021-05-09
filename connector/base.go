@@ -6,22 +6,20 @@ import (
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
-	"github.com/jqiris/zinx/utils"
-	"github.com/jqiris/zinx/ziface"
-	"github.com/jqiris/zinx/znet"
 )
 
 type BaseConnector struct {
 	ServerId              string
 	Server                *treaty.Server
 	Rpcx                  rpcx.RpcConnector
-	ClientServer          ziface.IServer
+	ClientServer          tcpserver.IServer
 	ClientCoder           coder.Coder
-	ConnectorConf         utils.GlobalObj
+	ConnectorConf         conf.ConnectorConf
 	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
 	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
-	Routers               map[uint32]ziface.IRouter
+	Routers               map[uint32]tcpserver.IRouter
 }
 
 func (b *BaseConnector) Init() {
@@ -29,29 +27,13 @@ func (b *BaseConnector) Init() {
 	if serverConf := helper.FindServerConfig(conf.GetServersConf(), b.GetServerId()); serverConf == nil {
 		logger.Fatal("BaseConnector can't find the server config")
 	} else {
-		connectorConf := conf.GetConnectorConf()
 		b.Server = serverConf
-		b.ConnectorConf = utils.GlobalObj{
-			ServerId:         serverConf.ServerId,
-			ServerType:       serverConf.ServerType,
-			ServerName:       serverConf.ServerName,
-			ServerIp:         serverConf.ServerIp,
-			ClientPort:       int(serverConf.ClientPort),
-			Version:          connectorConf.Version,
-			MaxPacketSize:    connectorConf.MaxPacketSize,
-			MaxConn:          connectorConf.MaxConn,
-			WorkerPoolSize:   connectorConf.WorkerPoolSize,
-			MaxWorkerTaskLen: connectorConf.MaxWorkerTaskLen,
-			MaxMsgChanLen:    connectorConf.MaxMsgChanLen,
-			LogDir:           connectorConf.LogDir,
-			LogFile:          connectorConf.LogFile,
-			LogDebugClose:    connectorConf.LogDebugClose,
-		}
+		b.ConnectorConf = conf.GetConnectorConf()
 	}
 	//init the rpcx
 	b.Rpcx = rpcx.NewRpcConnector(conf.GetRpcxConf())
 	//run the front server
-	b.ClientServer = znet.NewServer(b.ConnectorConf)
+	b.ClientServer = tcpserver.NewServer(b.Server, b.ConnectorConf)
 	b.ClientServer.AddRouters(b.Routers)
 	go b.ClientServer.Serve()
 
@@ -113,6 +95,6 @@ func (b *BaseConnector) GetServerId() string {
 }
 
 //RegRouters 注册路由函数
-func (b *BaseConnector) RegRouters(routers map[uint32]ziface.IRouter) {
+func (b *BaseConnector) RegRouters(routers map[uint32]tcpserver.IRouter) {
 	b.Routers = routers
 }

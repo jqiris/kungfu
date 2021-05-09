@@ -5,16 +5,16 @@ import (
 
 	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/helper"
+	"github.com/jqiris/kungfu/session"
+	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
-	"github.com/jqiris/zinx/ziface"
-	"github.com/jqiris/zinx/znet"
 )
 
 type LogingHandler struct {
-	znet.BaseRouter
+	tcpserver.BaseRouter
 }
 
-func (s *LogingHandler) Handle(request ziface.IRequest) {
+func (s *LogingHandler) Handle(request tcpserver.IRequest) {
 
 	//先读取客户端的数据
 	logger.Println("recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
@@ -40,7 +40,13 @@ func (s *LogingHandler) Handle(request ziface.IRequest) {
 		resp.Msg = "token不正确"
 		SendMsg(conn, treaty.MsgId_Msg_Login_Response, resp)
 	}
-
+	//检查会话信息
+	sess := session.GetSession(uid)
+	if sess != nil {
+		if sess.Connector != nil && sess.Connector.ServerId != request.GetServerID() {
+			//之前在其他客户端登录，通知其他connetor登出
+		}
+	}
 	resp.Code = 0
 	resp.Msg = "登录成功"
 	SendMsg(conn, treaty.MsgId_Msg_Login_Response, resp)

@@ -3,6 +3,8 @@ package helper
 import (
 	"crypto/md5"
 	"fmt"
+	"strconv"
+
 	"github.com/jqiris/kungfu/treaty"
 )
 
@@ -19,4 +21,9 @@ func Md5(str string) string {
 	data := []byte(str)
 	hash := md5.Sum(data)
 	return fmt.Sprintf("%x", hash) //将[]byte转成16进制
+}
+
+//IntToString 整数转字符串
+func IntToString(val int) string {
+	return strconv.Itoa(val)
 }

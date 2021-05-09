@@ -2,8 +2,8 @@ package handler
 
 import (
 	"github.com/jqiris/kungfu/coder"
+	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
-	"github.com/jqiris/zinx/ziface"
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,14 +12,14 @@ var (
 	encoder = coder.NewProtoCoder()
 )
 
-func GetRequest(request ziface.IRequest, v interface{}) error {
+func GetRequest(request tcpserver.IRequest, v interface{}) error {
 	if err := encoder.Unmarshal(request.GetData(), v); err != nil {
 		return err
 	}
 	return nil
 }
 
-func SendMsg(conn ziface.IConnection, msgId treaty.MsgId, msg interface{}) {
+func SendMsg(conn tcpserver.IConnection, msgId treaty.MsgId, msg interface{}) {
 	res, err := encoder.Marshal(msg)
 	if err != nil {
 		logger.Error(err)

@@ -37,3 +37,9 @@ message LoginResponse{
     CodeType code = 1; //登录结果
     string msg = 2;   //登录消息
 }
+
+message Session{  //用户会话信息
+  int32 uid = 1; // 用户ID
+  Server connector = 2; // 连接器
+  Server backend = 3; //服务器
+}

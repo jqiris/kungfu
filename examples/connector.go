@@ -2,9 +2,10 @@ package examples
 
 import (
 	"fmt"
+
 	"github.com/jqiris/kungfu/examples/handler"
+	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
-	"github.com/jqiris/zinx/ziface"
 
 	"github.com/jqiris/kungfu/connector"
 	"github.com/jqiris/kungfu/launch"
@@ -25,7 +26,7 @@ func (b *MyConnector) EventHandleBroadcast(req []byte) []byte {
 }
 
 func init() {
-	routers := map[uint32]ziface.IRouter{
+	routers := map[uint32]tcpserver.IRouter{
 		uint32(treaty.MsgId_Msg_Login_Request): &handler.LogingHandler{},
 	}
 	srv := &MyConnector{}

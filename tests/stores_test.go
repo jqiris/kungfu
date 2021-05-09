@@ -1,9 +1,10 @@
 package tests
 
 import (
-	"github.com/jqiris/kungfu/stores"
 	"testing"
 	"time"
+
+	"github.com/jqiris/kungfu/stores"
 )
 
 func TestStores(t *testing.T) {
@@ -12,7 +13,8 @@ func TestStores(t *testing.T) {
 		logger.Error(err)
 		return
 	}
-	res, err := stores.Get("name")
+	var res string
+	err = stores.Get("name", &res)
 	if err != nil {
 		logger.Error(err)
 		return
