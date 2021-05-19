@@ -1,14 +1,31 @@
 package jobs
 
 import (
-	"fmt"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/jqiris/kungfu/helper"
+	"github.com/sirupsen/logrus"
 )
+
+var (
+	keeper *JobKeeper
+	logger = logrus.WithField("package", "jobs")
+)
+
+func InitJobs() {
+	keeper = NewJobKeeper()
+	keeper.ExecJob()
+}
+
+func AddJob(delay time.Duration, job JobWorker) {
+	go keeper.AddJob(delay, job)
+}
 
 type JobWorker interface {
 	Name() string                    //任务名称
+	BeforeExec()                     //任务执行前操作
 	CanExec() bool                   //是否可以执行
 	JobExec() bool                   //执行任务,返回执行是否完成
 	FailNext() (bool, time.Duration) //失败是否继续执行并且延缓执行时间
@@ -47,8 +64,9 @@ func (s *JobItem) FinishJob() {
 	}
 	worker.JobFinish()
 	finishTime := time.Now()
-	fmt.Printf(
-		"job finished,name:%v,addtime:%v,starttime:%v,endtime:%v, total:%v秒, deal:%v秒 \n",
+	//调用test请使用fmt.Printf
+	logger.Infof(
+		"job finished,name:%v,addtime:%v,starttime:%v,endtime:%v, total:%v秒, deal:%v秒",
 		worker.Name(),
 		s.AddTime.Format("2006-01-02 15:04:05"),
 		s.StartTime.Format("2006-01-02 15:04:05"),
@@ -58,10 +76,10 @@ func (s *JobItem) FinishJob() {
 	)
 }
 
-func NewJobItem(stime time.Time, worker JobWorker) *JobItem {
+func NewJobItem(sTime time.Time, worker JobWorker) *JobItem {
 	return &JobItem{
 		AddTime:   time.Now(),
-		StartTime: stime,
+		StartTime: sTime,
 		Worker:    worker,
 	}
 }
@@ -72,9 +90,9 @@ type JobQueue struct {
 	mutex     *sync.RWMutex //锁
 }
 
-func NewJobQueue(stime time.Time) *JobQueue {
+func NewJobQueue(sTime time.Time) *JobQueue {
 	return &JobQueue{
-		StartTime: stime,
+		StartTime: sTime,
 		JobItems:  NewQueue(),
 		mutex:     new(sync.RWMutex),
 	}
@@ -91,7 +109,14 @@ func (s *JobQueue) ExeJob() {
 	defer s.mutex.RUnlock()
 	s.JobItems.RangePop(func(item interface{}) bool {
 		if job, ok := item.(*JobItem); ok {
-			go job.ExecJob()
+			if job != nil {
+				go helper.SafeRun(func() {
+					if job.Worker != nil {
+						job.Worker.BeforeExec()
+					}
+					job.ExecJob()
+				})
+			}
 		}
 		return true
 	})
@@ -120,14 +145,14 @@ func NewJobKeeper() *JobKeeper {
 func (k *JobKeeper) AddJob(delay time.Duration, job JobWorker) {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
-	stime := time.Now().Add(delay)
-	jobItem := NewJobItem(stime, job)
-	if q, ok := k.Index[stime]; ok {
+	sTime := time.Now().Add(delay)
+	jobItem := NewJobItem(sTime, job)
+	if q, ok := k.Index[sTime]; ok {
 		q.AddJob(jobItem)
 	} else {
-		qs := NewJobQueue(stime)
+		qs := NewJobQueue(sTime)
 		qs.AddJob(jobItem)
-		k.Index[stime] = qs
+		k.Index[sTime] = qs
 		k.List = append(k.List, qs)
 		sort.Sort(k.List)
 	}
@@ -142,7 +167,7 @@ func (k *JobKeeper) ExecJob() {
 				if k.List.Len() > 0 && k.List[0].StartTime.Before(time.Now()) {
 					tmp := k.List[0]
 					k.List = k.List[1:]
-					delete(k.Index,tmp.StartTime)
+					delete(k.Index, tmp.StartTime)
 					tmp.ExeJob()
 				}
 				k.mutex.RUnlock()

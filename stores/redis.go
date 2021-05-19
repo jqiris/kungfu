@@ -2,6 +2,7 @@ package stores
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"strings"
 	"time"
@@ -58,22 +59,35 @@ func NewStoreRedis(opts ...StoreRedisOption) *StoreRedis {
 }
 
 func (s *StoreRedis) Set(key string, value interface{}, expire time.Duration) error {
+	bs, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	return s.Client.Set(ctx, key, value, expire).Err()
+	return s.Client.Set(ctx, key, bs, expire).Err()
 
 }
 
 func (s *StoreRedis) SetNx(key string, value interface{}, expire time.Duration) error {
+	bs, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	return s.Client.SetNX(ctx, key, value, expire).Err()
+	return s.Client.SetNX(ctx, key, bs, expire).Err()
 }
 
 func (s *StoreRedis) Get(key string, val interface{}) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	return s.Client.Get(ctx, key).Scan(val)
+	var bs []byte
+	err := s.Client.Get(ctx, key).Scan(&bs)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(bs, val)
 }
 
 func (s *StoreRedis) GetInt(key string) int {

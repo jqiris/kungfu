@@ -3,9 +3,15 @@ package helper
 import (
 	"crypto/md5"
 	"fmt"
+	"runtime"
 	"strconv"
 
 	"github.com/jqiris/kungfu/treaty"
+	"github.com/sirupsen/logrus"
+)
+
+var (
+	logger = logrus.WithField("package", "helper")
 )
 
 //FindServerConfig 查找服务器配置
@@ -26,4 +32,23 @@ func Md5(str string) string {
 //IntToString 整数转字符串
 func IntToString(val int) string {
 	return strconv.Itoa(val)
+}
+
+func SafeRun(f func()) {
+	defer func() {
+		if x := recover(); x != nil {
+			logger.Errorf("SafeRun panic recover stack : %+v", x)
+			i := 0
+			funcName, file, line, ok := runtime.Caller(i)
+			for ok {
+				logger.Errorf("SafeRun frame %v:[func:%v,file:%v,line:%v]\n", i, runtime.FuncForPC(funcName).Name(), file, line)
+				i++
+				funcName, file, line, ok = runtime.Caller(i)
+			}
+		}
+	}()
+
+	if f != nil {
+		f()
+	}
 }
