@@ -9,8 +9,8 @@ import (
 
 // MsgHandle -
 type MsgHandle struct {
-	Apis           map[uint32]IRouter //存放每个MsgID 所对应的处理方法的map属性
-	WorkerPoolSize uint32             //业务工作Worker池的数量
+	Apis           map[int32]IHandler //存放每个MsgID 所对应的处理方法的map属性
+	WorkerPoolSize int32              //业务工作Worker池的数量
 	TaskQueue      []chan IRequest    //Worker负责取任务的消息队列
 	Config         conf.ConnectorConf //客户端配置
 }
@@ -18,7 +18,7 @@ type MsgHandle struct {
 //NewMsgHandle 创建MsgHandle
 func NewMsgHandle(cfg conf.ConnectorConf) *MsgHandle {
 	return &MsgHandle{
-		Apis:           make(map[uint32]IRouter),
+		Apis:           make(map[int32]IHandler),
 		WorkerPoolSize: cfg.WorkerPoolSize,
 		//一个worker对应一个queue
 		TaskQueue: make([]chan IRequest, cfg.WorkerPoolSize),
@@ -47,26 +47,24 @@ func (mh *MsgHandle) DoMsgHandler(request IRequest) {
 	}
 
 	//执行对应处理方法
-	handler.PreHandle(request)
-	handler.Handle(request)
-	handler.PostHandle(request)
+	handler(request)
 }
 
 //AddRouter 为消息添加具体的处理逻辑
-func (mh *MsgHandle) AddRouter(msgID uint32, router IRouter) {
+func (mh *MsgHandle) AddRouter(msgID int32, handler IHandler) {
 	//1 判断当前msg绑定的API处理方法是否已经存在
 	if _, ok := mh.Apis[msgID]; ok {
 		panic("repeated api , msgID = " + strconv.Itoa(int(msgID)))
 	}
 	//2 添加msg与api的绑定关系
-	mh.Apis[msgID] = router
+	mh.Apis[msgID] = handler
 	fmt.Println("Add api msgID = ", msgID)
 }
 
 //AddRouters 批量注册消息
-func (mh *MsgHandle) AddRouters(routers map[uint32]IRouter) {
-	for msgID, router := range routers {
-		mh.Apis[msgID] = router
+func (mh *MsgHandle) AddRouters(routers map[int32]IHandler) {
+	for msgID, handler := range routers {
+		mh.Apis[msgID] = handler
 	}
 }
 

@@ -21,8 +21,8 @@ func NewDataPack(cfg conf.ConnectorConf) *DataPack {
 }
 
 //GetHeadLen 获取包头长度方法
-func (dp *DataPack) GetHeadLen() uint32 {
-	//ID uint32(4字节) +  DataLen uint32(4字节)
+func (dp *DataPack) GetHeadLen() int32 {
+	//ID int32(4字节) +  DataLen int32(4字节)
 	return 8
 }
 

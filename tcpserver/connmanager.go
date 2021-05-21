@@ -8,14 +8,14 @@ import (
 
 //ConnManager 连接管理模块
 type ConnManager struct {
-	connections map[uint32]IConnection //管理的连接信息
-	connLock    sync.RWMutex           //读写连接的读写锁
+	connections map[int32]IConnection //管理的连接信息
+	connLock    sync.RWMutex          //读写连接的读写锁
 }
 
 //NewConnManager 创建一个链接管理
 func NewConnManager() *ConnManager {
 	return &ConnManager{
-		connections: make(map[uint32]IConnection),
+		connections: make(map[int32]IConnection),
 	}
 }
 
@@ -44,7 +44,7 @@ func (connMgr *ConnManager) Remove(conn IConnection) {
 }
 
 //Get 利用ConnID获取链接
-func (connMgr *ConnManager) Get(connID uint32) (IConnection, error) {
+func (connMgr *ConnManager) Get(connID int32) (IConnection, error) {
 	//保护共享资源Map 加读锁
 	connMgr.connLock.RLock()
 	defer connMgr.connLock.RUnlock()
@@ -80,7 +80,7 @@ func (connMgr *ConnManager) ClearConn() {
 }
 
 //ClearOneConn  利用ConnID获取一个链接 并且删除
-func (connMgr *ConnManager) ClearOneConn(connID uint32) {
+func (connMgr *ConnManager) ClearOneConn(connID int32) {
 	//保护共享资源Map 加写锁
 	connMgr.connLock.Lock()
 	defer connMgr.connLock.Unlock()

@@ -120,7 +120,7 @@ func (s *Server) Start() {
 		fmt.Println("start Zinx server  ", s.Name, " succ, now listenning...")
 
 		//TODO server.go 应该有一个自动生成ID的方法
-		var cID uint32 = 0
+		var cID int32 = 0
 
 		//3 启动server网络连接业务
 		for {
@@ -171,12 +171,12 @@ func (s *Server) Serve() {
 }
 
 //AddRouter 路由功能：给当前服务注册一个路由业务方法，供客户端链接处理使用
-func (s *Server) AddRouter(msgID uint32, router IRouter) {
-	s.msgHandler.AddRouter(msgID, router)
+func (s *Server) AddRouter(msgID int32, handler IHandler) {
+	s.msgHandler.AddRouter(msgID, handler)
 }
 
 //AddRouters 批量注册消息
-func (s *Server) AddRouters(routers map[uint32]IRouter) {
+func (s *Server) AddRouters(routers map[int32]IHandler) {
 	s.msgHandler.AddRouters(routers)
 }
 

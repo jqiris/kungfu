@@ -1,4 +1,4 @@
-package handler
+package examples
 
 import (
 	"github.com/jqiris/kungfu/coder"
@@ -25,7 +25,7 @@ func SendMsg(conn tcpserver.IConnection, msgId treaty.MsgId, msg interface{}) {
 		logger.Error(err)
 		return
 	}
-	err = conn.SendBuffMsg(uint32(msgId), res)
+	err = conn.SendBuffMsg(int32(msgId), res)
 	if err != nil {
 		logger.Error(err)
 		return

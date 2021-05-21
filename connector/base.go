@@ -19,7 +19,7 @@ type BaseConnector struct {
 	ConnectorConf         conf.ConnectorConf
 	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
 	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
-	Routers               map[uint32]tcpserver.IRouter
+	Routers               map[int32]tcpserver.IHandler
 }
 
 func (b *BaseConnector) Init() {
@@ -95,6 +95,6 @@ func (b *BaseConnector) GetServerId() string {
 }
 
 //RegRouters 注册路由函数
-func (b *BaseConnector) RegRouters(routers map[uint32]tcpserver.IRouter) {
+func (b *BaseConnector) RegRouters(routers map[int32]tcpserver.IHandler) {
 	b.Routers = routers
 }
