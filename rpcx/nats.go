@@ -59,10 +59,7 @@ func (r *RpcNats) Subscribe(server *treaty.Server, callback CallbackFunc) error 
 }
 
 func (r *RpcNats) Publish(server *treaty.Server, data []byte) error {
-	if err := r.Client.Publish("/rpcx/"+treaty.RegSeverItem(server), data); err != nil {
-		return err
-	}
-	return nil
+	return r.Client.Publish("/rpcx/"+treaty.RegSeverItem(server), data)
 }
 
 func (r *RpcNats) Request(server *treaty.Server, data []byte) ([]byte, error) {
@@ -117,22 +114,13 @@ func (r *RpcNats) SubscribeServer(callback CallbackFunc) error {
 }
 
 func (r *RpcNats) PublishGate(data []byte) error {
-	if err := r.Client.Publish("/rpcx/gate", data); err != nil {
-		return err
-	}
-	return nil
+	return r.Client.Publish("/rpcx/gate", data)
 }
 
 func (r *RpcNats) PublishConnector(data []byte) error {
-	if err := r.Client.Publish("/rpcx/connector", data); err != nil {
-		return err
-	}
-	return nil
+	return r.Client.Publish("/rpcx/connector", data)
 }
 
 func (r *RpcNats) PublishServer(data []byte) error {
-	if err := r.Client.Publish("/rpcx/server", data); err != nil {
-		return err
-	}
-	return nil
+	return r.Client.Publish("/rpcx/server", data)
 }
