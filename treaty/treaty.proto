@@ -31,11 +31,13 @@ message LoginRequest{
     int32 uid = 1; //用户ID
     string nickname = 2; //用户昵称
     string token = 3; //用户token
+    Server backend = 4; //后端服务器
 }
 
 message LoginResponse{
     CodeType code = 1; //登录结果
     string msg = 2;   //登录消息
+    Server backend = 3; //后端服务器
 }
 
 message Session{  //用户会话信息
