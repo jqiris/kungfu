@@ -82,6 +82,14 @@ func (b *MyConnector) Login(request tcpserver.IRequest) {
 			resp.Msg = "找不到服务器"
 			return
 		}
+		//后端服务器进行登录操作
+		if bResp,err := b.Rpcx.Request(backend, request.GetData()); err != nil {
+			resp.Code = 4
+			resp.Msg = err.Error()
+			return
+		} else {
+			
+		}
 	} else {
 		//加入大厅用户
 
