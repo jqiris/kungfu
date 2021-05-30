@@ -50,7 +50,7 @@ func (b *MyConnector) EventHandleBroadcast(req []byte) []byte {
 func (b *MyConnector) Login(request tcpserver.IRequest) {
 
 	//先读取客户端的数据
-	logger.Println("recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
+	logger.Println("Login recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
 
 	//回复信息
 	resp := &treaty.LoginResponse{}
@@ -147,7 +147,7 @@ func (b *MyConnector) Login(request tcpserver.IRequest) {
 				SendMsg(conn, treaty.MsgId_Msg_Login_Response, resp)
 				return
 			}
-			if resp.Code == 0 {
+			if resp.Code == treaty.CodeType_CodeSuccess {
 				//登录成功记录用户的连接
 				b.conns[uid] = conn
 			}
@@ -155,13 +155,67 @@ func (b *MyConnector) Login(request tcpserver.IRequest) {
 			return
 		}
 	}
+}
 
+//Logout 登出操作
+func (b *MyConnector) Logout(request tcpserver.IRequest) {
+	//先读取客户端的数据
+	logger.Println("Logout recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
+
+	//回复信息
+	resp := &treaty.LogoutResponse{}
+	//回复对象
+	conn := request.GetConnection()
+	//解析登录数据
+	req := &treaty.LogoutRequest{}
+	if err := GetRequest(request, req); err != nil {
+		resp.Code = treaty.CodeType_CodeFailed
+		resp.Msg = err.Error()
+		SendMsg(conn, treaty.MsgId_Msg_Logout_Response, resp)
+		return
+	}
+	if req.Backend == nil {
+		resp.Code = treaty.CodeType_CodeCannotFindBackend
+		resp.Msg = "请指定登出服务器"
+		SendMsg(conn, treaty.MsgId_Msg_Logout_Response, resp)
+		return
+	}
+	logger.Printf("Logout request is:%+v", req)
+	if msg, err := RpcMsgEncode(treaty.RpcMsgId_RpcMsgBackendLogout, req); err != nil {
+		resp.Code = treaty.CodeType_CodeFailed
+		resp.Msg = err.Error()
+		SendMsg(conn, treaty.MsgId_Msg_Logout_Response, resp)
+		return
+	} else {
+		if bResp, err := b.Rpcx.Request(req.Backend, msg); err != nil {
+			resp.Code = treaty.CodeType_CodeFailed
+			resp.Msg = err.Error()
+			SendMsg(conn, treaty.MsgId_Msg_Logout_Response, resp)
+			return
+		} else {
+			//结果直接由服务端返回
+			respb := &treaty.LogoutResponse{}
+			if err = encoder.Unmarshal(bResp, respb); err != nil {
+				resp.Code = treaty.CodeType_CodeFailed
+				resp.Msg = err.Error()
+				SendMsg(conn, treaty.MsgId_Msg_Logout_Response, resp)
+				return
+			}
+			if resp.Code == treaty.CodeType_CodeSuccess {
+				//登出成功删除用户连接
+				delete(b.conns, req.Uid)
+			}
+			SendMsg(conn, treaty.MsgId_Msg_Logout_Response, respb)
+			return
+		}
+	}
 }
 
 func init() {
 	srv := &MyConnector{conns: make(map[int32]tcpserver.IConnection)}
 	routers := map[int32]tcpserver.IHandler{
-		int32(treaty.MsgId_Msg_Login_Request): srv.Login,
+		int32(treaty.MsgId_Msg_Login_Request):  srv.Login,
+		int32(treaty.MsgId_Msg_Logout_Request): srv.Logout,
 	}
 	srv.SetServerId("connector_2001")
 	srv.RegEventHandlerSelf(srv.EventHandlerSelf)

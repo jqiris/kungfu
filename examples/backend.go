@@ -17,7 +17,6 @@ type MyBackend struct {
 
 func (b *MyBackend) EventHandleSelf(req []byte) []byte {
 	fmt.Printf("MyBackend EventHandleSelf received: %+v \n", string(req))
-	resp := &treaty.LoginResponse{}
 	rpcMsg, err := RpcMsgDecode(req)
 	if err != nil {
 		logger.Error(err)
@@ -26,6 +25,7 @@ func (b *MyBackend) EventHandleSelf(req []byte) []byte {
 	switch rpcMsg.MsgId {
 	case treaty.RpcMsgId_RpcMsgBackendLogin:
 		//服务端登录
+		resp := &treaty.LoginResponse{}
 		msg := &treaty.LoginRequest{}
 		if err := encoder.Unmarshal(rpcMsg.MsgData, msg); err != nil {
 			logger.Error(err)
@@ -63,10 +63,28 @@ func (b *MyBackend) EventHandleSelf(req []byte) []byte {
 			b.conns[msg.Uid] = rpcMsg.MsgServer
 			return RpcResponse(resp)
 		}
+	case treaty.RpcMsgId_RpcMsgBackendLogout:
+		//服务端登出
+		resp := &treaty.LogoutResponse{}
+		msg := &treaty.LogoutRequest{}
+		if err := encoder.Unmarshal(rpcMsg.MsgData, msg); err != nil {
+			logger.Error(err)
+			resp.Code = treaty.CodeType_CodeFailed
+			resp.Msg = err.Error()
+			return RpcResponse(resp)
+		} else {
+			//游戏机制检查
+			//销毁通道
+			if err := channel.DestroyChannel(msg.Backend, msg.Uid); err != nil {
+				logger.Error(err)
+			}
+			resp.Code = treaty.CodeType_CodeSuccess
+			resp.Msg = "登出成功"
+			return RpcResponse(resp)
+		}
 	}
-	resp.Code = treaty.CodeType_CodeUndefinedDealMsg
-	resp.Msg = "未定义处理消息"
-	return RpcResponse(resp)
+	logger.Errorf("undfined message:%+v", rpcMsg)
+	return nil
 }
 
 func (b *MyBackend) EventHandleBroadcast(req []byte) []byte {

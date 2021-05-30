@@ -17,6 +17,8 @@ enum MsgId{
   Msg_Login_Request = 1; //登录请求
   Msg_Login_Response = 2; //登录回复
   Msg_Multi_Login_Out = 3;//多端登录退出
+  Msg_Logout_Request = 4; //登出请求
+  Msg_Logout_Response = 5; //登出回复
 }
 
 message Server{
@@ -52,6 +54,7 @@ enum RpcMsgId {
   RpcMsgNone = 0;
   RpcMsgMultiLoginOut = 1;
   RpcMsgBackendLogin = 2;
+  RpcMsgBackendLogout = 3;
 }
 
 message MultiLoginOut{ //多connector登录登出
@@ -75,4 +78,14 @@ message RpcMsg{
     RpcMsgId msg_id = 1; //消息ID
     Server  msg_server = 2; //消息来源服务器
     bytes msg_data = 3;//消息内容
+}
+
+message LogoutRequest{
+  int32 uid = 1; //用户ID
+  Server backend = 2; //登出服务器
+}
+
+message LogoutResponse{
+  CodeType code = 1; //登出结果
+  string msg = 2;//登出消息
 }
