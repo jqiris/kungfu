@@ -150,6 +150,16 @@ func (b *MyConnector) Login(request tcpserver.IRequest) {
 			if resp.Code == treaty.CodeType_CodeSuccess {
 				//登录成功记录用户的连接
 				b.conns[uid] = conn
+				//更新session
+				if sess == nil {
+					sess = &treaty.Session{Uid: uid}
+				}
+				sess.Connector = b.Server
+				sess.Backend = backend
+				if err := session.SaveSession(uid, sess); err != nil {
+					logger.Error(err)
+				}
+
 			}
 			SendMsg(conn, treaty.MsgId_Msg_Login_Response, respb)
 			return
@@ -204,8 +214,75 @@ func (b *MyConnector) Logout(request tcpserver.IRequest) {
 			if resp.Code == treaty.CodeType_CodeSuccess {
 				//登出成功删除用户连接
 				delete(b.conns, req.Uid)
+				//删除Session
+				if err := session.DestorySession(req.Uid); err != nil {
+					logger.Error(err)
+				}
 			}
 			SendMsg(conn, treaty.MsgId_Msg_Logout_Response, respb)
+			return
+		}
+	}
+}
+
+//ChannelMsg 消息转发
+func (b *MyConnector) ChannelMsg(request tcpserver.IRequest) {
+	//先读取客户端的数据
+	logger.Println("ChannelMsg recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
+
+	//回复信息
+	resp := &treaty.ChannelMsgResponse{}
+	//回复对象
+	conn := request.GetConnection()
+	//解析登录数据
+	req := &treaty.ChannelMsgRequest{}
+	if err := GetRequest(request, req); err != nil {
+		resp.Code = treaty.CodeType_CodeFailed
+		resp.Msg = err.Error()
+		SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
+		return
+	}
+	//检查session
+	sess := session.GetSession(req.Uid)
+	if sess == nil {
+		resp.Code = treaty.CodeType_CodeNotLogin
+		resp.Msg = "请先登录"
+		SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
+		return
+	}
+	if sess.Connector != b.Server {
+		resp.Code = treaty.CodeType_CodeNotRightConnector
+		resp.Msg = "请与绑定connector通信"
+		SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
+		return
+	}
+	if sess.Backend == nil {
+		resp.Code = treaty.CodeType_CodeNotLoginBackend
+		resp.Msg = "请先登录"
+		SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
+		return
+	}
+	if msg, err := encoder.Marshal(req.RpcMsg); err != nil {
+		resp.Code = treaty.CodeType_CodeFailed
+		resp.Msg = err.Error()
+		SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
+		return
+	} else {
+		if bResp, err := b.Rpcx.Request(sess.Backend, msg); err != nil {
+			resp.Code = treaty.CodeType_CodeFailed
+			resp.Msg = err.Error()
+			SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
+			return
+		} else {
+			//结果直接由服务端返回
+			respb := &treaty.ChannelMsgResponse{}
+			if err = encoder.Unmarshal(bResp, respb); err != nil {
+				resp.Code = treaty.CodeType_CodeFailed
+				resp.Msg = err.Error()
+				SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
+				return
+			}
+			SendMsg(conn, treaty.MsgId_Msg_Channel_Response, respb)
 			return
 		}
 	}
@@ -214,8 +291,9 @@ func (b *MyConnector) Logout(request tcpserver.IRequest) {
 func init() {
 	srv := &MyConnector{conns: make(map[int32]tcpserver.IConnection)}
 	routers := map[int32]tcpserver.IHandler{
-		int32(treaty.MsgId_Msg_Login_Request):  srv.Login,
-		int32(treaty.MsgId_Msg_Logout_Request): srv.Logout,
+		int32(treaty.MsgId_Msg_Login_Request):   srv.Login,
+		int32(treaty.MsgId_Msg_Logout_Request):  srv.Logout,
+		int32(treaty.MsgId_Msg_Channel_Request): srv.ChannelMsg,
 	}
 	srv.SetServerId("connector_2001")
 	srv.RegEventHandlerSelf(srv.EventHandlerSelf)

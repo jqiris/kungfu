@@ -29,3 +29,8 @@ func SaveSession(uid int32, sess *treaty.Session) error {
 	uField := helper.IntToString(int(uid))
 	return stores.HSet(sessionKey, uField, sess)
 }
+
+func DestorySession(uid int32) error {
+	uField := helper.IntToString(int(uid))
+	return stores.HDel(sessionKey, uField)
+}
