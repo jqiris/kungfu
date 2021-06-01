@@ -3,7 +3,11 @@ package balancer
 import (
 	"errors"
 	"fmt"
+	"github.com/golang/protobuf/proto"
+	"github.com/jqiris/kungfu/session"
+	"github.com/jqiris/kungfu/utils"
 	"net/http"
+	"net/url"
 
 	"github.com/apex/log"
 	"github.com/jqiris/kungfu/coder"
@@ -25,27 +29,51 @@ type BaseBalancer struct {
 }
 
 func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
-	server, err := b.Balance(r.RemoteAddr)
+	queryForm, err := url.ParseQuery(r.URL.RawQuery)
+	serverType, uid := "", 0
+	if err == nil {
+		if len(queryForm["server_type"]) > 0 {
+			serverType = queryForm["server_type"][0]
+		}
+		if len(queryForm["uid"]) > 0 {
+			uid = utils.StringToInt(queryForm["uid"][0])
+		}
+	}
+	if len(serverType) < 1 || uid < 1 {
+		res := &treaty.BalanceResult{
+			Code: treaty.CodeType_CodeChooseBackendLogin,
+		}
+		b.WriteResponse(w, res)
+		return
+	}
+	connetor, err := b.Balance(r.RemoteAddr)
 	if err != nil {
 		res := &treaty.BalanceResult{
 			Code: treaty.CodeType_CodeFailed,
 		}
-		if v, e := b.ClientCoder.Marshal(res); e == nil {
-			if _, e2 := w.Write(v); e2 != nil {
-				logger.Error(e2)
-			}
-		}
+		b.WriteResponse(w, res)
 		return
 	}
-	res := &treaty.BalanceResult{
-		Code:   treaty.CodeType_CodeSuccess,
-		Server: server,
+	backend := discover.GetServerByType(serverType, r.RemoteAddr)
+	var backendPre *treaty.Server
+	sess := session.GetSession(int32(uid))
+	if sess != nil {
+		backendPre = sess.Backend
 	}
-	if v, e := b.ClientCoder.Marshal(res); e == nil {
+	res := &treaty.BalanceResult{
+		Code:       treaty.CodeType_CodeSuccess,
+		Connector:  connetor,
+		Backend:    backend,
+		BackendPre: backendPre,
+	}
+	b.WriteResponse(w, res)
+}
+
+func (b *BaseBalancer) WriteResponse(w http.ResponseWriter, msg proto.Message) {
+	if v, e := b.ClientCoder.Marshal(msg); e == nil {
 		if _, e2 := w.Write(v); e2 != nil {
 			logger.Error(e2)
 		}
-		return
 	}
 }
 func (b *BaseBalancer) Init() {

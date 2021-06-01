@@ -36,7 +36,9 @@ message Server{
 
 message BalanceResult{
   CodeType code = 1; //0-成功 1-失败
-  Server server = 2;
+  Server connector = 2; //连接器
+  Server backend = 3;//服务器
+  Server backend_pre = 4;//之前连接的服务器
 }
 
 message Session{  //用户会话信息
