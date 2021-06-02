@@ -62,6 +62,7 @@ enum RpcMsgId {
   RpcMsgMultiLoginOut = 1;
   RpcMsgBackendLogin = 2;
   RpcMsgBackendLogout = 3;
+  RpcMsgChatTest = 4;
 }
 
 message MultiLoginOut{ //多connector登录登出

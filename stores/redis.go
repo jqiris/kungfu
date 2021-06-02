@@ -137,10 +137,14 @@ func (s *StoreRedis) Exists(keys ...string) bool {
 	}
 }
 
-func (s *StoreRedis) HSet(key string, values ...interface{}) error {
+func (s *StoreRedis) HSet(key, field string, val interface{}) error {
+	bs, err := json.Marshal(val)
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	if _, err := s.Client.HSet(ctx, key, values...).Result(); err != nil {
+	if _, err := s.Client.HSet(ctx, key, field, bs).Result(); err != nil {
 		return err
 	}
 	return nil
@@ -149,10 +153,11 @@ func (s *StoreRedis) HSet(key string, values ...interface{}) error {
 func (s *StoreRedis) HGet(key, field string, val interface{}) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	if err := s.Client.HGet(ctx, key, field).Scan(val); err != nil {
+	var bs []byte
+	if err := s.Client.HGet(ctx, key, field).Scan(&bs); err != nil {
 		return err
 	}
-	return nil
+	return json.Unmarshal(bs, val)
 }
 
 func (s *StoreRedis) HDel(key string, fields ...string) error {

@@ -39,7 +39,7 @@ func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
 			uid = utils.StringToInt(queryForm["uid"][0])
 		}
 	}
-	if len(serverType) < 1 || uid < 1 {
+	if len(serverType) < 1 {
 		res := &treaty.BalanceResult{
 			Code: treaty.CodeType_CodeChooseBackendLogin,
 		}

@@ -35,7 +35,7 @@ type StoreKeeper interface {
 	GetString(key string) string
 	Del(keys ...string) error
 	Exists(keys ...string) bool
-	HSet(key string, values ...interface{}) error
+	HSet(key, field string, val interface{}) error
 	HGet(key, field string, val interface{}) error
 	HDel(key string, fields ...string) error
 	HExists(key, field string) bool
@@ -65,8 +65,8 @@ func Exists(keys ...string) bool {
 	return defStoreKeeper.Exists(keys...)
 }
 
-func HSet(key string, values ...interface{}) error {
-	return defStoreKeeper.HSet(key, values...)
+func HSet(key, field string, val interface{}) error {
+	return defStoreKeeper.HSet(key, field, val)
 }
 
 func HGet(key, field string, val interface{}) error {

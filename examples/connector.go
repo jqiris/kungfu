@@ -250,7 +250,7 @@ func (b *MyConnector) ChannelMsg(request tcpserver.IRequest) {
 		SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
 		return
 	}
-	if sess.Connector != b.Server {
+	if sess.Connector.ServerId != b.Server.ServerId {
 		resp.Code = treaty.CodeType_CodeNotRightConnector
 		resp.Msg = "请与绑定connector通信"
 		SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
@@ -274,15 +274,15 @@ func (b *MyConnector) ChannelMsg(request tcpserver.IRequest) {
 			SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
 			return
 		} else {
-			//结果直接由服务端返回
-			respb := &treaty.ChannelMsgResponse{}
-			if err = encoder.Unmarshal(bResp, respb); err != nil {
-				resp.Code = treaty.CodeType_CodeFailed
-				resp.Msg = err.Error()
-				SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
-				return
-			}
-			SendMsg(conn, treaty.MsgId_Msg_Channel_Response, respb)
+			////结果直接由服务端返回
+			//respb := &treaty.ChannelMsgResponse{}
+			//if err = encoder.Unmarshal(bResp, respb); err != nil {
+			//	resp.Code = treaty.CodeType_CodeFailed
+			//	resp.Msg = err.Error()
+			//	SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
+			//	return
+			//}
+			SendMsg(conn, treaty.MsgId_Msg_Channel_Response, bResp)
 			return
 		}
 	}
@@ -296,14 +296,14 @@ func init() {
 		int32(treaty.MsgId_Msg_Channel_Request): srv.ChannelMsg,
 	}
 	srv.SetServerId("connector_2001")
-	srv.RegEventHandlerSelf(srv.EventHandlerSelf)
+	srv.RegEventHandlerSelf(srv.EventHandleSelf)
 	srv.RegEventHandlerBroadcast(srv.EventHandleBroadcast)
 	srv.RegRouters(routers)
 	launch.RegisterServer(srv)
 
 	srv2 := &MyConnector{}
 	srv2.SetServerId("connector_2002")
-	srv2.RegEventHandlerSelf(srv2.EventHandlerSelf)
+	srv2.RegEventHandlerSelf(srv2.EventHandleSelf)
 	srv2.RegEventHandlerBroadcast(srv2.EventHandleBroadcast)
 	srv2.RegRouters(routers)
 	launch.RegisterServer(srv2)

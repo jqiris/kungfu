@@ -82,6 +82,9 @@ func (b *MyBackend) EventHandleSelf(req []byte) []byte {
 			resp.Msg = "登出成功"
 			return RpcResponse(resp)
 		}
+	case treaty.RpcMsgId_RpcMsgChatTest:
+		logger.Infof("received chat msg:%+v", string(rpcMsg.MsgData))
+		return []byte("received the chat msg:" + string(rpcMsg.MsgData))
 	}
 	logger.Errorf("undfined message:%+v", rpcMsg)
 	return nil
@@ -95,7 +98,7 @@ func (b *MyBackend) EventHandleBroadcast(req []byte) []byte {
 func init() {
 	srv := &MyBackend{conns: make(map[int32]*treaty.Server)}
 	srv.SetServerId("backend_3001")
-	srv.RegEventHandlerSelf(srv.EventHandlerSelf)
+	srv.RegEventHandlerSelf(srv.EventHandleSelf)
 	srv.RegEventHandlerBroadcast(srv.EventHandleBroadcast)
 	launch.RegisterServer(srv)
 }
