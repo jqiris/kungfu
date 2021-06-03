@@ -282,7 +282,7 @@ func (b *MyConnector) ChannelMsg(request tcpserver.IRequest) {
 			//	SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
 			//	return
 			//}
-			SendMsg(conn, treaty.MsgId_Msg_Channel_Response, bResp)
+			SendByteMsg(conn, treaty.MsgId_Msg_Channel_Response, bResp)
 			return
 		}
 	}

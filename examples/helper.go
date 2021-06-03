@@ -32,6 +32,13 @@ func SendMsg(conn tcpserver.IConnection, msgId treaty.MsgId, msg interface{}) {
 		return
 	}
 }
+func SendByteMsg(conn tcpserver.IConnection, msgId treaty.MsgId, msg []byte) {
+	err := conn.SendBuffMsg(int32(msgId), msg)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+}
 
 func RpcMsgEncode(msgId treaty.RpcMsgId, msgData proto.Message) ([]byte, error) {
 	msg, err := encoder.Marshal(msgData)
