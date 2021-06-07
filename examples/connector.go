@@ -94,7 +94,7 @@ func (b *MyConnector) Login(request tcpserver.IRequest) {
 				SendMsg(conn, treaty.MsgId_Msg_Login_Response, resp)
 				return
 			} else {
-				if err = b.Rpcx.Publish(sess.Connector, msg); err != nil {
+				if err = b.RpcX.Publish(sess.Connector, msg); err != nil {
 					logger.Error(err)
 				}
 				//保存最新的connetor
@@ -133,7 +133,7 @@ func (b *MyConnector) Login(request tcpserver.IRequest) {
 		SendMsg(conn, treaty.MsgId_Msg_Login_Response, resp)
 		return
 	} else {
-		if bResp, err := b.Rpcx.Request(backend, msg); err != nil {
+		if bResp, err := b.RpcX.Request(backend, msg); err != nil {
 			resp.Code = treaty.CodeType_CodeFailed
 			resp.Msg = err.Error()
 			SendMsg(conn, treaty.MsgId_Msg_Login_Response, resp)
@@ -197,7 +197,7 @@ func (b *MyConnector) Logout(request tcpserver.IRequest) {
 		SendMsg(conn, treaty.MsgId_Msg_Logout_Response, resp)
 		return
 	} else {
-		if bResp, err := b.Rpcx.Request(req.Backend, msg); err != nil {
+		if bResp, err := b.RpcX.Request(req.Backend, msg); err != nil {
 			resp.Code = treaty.CodeType_CodeFailed
 			resp.Msg = err.Error()
 			SendMsg(conn, treaty.MsgId_Msg_Logout_Response, resp)
@@ -268,7 +268,7 @@ func (b *MyConnector) ChannelMsg(request tcpserver.IRequest) {
 		SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
 		return
 	} else {
-		if bResp, err := b.Rpcx.Request(sess.Backend, msg); err != nil {
+		if bResp, err := b.RpcX.Request(sess.Backend, msg); err != nil {
 			resp.Code = treaty.CodeType_CodeFailed
 			resp.Msg = err.Error()
 			SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)

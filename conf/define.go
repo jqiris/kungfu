@@ -6,7 +6,7 @@ import (
 
 type Config struct {
 	Discover  DiscoverConf              `json:"discover"`
-	Rpcx      RpcxConf                  `json:"rpcx"`
+	RpcX      RpcxConf                  `json:"rpcx"`
 	Stores    StoresConf                `json:"stores"`
 	Coder     CoderConf                 `json:"coder"`
 	Connector ConnectorConf             `json:"connector"`

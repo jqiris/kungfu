@@ -21,7 +21,7 @@ import (
 type BaseBalancer struct {
 	ServerId              string
 	Server                *treaty.Server
-	Rpcx                  rpcx.RpcBalancer
+	RpcX                  rpcx.RpcBalancer
 	ClientServer          *http.Server
 	ClientCoder           coder.Coder
 	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
@@ -82,7 +82,7 @@ func (b *BaseBalancer) Init() {
 		logger.Fatal("BaseBalancer can find the server config")
 	}
 	//init the rpcx
-	b.Rpcx = rpcx.NewRpcBalancer(conf.GetRpcxConf())
+	b.RpcX = rpcx.NewRpcBalancer(conf.GetRpcxConf())
 	//init the coder
 	b.ClientCoder = coder.NewJsonCoder()
 	//set the server
@@ -101,13 +101,13 @@ func (b *BaseBalancer) Init() {
 
 func (b *BaseBalancer) AfterInit() {
 	//Subscribe event
-	if err := b.Rpcx.Subscribe(b.Server, func(req []byte) []byte {
+	if err := b.RpcX.Subscribe(b.Server, func(req []byte) []byte {
 		logger.Infof("BaseBalancer Subscribe received: %+v", req)
 		return b.EventHandlerSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := b.Rpcx.SubscribeBalancer(func(req []byte) []byte {
+	if err := b.RpcX.SubscribeBalancer(func(req []byte) []byte {
 		logger.Infof("BaseBalancer SubscribeBalancer received: %+v", req)
 		return b.EventHandlerBroadcast(req)
 	}); err != nil {

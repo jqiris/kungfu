@@ -13,7 +13,7 @@ import (
 type BaseConnector struct {
 	ServerId              string
 	Server                *treaty.Server
-	Rpcx                  rpcx.RpcConnector
+	RpcX                  rpcx.RpcConnector
 	ClientServer          tcpserver.IServer
 	ClientCoder           coder.Coder
 	ConnectorConf         conf.ConnectorConf
@@ -31,7 +31,7 @@ func (b *BaseConnector) Init() {
 		b.ConnectorConf = conf.GetConnectorConf()
 	}
 	//init the rpcx
-	b.Rpcx = rpcx.NewRpcConnector(conf.GetRpcxConf())
+	b.RpcX = rpcx.NewRpcConnector(conf.GetRpcxConf())
 	//run the front server
 	b.ClientServer = tcpserver.NewServer(b.Server, b.ConnectorConf)
 	b.ClientServer.AddRouters(b.Routers)
@@ -42,13 +42,13 @@ func (b *BaseConnector) Init() {
 
 func (b *BaseConnector) AfterInit() {
 	//Subscribe event
-	if err := b.Rpcx.Subscribe(b.Server, func(req []byte) []byte {
+	if err := b.RpcX.Subscribe(b.Server, func(req []byte) []byte {
 		logger.Infof("BaseConnector Subscribe received: %+v", req)
 		return b.EventHandlerSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := b.Rpcx.SubscribeConnector(func(req []byte) []byte {
+	if err := b.RpcX.SubscribeConnector(func(req []byte) []byte {
 		logger.Infof("BaseConnector SubscribeConnector received: %+v", req)
 		return b.EventHandlerBroadcast(req)
 	}); err != nil {

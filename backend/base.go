@@ -8,11 +8,11 @@ import (
 	"github.com/jqiris/kungfu/treaty"
 )
 
-//mt BackEnd
+//BaseBackEnd
 type BaseBackEnd struct {
 	ServerId              string
 	Server                *treaty.Server
-	Rpcx                  rpcx.RpcServer
+	RpcX                  rpcx.RpcServer
 	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
 	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
 }
@@ -23,19 +23,19 @@ func (b *BaseBackEnd) Init() {
 		logger.Fatal("BaseBackEnd can find the server config")
 	}
 	//init the rpcx
-	b.Rpcx = rpcx.NewRpcServer(conf.GetRpcxConf())
+	b.RpcX = rpcx.NewRpcServer(conf.GetRpcxConf())
 	logger.Infoln("init the backend:", b.ServerId)
 }
 
 func (b *BaseBackEnd) AfterInit() {
 	//Subscribe event
-	if err := b.Rpcx.Subscribe(b.Server, func(req []byte) []byte {
+	if err := b.RpcX.Subscribe(b.Server, func(req []byte) []byte {
 		logger.Infof("BaseBackEnd Subscribe received: %+v", req)
 		return b.EventHandlerSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := b.Rpcx.SubscribeServer(func(req []byte) []byte {
+	if err := b.RpcX.SubscribeServer(func(req []byte) []byte {
 		logger.Infof("BaseBackEnd SubscribeServer received: %+v", req)
 		return b.EventHandlerBroadcast(req)
 	}); err != nil {
