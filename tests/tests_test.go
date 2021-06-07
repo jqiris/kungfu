@@ -1,8 +1,7 @@
 package tests
 
 import (
-	"github.com/jqiris/kungfu/coder"
-	"github.com/jqiris/kungfu/conf"
+	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/stores"
 	"github.com/sirupsen/logrus"
@@ -20,6 +19,4 @@ func init() {
 	discover.InitDiscoverer(config.GetDiscoverConf())
 	//init stores
 	stores.InitStoreKeeper(config.GetStoresConf())
-	//init coder
-	coder.InitCoder(config.GetCoderConf())
 }
