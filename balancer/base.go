@@ -3,27 +3,26 @@ package balancer
 import (
 	"errors"
 	"fmt"
-	"github.com/golang/protobuf/proto"
-	"github.com/jqiris/kungfu/session"
-	"github.com/jqiris/kungfu/utils"
-	"net/http"
-	"net/url"
-
 	"github.com/apex/log"
-	"github.com/jqiris/kungfu/coder"
-	"github.com/jqiris/kungfu/conf"
+	"github.com/golang/protobuf/proto"
+	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/serialize"
+	"github.com/jqiris/kungfu/session"
 	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/utils"
+	"net/http"
+	"net/url"
 )
 
 type BaseBalancer struct {
 	ServerId              string
 	Server                *treaty.Server
-	Rpcx                  rpcx.RpcBalancer
+	RpcX                  rpcx.RpcBalancer
 	ClientServer          *http.Server
-	ClientCoder           coder.Coder
+	ClientCoder           serialize.Serializer
 	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
 	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
 }
@@ -78,13 +77,13 @@ func (b *BaseBalancer) WriteResponse(w http.ResponseWriter, msg proto.Message) {
 }
 func (b *BaseBalancer) Init() {
 	//find the  server config
-	if b.Server = helper.FindServerConfig(conf.GetServersConf(), b.GetServerId()); b.Server == nil {
+	if b.Server = helper.FindServerConfig(config.GetServersConf(), b.GetServerId()); b.Server == nil {
 		logger.Fatal("BaseBalancer can find the server config")
 	}
 	//init the rpcx
-	b.Rpcx = rpcx.NewRpcBalancer(conf.GetRpcxConf())
+	b.RpcX = rpcx.NewRpcBalancer(config.GetRpcXConf())
 	//init the coder
-	b.ClientCoder = coder.NewJsonCoder()
+	b.ClientCoder = serialize.NewProtoSerializer()
 	//set the server
 	b.ClientServer = &http.Server{Addr: fmt.Sprintf("%s:%d", b.Server.ServerIp, b.Server.ClientPort)}
 	//handle the blance
@@ -101,13 +100,13 @@ func (b *BaseBalancer) Init() {
 
 func (b *BaseBalancer) AfterInit() {
 	//Subscribe event
-	if err := b.Rpcx.Subscribe(b.Server, func(req []byte) []byte {
+	if err := b.RpcX.Subscribe(b.Server, func(req []byte) []byte {
 		logger.Infof("BaseBalancer Subscribe received: %+v", req)
 		return b.EventHandlerSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := b.Rpcx.SubscribeBalancer(func(req []byte) []byte {
+	if err := b.RpcX.SubscribeBalancer(func(req []byte) []byte {
 		logger.Infof("BaseBalancer SubscribeBalancer received: %+v", req)
 		return b.EventHandlerBroadcast(req)
 	}); err != nil {

@@ -2,9 +2,10 @@ package examples
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/jqiris/kungfu/channel"
 	"github.com/jqiris/kungfu/treaty"
-	"time"
 
 	"github.com/jqiris/kungfu/backend"
 	"github.com/jqiris/kungfu/launch"

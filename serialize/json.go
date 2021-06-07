@@ -20,21 +20,25 @@
 
 package serialize
 
-type (
-
-	// Marshaler represents a marshal interface
-	Marshaler interface {
-		Marshal(interface{}) ([]byte, error)
-	}
-
-	// Unmarshaler represents a Unmarshal interface
-	Unmarshaler interface {
-		Unmarshal([]byte, interface{}) error
-	}
-
-	// Serializer is the interface that groups the basic Marshal and Unmarshal methods.
-	Serializer interface {
-		Marshaler
-		Unmarshaler
-	}
+import (
+	"encoding/json"
 )
+
+// JsonSerializer implements the serialize.Serializer interface
+type JsonSerializer struct{}
+
+// NewJsonSerializer returns a new Serializer.
+func NewJsonSerializer() *JsonSerializer {
+	return &JsonSerializer{}
+}
+
+// Marshal returns the JSON encoding of v.
+func (s *JsonSerializer) Marshal(v interface{}) ([]byte, error) {
+	return json.Marshal(v)
+}
+
+// Unmarshal parses the JSON-encoded data and stores the result
+// in the value pointed to by v.
+func (s *JsonSerializer) Unmarshal(data []byte, v interface{}) error {
+	return json.Unmarshal(data, v)
+}

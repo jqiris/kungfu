@@ -26,9 +26,6 @@
     "password": "",
     "db": 0
   },
-  "coder": {
-    "use_type": "proto"
-  },
   "servers": {
     "balancer_1001": {
       "server_id": "balancer_1001",

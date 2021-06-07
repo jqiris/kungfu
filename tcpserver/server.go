@@ -2,10 +2,10 @@ package tcpserver
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/config"
 	"net"
 	"os"
 
-	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/treaty"
 )
 
@@ -30,15 +30,15 @@ type Server struct {
 	//该Server的连接断开时的Hook函数
 	OnConnStop func(conn IConnection)
 	//客户端参数
-	Config conf.ConnectorConf
+	Config config.ConnectorConf
 }
 
-func MergeConf(cfg conf.ConnectorConf) conf.ConnectorConf {
+func MergeConf(cfg config.ConnectorConf) config.ConnectorConf {
 	pwd, err := os.Getwd()
 	if err != nil {
 		pwd = "."
 	}
-	config := conf.ConnectorConf{
+	config := config.ConnectorConf{
 		Version:          "V0.11",
 		MaxConn:          12000,
 		MaxPacketSize:    4096,
@@ -74,7 +74,7 @@ func MergeConf(cfg conf.ConnectorConf) conf.ConnectorConf {
 }
 
 //NewServer 创建一个服务器句柄
-func NewServer(server *treaty.Server, cfg conf.ConnectorConf) IServer {
+func NewServer(server *treaty.Server, cfg config.ConnectorConf) IServer {
 	//合并配置
 	cfg = MergeConf(cfg)
 	//其他操作

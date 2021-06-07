@@ -1,13 +1,12 @@
 package main
 
 import (
+	"github.com/jqiris/kungfu/config"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/jqiris/kungfu/coder"
-	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/discover"
 	_ "github.com/jqiris/kungfu/examples"
 	"github.com/jqiris/kungfu/launch"
@@ -21,17 +20,14 @@ var (
 
 func main() {
 	//init conf
-	if err := conf.InitConf("config.json"); err != nil {
+	if err := config.InitConf("config.json"); err != nil {
 		logger.Fatal(err)
 	}
 	//init discover
-	discover.InitDiscoverer(conf.GetDiscoverConf())
+	discover.InitDiscoverer(config.GetDiscoverConf())
 
 	//init stores
-	stores.InitStoreKeeper(conf.GetStoresConf())
-
-	//init coder
-	coder.InitCoder(conf.GetCoderConf())
+	stores.InitStoreKeeper(config.GetStoresConf())
 
 	//launch servers
 	launch.Startup()

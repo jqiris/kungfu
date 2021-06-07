@@ -1,41 +1,41 @@
 package backend
 
 import (
-	"github.com/jqiris/kungfu/conf"
+	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/treaty"
 )
 
-//mt BackEnd
+//BaseBackEnd 后盾服务
 type BaseBackEnd struct {
 	ServerId              string
 	Server                *treaty.Server
-	Rpcx                  rpcx.RpcServer
+	RpcX                  rpcx.RpcServer
 	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
 	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
 }
 
 func (b *BaseBackEnd) Init() {
 	//find the  server config
-	if b.Server = helper.FindServerConfig(conf.GetServersConf(), b.GetServerId()); b.Server == nil {
+	if b.Server = helper.FindServerConfig(config.GetServersConf(), b.GetServerId()); b.Server == nil {
 		logger.Fatal("BaseBackEnd can find the server config")
 	}
 	//init the rpcx
-	b.Rpcx = rpcx.NewRpcServer(conf.GetRpcxConf())
+	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf())
 	logger.Infoln("init the backend:", b.ServerId)
 }
 
 func (b *BaseBackEnd) AfterInit() {
 	//Subscribe event
-	if err := b.Rpcx.Subscribe(b.Server, func(req []byte) []byte {
+	if err := b.RpcX.Subscribe(b.Server, func(req []byte) []byte {
 		logger.Infof("BaseBackEnd Subscribe received: %+v", req)
 		return b.EventHandlerSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := b.Rpcx.SubscribeServer(func(req []byte) []byte {
+	if err := b.RpcX.SubscribeServer(func(req []byte) []byte {
 		logger.Infof("BaseBackEnd SubscribeServer received: %+v", req)
 		return b.EventHandlerBroadcast(req)
 	}); err != nil {

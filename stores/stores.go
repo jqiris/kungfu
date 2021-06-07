@@ -1,9 +1,9 @@
 package stores
 
 import (
+	"github.com/jqiris/kungfu/config"
 	"time"
 
-	"github.com/jqiris/kungfu/conf"
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,7 +12,7 @@ var (
 	defStoreKeeper StoreKeeper
 )
 
-func InitStoreKeeper(cfg conf.StoresConf) {
+func InitStoreKeeper(cfg config.StoresConf) {
 	switch cfg.UseType {
 	case "redis":
 		defStoreKeeper = NewStoreRedis(

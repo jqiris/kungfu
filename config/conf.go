@@ -1,4 +1,4 @@
-package conf
+package config
 
 import (
 	"encoding/json"
@@ -32,16 +32,12 @@ func GetDiscoverConf() DiscoverConf {
 	return config.Discover
 }
 
-func GetRpcxConf() RpcxConf {
-	return config.Rpcx
+func GetRpcXConf() RpcXConf {
+	return config.RpcX
 }
 
 func GetStoresConf() StoresConf {
 	return config.Stores
-}
-
-func GetCoderConf() CoderConf {
-	return config.Coder
 }
 
 func GetConnectorConf() ConnectorConf {
@@ -52,11 +48,11 @@ func GetServersConf() map[string]*treaty.Server {
 	return config.Servers
 }
 
-func GetLauchConf() []string {
+func GetLaunchConf() []string {
 	return config.Launch
 }
 
-func IsInLauch(serverId string) bool {
+func IsInLaunch(serverId string) bool {
 	for _, v := range config.Launch {
 		if v == serverId {
 			return true

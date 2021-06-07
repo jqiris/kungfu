@@ -2,7 +2,7 @@ package examples
 
 import (
 	"github.com/golang/protobuf/proto"
-	"github.com/jqiris/kungfu/coder"
+	"github.com/jqiris/kungfu/serialize"
 	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/sirupsen/logrus"
@@ -10,7 +10,7 @@ import (
 
 var (
 	logger  = logrus.WithField("package", "handler")
-	encoder = coder.NewProtoCoder()
+	encoder = serialize.NewProtoSerializer()
 )
 
 func GetRequest(request tcpserver.IRequest, v interface{}) error {
