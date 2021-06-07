@@ -3,14 +3,14 @@ package tests
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/jqiris/kungfu/config"
+	"github.com/jqiris/kungfu/serialize"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"testing"
 
-	"github.com/jqiris/kungfu/coder"
-	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
@@ -39,7 +39,7 @@ func TestClientLogin(t *testing.T) {
 		logger.Fatal("client start err, exit!")
 	}
 	//发送登录信息
-	encoder := coder.NewProtoCoder()
+	encoder := serialize.NewProtoSerializer()
 	dp := tcpserver.NewDataPack(config.GetConnectorConf())
 	data, err := encoder.Marshal(&treaty.LoginRequest{
 		Uid:      1001,
@@ -83,7 +83,7 @@ func TestClientLogin(t *testing.T) {
 		}
 		//解析data数据
 		data := &treaty.LoginResponse{}
-		if err = coder.Unmarshal(recMsg.Data, data); err != nil {
+		if err = encoder.Unmarshal(recMsg.Data, data); err != nil {
 			logger.Printf("login received err:%v", err)
 		}
 		logger.Infof("login result is:%+v", data)
