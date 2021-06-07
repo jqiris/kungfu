@@ -34,7 +34,7 @@ func UnRegisterServer(server treaty.ServerEntity) {
 func Startup() {
 	//run servers
 	for _, server := range servers {
-		if conf.IsInLauch(server.GetServerId()) {
+		if conf.IsInLaunch(server.GetServerId()) {
 			server.Init()
 			server.AfterInit()
 			launched[server.GetServerId()] = server

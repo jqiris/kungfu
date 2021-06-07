@@ -10,7 +10,7 @@ import (
 )
 
 func TestRpc(t *testing.T) {
-	cfg := conf.GetRpcxConf()
+	cfg := conf.GetRpcXConf()
 	//gate
 	s1 := &treaty.Server{
 		ServerId:   "1001",

@@ -31,7 +31,7 @@ func (b *BaseConnector) Init() {
 		b.ConnectorConf = conf.GetConnectorConf()
 	}
 	//init the rpcx
-	b.RpcX = rpcx.NewRpcConnector(conf.GetRpcxConf())
+	b.RpcX = rpcx.NewRpcConnector(conf.GetRpcXConf())
 	//run the front server
 	b.ClientServer = tcpserver.NewServer(b.Server, b.ConnectorConf)
 	b.ClientServer.AddRouters(b.Routers)

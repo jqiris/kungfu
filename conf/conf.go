@@ -32,7 +32,7 @@ func GetDiscoverConf() DiscoverConf {
 	return config.Discover
 }
 
-func GetRpcxConf() RpcxConf {
+func GetRpcXConf() RpcxConf {
 	return config.RpcX
 }
 
@@ -52,11 +52,11 @@ func GetServersConf() map[string]*treaty.Server {
 	return config.Servers
 }
 
-func GetLauchConf() []string {
+func GetLaunchConf() []string {
 	return config.Launch
 }
 
-func IsInLauch(serverId string) bool {
+func IsInLaunch(serverId string) bool {
 	for _, v := range config.Launch {
 		if v == serverId {
 			return true

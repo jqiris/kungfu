@@ -82,7 +82,7 @@ func (b *BaseBalancer) Init() {
 		logger.Fatal("BaseBalancer can find the server config")
 	}
 	//init the rpcx
-	b.RpcX = rpcx.NewRpcBalancer(conf.GetRpcxConf())
+	b.RpcX = rpcx.NewRpcBalancer(conf.GetRpcXConf())
 	//init the coder
 	b.ClientCoder = coder.NewJsonCoder()
 	//set the server
