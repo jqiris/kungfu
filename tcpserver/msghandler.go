@@ -2,21 +2,20 @@ package tcpserver
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/config"
 	"strconv"
-
-	"github.com/jqiris/kungfu/conf"
 )
 
 // MsgHandle -
 type MsgHandle struct {
-	Apis           map[int32]IHandler //存放每个MsgID 所对应的处理方法的map属性
-	WorkerPoolSize int32              //业务工作Worker池的数量
-	TaskQueue      []chan IRequest    //Worker负责取任务的消息队列
-	Config         conf.ConnectorConf //客户端配置
+	Apis           map[int32]IHandler   //存放每个MsgID 所对应的处理方法的map属性
+	WorkerPoolSize int32                //业务工作Worker池的数量
+	TaskQueue      []chan IRequest      //Worker负责取任务的消息队列
+	Config         config.ConnectorConf //客户端配置
 }
 
 //NewMsgHandle 创建MsgHandle
-func NewMsgHandle(cfg conf.ConnectorConf) *MsgHandle {
+func NewMsgHandle(cfg config.ConnectorConf) *MsgHandle {
 	return &MsgHandle{
 		Apis:           make(map[int32]IHandler),
 		WorkerPoolSize: cfg.WorkerPoolSize,

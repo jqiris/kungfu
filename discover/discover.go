@@ -1,11 +1,11 @@
 package discover
 
 import (
+	"github.com/jqiris/kungfu/config"
 	"time"
 
 	"stathat.com/c/consistent"
 
-	"github.com/jqiris/kungfu/conf"
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/sirupsen/logrus"
 )
@@ -17,10 +17,10 @@ var (
 )
 
 const (
-	DiscorverPrefix = "/server/"
+	PrefixDiscover = "/server/"
 )
 
-func InitDiscoverer(cfg conf.DiscoverConf) {
+func InitDiscoverer(cfg config.DiscoverConf) {
 	switch cfg.UseType {
 	case "etcd":
 		defDiscoverer = NewEtcdDiscoverer(
@@ -32,7 +32,7 @@ func InitDiscoverer(cfg conf.DiscoverConf) {
 	}
 }
 
-//find service role
+//Discoverer find service role
 type Discoverer interface {
 	Register(server *treaty.Server) error                        //注册服务器
 	UnRegister(server *treaty.Server) error                      //注册服务器

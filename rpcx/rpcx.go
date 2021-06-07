@@ -1,7 +1,7 @@
 package rpcx
 
 import (
-	"github.com/jqiris/kungfu/conf"
+	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/nats-io/nats.go"
 	"github.com/sirupsen/logrus"
@@ -43,7 +43,7 @@ type RpcServer interface {
 }
 
 //create rpc gate
-func NewRpcBalancer(cfg conf.RpcxConf) RpcBalancer {
+func NewRpcBalancer(cfg config.RpcXConf) RpcBalancer {
 	timeout := time.Duration(cfg.DialTimeout) * time.Second
 	var r RpcBalancer
 	switch cfg.UseType {
@@ -56,7 +56,7 @@ func NewRpcBalancer(cfg conf.RpcxConf) RpcBalancer {
 }
 
 //create rpc gate
-func NewRpcConnector(cfg conf.RpcxConf) RpcConnector {
+func NewRpcConnector(cfg config.RpcXConf) RpcConnector {
 	timeout := time.Duration(cfg.DialTimeout) * time.Second
 	var r RpcConnector
 	switch cfg.UseType {
@@ -69,7 +69,7 @@ func NewRpcConnector(cfg conf.RpcxConf) RpcConnector {
 }
 
 //create rpc server
-func NewRpcServer(cfg conf.RpcxConf) RpcServer {
+func NewRpcServer(cfg config.RpcXConf) RpcServer {
 	timeout := time.Duration(cfg.DialTimeout) * time.Second
 	var r RpcServer
 	switch cfg.UseType {

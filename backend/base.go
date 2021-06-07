@@ -1,14 +1,14 @@
 package backend
 
 import (
-	"github.com/jqiris/kungfu/conf"
+	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/treaty"
 )
 
-//BaseBackEnd
+//BaseBackEnd 后盾服务
 type BaseBackEnd struct {
 	ServerId              string
 	Server                *treaty.Server
@@ -19,11 +19,11 @@ type BaseBackEnd struct {
 
 func (b *BaseBackEnd) Init() {
 	//find the  server config
-	if b.Server = helper.FindServerConfig(conf.GetServersConf(), b.GetServerId()); b.Server == nil {
+	if b.Server = helper.FindServerConfig(config.GetServersConf(), b.GetServerId()); b.Server == nil {
 		logger.Fatal("BaseBackEnd can find the server config")
 	}
 	//init the rpcx
-	b.RpcX = rpcx.NewRpcServer(conf.GetRpcXConf())
+	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf())
 	logger.Infoln("init the backend:", b.ServerId)
 }
 

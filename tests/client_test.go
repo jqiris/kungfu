@@ -40,7 +40,7 @@ func TestClientLogin(t *testing.T) {
 	}
 	//发送登录信息
 	encoder := coder.NewProtoCoder()
-	dp := tcpserver.NewDataPack(conf.GetConnectorConf())
+	dp := tcpserver.NewDataPack(config.GetConnectorConf())
 	data, err := encoder.Marshal(&treaty.LoginRequest{
 		Uid:      1001,
 		Nickname: "jason",
@@ -140,7 +140,7 @@ func TestClientLogin(t *testing.T) {
 
 func TestTokenCreate(t *testing.T) {
 	uid, nickname := 1001, "jason"
-	tokenkey := conf.GetConnectorConf().TokenKey
+	tokenkey := config.GetConnectorConf().TokenKey
 	token := helper.Md5(fmt.Sprintf("%d|%s|%s", uid, nickname, tokenkey))
 	fmt.Println(token)
 }

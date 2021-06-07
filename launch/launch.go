@@ -1,7 +1,7 @@
 package launch
 
 import (
-	"github.com/jqiris/kungfu/conf"
+	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/sirupsen/logrus"
 )
@@ -34,7 +34,7 @@ func UnRegisterServer(server treaty.ServerEntity) {
 func Startup() {
 	//run servers
 	for _, server := range servers {
-		if conf.IsInLaunch(server.GetServerId()) {
+		if config.IsInLaunch(server.GetServerId()) {
 			server.Init()
 			server.AfterInit()
 			launched[server.GetServerId()] = server

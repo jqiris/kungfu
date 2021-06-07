@@ -1,4 +1,4 @@
-package conf
+package config
 
 import (
 	"github.com/jqiris/kungfu/treaty"
@@ -6,9 +6,8 @@ import (
 
 type Config struct {
 	Discover  DiscoverConf              `json:"discover"`
-	RpcX      RpcxConf                  `json:"rpcx"`
+	RpcX      RpcXConf                  `json:"rpcx"`
 	Stores    StoresConf                `json:"stores"`
-	Coder     CoderConf                 `json:"coder"`
 	Connector ConnectorConf             `json:"connector"`
 	Servers   map[string]*treaty.Server `json:"servers"`
 	Launch    []string                  `json:"launch"`
@@ -20,7 +19,7 @@ type DiscoverConf struct {
 	Endpoints   []string `json:"endpoints"`
 }
 
-type RpcxConf struct {
+type RpcXConf struct {
 	UseType     string   `json:"use_type"`
 	DialTimeout int      `json:"dial_timeout"`
 	Endpoints   []string `json:"endpoints"`
@@ -32,10 +31,6 @@ type StoresConf struct {
 	Endpoints   []string `json:"endpoints"`
 	Password    string   `json:"password"`
 	DB          int      `json:"db"`
-}
-
-type CoderConf struct {
-	UseType string `json:"use_type"`
 }
 
 type ConnectorConf struct {

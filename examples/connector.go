@@ -2,7 +2,7 @@ package examples
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/conf"
+	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/connector"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
@@ -67,7 +67,7 @@ func (b *MyConnector) Login(request tcpserver.IRequest) {
 	logger.Printf("login request is:%+v", req)
 	//判断登录信息的正确性
 	uid, nickname := req.Uid, req.Nickname
-	tokenkey := conf.GetConnectorConf().TokenKey
+	tokenkey := config.GetConnectorConf().TokenKey
 	token := helper.Md5(fmt.Sprintf("%d|%s|%s", uid, nickname, tokenkey))
 	if req.Token != token {
 		resp.Code = treaty.CodeType_CodeFailed

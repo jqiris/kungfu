@@ -1,7 +1,7 @@
 package connector
 
 import (
-	"github.com/jqiris/kungfu/conf"
+	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/rpcx"
@@ -15,19 +15,19 @@ type HttpConnector struct {
 	RpcX                  rpcx.RpcConnector
 	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
 	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
-	ConnectorConf         conf.ConnectorConf
+	ConnectorConf         config.ConnectorConf
 }
 
 func (g *HttpConnector) Init() {
 	//find the  server config
-	if serverConf := helper.FindServerConfig(conf.GetServersConf(), g.GetServerId()); serverConf == nil {
+	if serverConf := helper.FindServerConfig(config.GetServersConf(), g.GetServerId()); serverConf == nil {
 		logger.Fatal("HttpConnector can't find the server config")
 	} else {
 		g.Server = serverConf
-		g.ConnectorConf = conf.GetConnectorConf()
+		g.ConnectorConf = config.GetConnectorConf()
 	}
 	//init the rpcx
-	g.RpcX = rpcx.NewRpcConnector(conf.GetRpcXConf())
+	g.RpcX = rpcx.NewRpcConnector(config.GetRpcXConf())
 }
 
 func (g *HttpConnector) AfterInit() {

@@ -4,17 +4,16 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-
-	"github.com/jqiris/kungfu/conf"
+	"github.com/jqiris/kungfu/config"
 )
 
 //DataPack 封包拆包类实例，暂时不需要成员
 type DataPack struct {
-	Config conf.ConnectorConf
+	Config config.ConnectorConf
 }
 
 //NewDataPack 封包拆包实例初始化方法
-func NewDataPack(cfg conf.ConnectorConf) *DataPack {
+func NewDataPack(cfg config.ConnectorConf) *DataPack {
 	return &DataPack{
 		Config: cfg,
 	}

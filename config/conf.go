@@ -1,4 +1,4 @@
-package conf
+package config
 
 import (
 	"encoding/json"
@@ -32,16 +32,12 @@ func GetDiscoverConf() DiscoverConf {
 	return config.Discover
 }
 
-func GetRpcXConf() RpcxConf {
+func GetRpcXConf() RpcXConf {
 	return config.RpcX
 }
 
 func GetStoresConf() StoresConf {
 	return config.Stores
-}
-
-func GetCoderConf() CoderConf {
-	return config.Coder
 }
 
 func GetConnectorConf() ConnectorConf {

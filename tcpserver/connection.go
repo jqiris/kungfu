@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jqiris/kungfu/config"
 	"io"
 	"net"
 	"sync"
-
-	"github.com/jqiris/kungfu/conf"
 )
 
 //Connection 链接
@@ -37,11 +36,11 @@ type Connection struct {
 	//当前连接的关闭状态
 	isClosed bool
 	//客户端参数
-	Config conf.ConnectorConf
+	Config config.ConnectorConf
 }
 
 //NewConntion 创建连接的方法
-func NewConntion(server IServer, conn *net.TCPConn, connID int32, msgHandler IMsgHandle, cfg conf.ConnectorConf) *Connection {
+func NewConntion(server IServer, conn *net.TCPConn, connID int32, msgHandler IMsgHandle, cfg config.ConnectorConf) *Connection {
 	//初始化Conn属性
 	c := &Connection{
 		TCPServer:   server,

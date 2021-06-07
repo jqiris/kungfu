@@ -1,11 +1,11 @@
 package connector
 
 import (
-	"github.com/jqiris/kungfu/coder"
-	"github.com/jqiris/kungfu/conf"
+	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/serialize"
 	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
 )
@@ -15,8 +15,8 @@ type BaseConnector struct {
 	Server                *treaty.Server
 	RpcX                  rpcx.RpcConnector
 	ClientServer          tcpserver.IServer
-	ClientCoder           coder.Coder
-	ConnectorConf         conf.ConnectorConf
+	ClientCoder           serialize.Serializer
+	ConnectorConf         config.ConnectorConf
 	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
 	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
 	Routers               map[int32]tcpserver.IHandler
@@ -24,14 +24,14 @@ type BaseConnector struct {
 
 func (b *BaseConnector) Init() {
 	//find the  server config
-	if serverConf := helper.FindServerConfig(conf.GetServersConf(), b.GetServerId()); serverConf == nil {
+	if serverConf := helper.FindServerConfig(config.GetServersConf(), b.GetServerId()); serverConf == nil {
 		logger.Fatal("BaseConnector can't find the server config")
 	} else {
 		b.Server = serverConf
-		b.ConnectorConf = conf.GetConnectorConf()
+		b.ConnectorConf = config.GetConnectorConf()
 	}
 	//init the rpcx
-	b.RpcX = rpcx.NewRpcConnector(conf.GetRpcXConf())
+	b.RpcX = rpcx.NewRpcConnector(config.GetRpcXConf())
 	//run the front server
 	b.ClientServer = tcpserver.NewServer(b.Server, b.ConnectorConf)
 	b.ClientServer.AddRouters(b.Routers)

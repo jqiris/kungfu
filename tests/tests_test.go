@@ -13,13 +13,13 @@ var (
 )
 
 func init() {
-	if err := conf.InitConf("../config.json"); err != nil {
+	if err := config.InitConf("../config.json"); err != nil {
 		logger.Fatal(err)
 	}
 	//init discover
-	discover.InitDiscoverer(conf.GetDiscoverConf())
+	discover.InitDiscoverer(config.GetDiscoverConf())
 	//init stores
-	stores.InitStoreKeeper(conf.GetStoresConf())
+	stores.InitStoreKeeper(config.GetStoresConf())
 	//init coder
-	coder.InitCoder(conf.GetCoderConf())
+	coder.InitCoder(config.GetCoderConf())
 }
