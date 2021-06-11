@@ -71,6 +71,10 @@ func GetServerTypeList(serverType string) map[string]*treaty.Server {
 	return defDiscoverer.GetServerTypeList(serverType)
 }
 
+func RegEventHandlers(handlers ...EventHandler) {
+	defDiscoverer.RegEventHandlers(handlers...)
+}
+
 //serverType stores
 
 type ServerTypeItem struct {
