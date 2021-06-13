@@ -109,12 +109,19 @@ func (s *StoreRedis) GetInt(key string) int {
 func (s *StoreRedis) GetString(key string) string {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	resp, err := s.Client.Get(ctx, key).Result()
+	var bs []byte
+	err := s.Client.Get(ctx, key).Scan(&bs)
 	if err != nil {
 		logger.Error(err)
 		return ""
 	}
-	return resp
+	val := ""
+	err = json.Unmarshal(bs, &val)
+	if err != nil {
+		logger.Error(err)
+		return ""
+	}
+	return val
 }
 
 func (s *StoreRedis) Del(keys ...string) error {
