@@ -12,11 +12,12 @@ import (
 
 // EtcdDiscoverer etcd discoverer
 type EtcdDiscoverer struct {
-	Config        clientv3.Config
-	Client        *clientv3.Client
-	ServerList    map[string]*treaty.Server  //serverid=>server
-	ServerTypeMap map[string]*ServerTypeItem //servertype=>serverTypeItem
-	ServerLock    *sync.RWMutex
+	Config           clientv3.Config
+	Client           *clientv3.Client
+	ServerList       map[string]*treaty.Server  //serverId=>server
+	ServerTypeMap    map[string]*ServerTypeItem //serverType=>serverTypeItem
+	ServerLock       *sync.RWMutex
+	EventHandlerList []EventHandler
 }
 type EtcdOption func(e *EtcdDiscoverer)
 
@@ -35,9 +36,10 @@ func WithEtcdDialTimeOut(d time.Duration) EtcdOption {
 // NewEtcdDiscoverer init EtcdDiscoverer
 func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 	e := &EtcdDiscoverer{
-		ServerList:    make(map[string]*treaty.Server),
-		ServerTypeMap: make(map[string]*ServerTypeItem),
-		ServerLock:    new(sync.RWMutex),
+		ServerList:       make(map[string]*treaty.Server),
+		ServerTypeMap:    make(map[string]*ServerTypeItem),
+		ServerLock:       new(sync.RWMutex),
+		EventHandlerList: make([]EventHandler, 0),
 	}
 	for _, opt := range opts {
 		opt(e)
@@ -50,6 +52,18 @@ func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 	e.Client = cli
 	e.Init()
 	return e
+}
+
+func (e *EtcdDiscoverer) RegEventHandlers(handlers ...EventHandler) {
+	for _, handler := range handlers {
+		e.EventHandlerList = append(e.EventHandlerList, handler)
+	}
+}
+
+func (e *EtcdDiscoverer) EventHandlerExec(ev *clientv3.Event, server *treaty.Server) {
+	for _, handler := range e.EventHandlerList {
+		handler(ev, server)
+	}
 }
 
 // Init init
@@ -65,7 +79,7 @@ func (e *EtcdDiscoverer) Init() {
 				item := NewServerTypeItem()
 				for _, vv := range v {
 					e.ServerList[vv.ServerId] = vv
-					item.list[vv.ServerId] = vv
+					item.List[vv.ServerId] = vv
 					item.hash.Add(vv.ServerId)
 				}
 				e.ServerTypeMap[k] = item
@@ -80,12 +94,12 @@ func (e *EtcdDiscoverer) Watcher() {
 	for {
 		rch := e.Client.Watch(context.Background(), PrefixDiscover, clientv3.WithPrefix())
 		var err error
-		for wresp := range rch {
-			err = wresp.Err()
+		for wResp := range rch {
+			err = wResp.Err()
 			if err != nil {
 				logger.Errorf("etcd watch err:%v", err)
 			}
-			for _, ev := range wresp.Events {
+			for _, ev := range wResp.Events {
 				logger.Infof("%s %q %q", ev.Type, ev.Kv.Key, ev.Kv.Value)
 				switch ev.Type {
 				case clientv3.EventTypePut:
@@ -93,32 +107,35 @@ func (e *EtcdDiscoverer) Watcher() {
 						e.ServerLock.Lock()
 						e.ServerList[server.ServerId] = server
 						if item, ok := e.ServerTypeMap[server.ServerType]; ok {
-							if _, ok := item.list[server.ServerId]; !ok {
+							if _, ok := item.List[server.ServerId]; !ok {
 								item.hash.Add(server.ServerId)
 							}
-							item.list[server.ServerId] = server
+							item.List[server.ServerId] = server
 						} else {
 							item := NewServerTypeItem()
 							item.hash.Add(server.ServerId)
-							item.list[server.ServerId] = server
+							item.List[server.ServerId] = server
 							e.ServerTypeMap[server.ServerType] = item
 						}
 						e.ServerLock.Unlock()
+						e.EventHandlerExec(ev, server)
 					}
 				case clientv3.EventTypeDelete:
 					ks := strings.Split(string(ev.Kv.Key), "/")
 					if len(ks) > 2 {
-						stype, sid := ks[len(ks)-2], ks[len(ks)-1]
+						sType, sid := ks[len(ks)-2], ks[len(ks)-1]
 						e.ServerLock.Lock()
 						delete(e.ServerList, sid)
-						if item, ok := e.ServerTypeMap[stype]; ok {
-							if _, ok := item.list[sid]; ok {
+						if item, ok := e.ServerTypeMap[sType]; ok {
+							if server, ok := item.List[sid]; ok {
 								item.hash.Remove(sid)
-								delete(item.list, sid)
+								delete(item.List, sid)
+								e.EventHandlerExec(ev, server)
 							}
-							if len(item.list) == 0 {
-								delete(e.ServerTypeMap, stype)
+							if len(item.List) == 0 {
+								delete(e.ServerTypeMap, sType)
 							}
+
 						}
 						e.ServerLock.Unlock()
 					}
@@ -130,7 +147,7 @@ func (e *EtcdDiscoverer) Watcher() {
 }
 
 func (e *EtcdDiscoverer) DumpServers() {
-	logger.Infof("the server list is:%+v", e.ServerList)
+	logger.Infof("the server List is:%+v", e.ServerList)
 	logger.Infof("the server type map is:%+v", e.ServerTypeMap)
 }
 
@@ -227,8 +244,17 @@ func (e *EtcdDiscoverer) GetServerByType(serverType, serverArg string) *treaty.S
 	defer e.ServerLock.RUnlock()
 	if item, ok := e.ServerTypeMap[serverType]; ok {
 		if sid, err := item.hash.Get(serverArg); err == nil {
-			return item.list[sid]
+			return item.List[sid]
 		}
+	}
+	return nil
+}
+
+func (e *EtcdDiscoverer) GetServerTypeList(serverType string) map[string]*treaty.Server {
+	e.ServerLock.RLock()
+	defer e.ServerLock.RUnlock()
+	if item, ok := e.ServerTypeMap[serverType]; ok {
+		return item.List
 	}
 	return nil
 }

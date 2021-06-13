@@ -2,6 +2,7 @@ package discover
 
 import (
 	"github.com/jqiris/kungfu/config"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"time"
 
 	"stathat.com/c/consistent"
@@ -32,6 +33,8 @@ func InitDiscoverer(cfg config.DiscoverConf) {
 	}
 }
 
+type EventHandler func(ev *clientv3.Event, server *treaty.Server)
+
 //Discoverer find service role
 type Discoverer interface {
 	Register(server *treaty.Server) error                        //注册服务器
@@ -39,6 +42,9 @@ type Discoverer interface {
 	GetServerList() map[string]*treaty.Server                    //获取所有服务信息
 	GetServerById(serverId string) *treaty.Server                //根据serverId获取server信息
 	GetServerByType(serverType, serverArg string) *treaty.Server //根据serverType及参数分配唯一server信息
+	GetServerTypeList(serverType string) map[string]*treaty.Server
+	RegEventHandlers(handlers ...EventHandler)
+	EventHandlerExec(ev *clientv3.Event, server *treaty.Server)
 }
 
 func Register(server *treaty.Server) error {
@@ -61,16 +67,24 @@ func GetServerByType(serverType, serverArg string) *treaty.Server {
 	return defDiscoverer.GetServerByType(serverType, serverArg)
 }
 
+func GetServerTypeList(serverType string) map[string]*treaty.Server {
+	return defDiscoverer.GetServerTypeList(serverType)
+}
+
+func RegEventHandlers(handlers ...EventHandler) {
+	defDiscoverer.RegEventHandlers(handlers...)
+}
+
 //serverType stores
 
 type ServerTypeItem struct {
 	hash *consistent.Consistent
-	list map[string]*treaty.Server
+	List map[string]*treaty.Server
 }
 
 func NewServerTypeItem() *ServerTypeItem {
 	return &ServerTypeItem{
 		hash: consistent.New(),
-		list: make(map[string]*treaty.Server),
+		List: make(map[string]*treaty.Server),
 	}
 }

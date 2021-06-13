@@ -30,7 +30,7 @@ func (b *BaseBackEnd) Init() {
 func (b *BaseBackEnd) AfterInit() {
 	//Subscribe event
 	if err := b.RpcX.Subscribe(b.Server, func(req []byte) []byte {
-		logger.Infof("BaseBackEnd Subscribe received: %+v", req)
+		//logger.Infof("BaseBackEnd Subscribe received: %+v", req)
 		return b.EventHandlerSelf(req)
 	}); err != nil {
 		logger.Error(err)
