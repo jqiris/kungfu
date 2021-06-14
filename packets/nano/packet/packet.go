@@ -18,40 +18,50 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package protobuf
+package packet
 
 import (
 	"errors"
-
-	"github.com/golang/protobuf/proto"
+	"fmt"
 )
 
-// ErrWrongValueType is the error used for marshal the value with protobuf encoding.
-var ErrWrongValueType = errors.New("protobuf: convert on wrong type value")
+// Type represents the network packet's type such as: handshake and so on.
+type Type byte
 
-// Serializer implements the serialize.Serializer interface
-type Serializer struct{}
+const (
+	_ Type = iota
+	// Handshake represents a handshake: request(client) <====> handshake response(server)
+	Handshake = 0x01
 
-// NewSerializer returns a new Serializer.
-func NewSerializer() *Serializer {
-	return &Serializer{}
+	// HandshakeAck represents a handshake ack from client to server
+	HandshakeAck = 0x02
+
+	// Heartbeat represents a heartbeat
+	Heartbeat = 0x03
+
+	// Data represents a common data packet
+	Data = 0x04
+
+	// Kick represents a kick off packet
+	Kick = 0x05 // disconnect message from server
+)
+
+// ErrWrongPacketType represents a wrong packet type.
+var ErrWrongPacketType = errors.New("wrong packet type")
+
+// Packet represents a network packet.
+type Packet struct {
+	Type   Type
+	Length int
+	Data   []byte
 }
 
-// Marshal returns the protobuf encoding of v.
-func (s *Serializer) Marshal(v interface{}) ([]byte, error) {
-	pb, ok := v.(proto.Message)
-	if !ok {
-		return nil, ErrWrongValueType
-	}
-	return proto.Marshal(pb)
+//New create a Packet instance.
+func New() *Packet {
+	return &Packet{}
 }
 
-// Unmarshal parses the protobuf-encoded data and stores the result
-// in the value pointed to by v.
-func (s *Serializer) Unmarshal(data []byte, v interface{}) error {
-	pb, ok := v.(proto.Message)
-	if !ok {
-		return ErrWrongValueType
-	}
-	return proto.Unmarshal(data, pb)
+//String represents the Packet's in text mode.
+func (p *Packet) String() string {
+	return fmt.Sprintf("Type: %d, Length: %d, Data: %s", p.Type, p.Length, string(p.Data))
 }

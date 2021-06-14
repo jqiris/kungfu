@@ -1,4 +1,4 @@
-package zinx
+package tcpserver
 
 import tcpface "github.com/jqiris/kungfu/tcpface"
 

@@ -6,7 +6,7 @@ import (
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/tcpface"
-	"github.com/jqiris/kungfu/tcpserver/zinx"
+	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
 )
 
@@ -30,7 +30,7 @@ func (b *ZinxConnector) Init() {
 	//init the rpcx
 	b.RpcX = rpcx.NewRpcConnector(config.GetRpcXConf())
 	//run the front server
-	b.ClientServer = zinx.NewServer(b.Server)
+	b.ClientServer = tcpserver.NewServer(b.Server)
 	b.RouteHandler(b.ClientServer)
 	go b.ClientServer.Serve()
 

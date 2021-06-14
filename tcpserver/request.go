@@ -1,4 +1,4 @@
-package zinx
+package tcpserver
 
 import tcpface "github.com/jqiris/kungfu/tcpface"
 
@@ -20,4 +20,9 @@ func (r *Request) GetData() []byte {
 //获取请求的消息的ID
 func (r *Request) GetMsgID() uint32 {
 	return r.msg.GetMsgId()
+}
+
+//获取ServerId
+func (r *Request) GetServerID() string {
+	return ""
 }

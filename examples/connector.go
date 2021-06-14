@@ -10,13 +10,13 @@ import (
 	"github.com/jqiris/kungfu/launch"
 	"github.com/jqiris/kungfu/session"
 	"github.com/jqiris/kungfu/tcpface"
-	"github.com/jqiris/kungfu/tcpserver/zinx"
+	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
 )
 
 type MyConnector struct {
 	connector.ZinxConnector
-	zinx.BaseRouter
+	tcpserver.BaseRouter
 	conns map[int32]tcpface.IConnection
 }
 

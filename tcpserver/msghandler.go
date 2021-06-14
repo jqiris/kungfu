@@ -1,4 +1,4 @@
-package zinx
+package tcpserver
 
 import (
 	"fmt"
@@ -45,9 +45,7 @@ func (mh *MsgHandle) DoMsgHandler(request tcpface.IRequest) {
 	}
 
 	//执行对应处理方法
-	handler.PreHandle(request)
-	handler.Handle(request)
-	handler.PostHandle(request)
+	handler(request)
 }
 
 //为消息添加具体的处理逻辑
