@@ -12,9 +12,9 @@
     "use_type": "nats",
     "dial_timeout": 5,
     "endpoints": [
-      "nats://localhost:4222",
-      "nats://localhost:4223",
-      "nats://localhost:4224"
+      "nats:@kungfu2021@localhost:4222",
+      "nats:@kungfu2021@localhost:4223",
+      "nats:@kungfu2021@localhost:4224"
     ]
   },
   "stores": {
