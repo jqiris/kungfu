@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/jqiris/kungfu/config"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/jqiris/kungfu/config"
 
 	"github.com/jqiris/kungfu/discover"
 	_ "github.com/jqiris/kungfu/examples"
