@@ -1,4 +1,4 @@
-package tcpserver
+package zinx
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 )
 
 // run in terminal:
-// go test -v ./znet -run=TestDataPack
+// go test -v ./zinx -run=TestDataPack
 
 //只是负责测试datapack拆包，封包功能
 func TestDataPack(t *testing.T) {
@@ -58,7 +58,7 @@ func TestDataPack(t *testing.T) {
 							return
 						}
 
-						fmt.Println("==> Recv Msg: ID=", msg.ID, ", len=", msg.DataLen, ", data=", string(msg.Data))
+						fmt.Println("==> Recv Msg: ID=", msg.Id, ", len=", msg.DataLen, ", data=", string(msg.Data))
 					}
 				}
 			}(conn)
@@ -78,7 +78,7 @@ func TestDataPack(t *testing.T) {
 
 		//封装一个msg1包
 		msg1 := &Message{
-			ID:      0,
+			Id:      0,
 			DataLen: 5,
 			Data:    []byte{'h', 'e', 'l', 'l', 'o'},
 		}
@@ -90,7 +90,7 @@ func TestDataPack(t *testing.T) {
 		}
 
 		msg2 := &Message{
-			ID:      1,
+			Id:      1,
 			DataLen: 7,
 			Data:    []byte{'w', 'o', 'r', 'l', 'd', '!', '!'},
 		}

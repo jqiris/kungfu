@@ -1,32 +1,30 @@
-package tcpserver
+package zinx
 
 import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+
 	"github.com/jqiris/kungfu/config"
+	tcpface "github.com/jqiris/kungfu/tcpface"
 )
 
-//DataPack 封包拆包类实例，暂时不需要成员
-type DataPack struct {
-	Config config.ConnectorConf
+//封包拆包类实例，暂时不需要成员
+type DataPack struct{}
+
+//封包拆包实例初始化方法
+func NewDataPack() *DataPack {
+	return &DataPack{}
 }
 
-//NewDataPack 封包拆包实例初始化方法
-func NewDataPack(cfg config.ConnectorConf) *DataPack {
-	return &DataPack{
-		Config: cfg,
-	}
-}
-
-//GetHeadLen 获取包头长度方法
-func (dp *DataPack) GetHeadLen() int32 {
-	//ID int32(4字节) +  DataLen int32(4字节)
+//获取包头长度方法
+func (dp *DataPack) GetHeadLen() uint32 {
+	//Id uint32(4字节) +  DataLen uint32(4字节)
 	return 8
 }
 
-//Pack 封包方法(压缩数据)
-func (dp *DataPack) Pack(msg IMessage) ([]byte, error) {
+//封包方法(压缩数据)
+func (dp *DataPack) Pack(msg tcpface.IMessage) ([]byte, error) {
 	//创建一个存放bytes字节的缓冲
 	dataBuff := bytes.NewBuffer([]byte{})
 
@@ -36,7 +34,7 @@ func (dp *DataPack) Pack(msg IMessage) ([]byte, error) {
 	}
 
 	//写msgID
-	if err := binary.Write(dataBuff, binary.LittleEndian, msg.GetMsgID()); err != nil {
+	if err := binary.Write(dataBuff, binary.LittleEndian, msg.GetMsgId()); err != nil {
 		return nil, err
 	}
 
@@ -48,8 +46,9 @@ func (dp *DataPack) Pack(msg IMessage) ([]byte, error) {
 	return dataBuff.Bytes(), nil
 }
 
-//Unpack 拆包方法(解压数据)
-func (dp *DataPack) Unpack(binaryData []byte) (IMessage, error) {
+//拆包方法(解压数据)
+func (dp *DataPack) Unpack(binaryData []byte) (tcpface.IMessage, error) {
+	cfg := config.GetConnectorConf()
 	//创建一个从输入二进制数据的ioReader
 	dataBuff := bytes.NewReader(binaryData)
 
@@ -62,12 +61,12 @@ func (dp *DataPack) Unpack(binaryData []byte) (IMessage, error) {
 	}
 
 	//读msgID
-	if err := binary.Read(dataBuff, binary.LittleEndian, &msg.ID); err != nil {
+	if err := binary.Read(dataBuff, binary.LittleEndian, &msg.Id); err != nil {
 		return nil, err
 	}
 
 	//判断dataLen的长度是否超出我们允许的最大包长度
-	if dp.Config.MaxPacketSize > 0 && msg.DataLen > dp.Config.MaxPacketSize {
+	if cfg.MaxPacketSize > 0 && msg.DataLen > uint32(cfg.MaxPacketSize) {
 		return nil, errors.New("too large msg data received")
 	}
 

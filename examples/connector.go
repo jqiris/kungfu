@@ -2,19 +2,22 @@ package examples
 
 import (
 	"fmt"
+
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/connector"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/launch"
 	"github.com/jqiris/kungfu/session"
-	"github.com/jqiris/kungfu/tcpserver"
+	"github.com/jqiris/kungfu/tcpface"
+	"github.com/jqiris/kungfu/tcpserver/zinx"
 	"github.com/jqiris/kungfu/treaty"
 )
 
 type MyConnector struct {
-	connector.BaseConnector
-	conns map[int32]tcpserver.IConnection
+	connector.ZinxConnector
+	zinx.BaseRouter
+	conns map[int32]tcpface.IConnection
 }
 
 func (b *MyConnector) EventHandleSelf(req []byte) []byte {
@@ -47,7 +50,7 @@ func (b *MyConnector) EventHandleBroadcast(req []byte) []byte {
 }
 
 //Login 登录操作
-func (b *MyConnector) Login(request tcpserver.IRequest) {
+func (b *MyConnector) Login(request tcpface.IRequest) {
 
 	//先读取客户端的数据
 	logger.Println("Login recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
@@ -168,7 +171,7 @@ func (b *MyConnector) Login(request tcpserver.IRequest) {
 }
 
 //Logout 登出操作
-func (b *MyConnector) Logout(request tcpserver.IRequest) {
+func (b *MyConnector) Logout(request tcpface.IRequest) {
 	//先读取客户端的数据
 	logger.Println("Logout recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
 
@@ -226,7 +229,7 @@ func (b *MyConnector) Logout(request tcpserver.IRequest) {
 }
 
 //ChannelMsg 消息转发
-func (b *MyConnector) ChannelMsg(request tcpserver.IRequest) {
+func (b *MyConnector) ChannelMsg(request tcpface.IRequest) {
 	//先读取客户端的数据
 	logger.Println("ChannelMsg recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
 
@@ -289,22 +292,12 @@ func (b *MyConnector) ChannelMsg(request tcpserver.IRequest) {
 }
 
 func init() {
-	srv := &MyConnector{conns: make(map[int32]tcpserver.IConnection)}
-	routers := map[int32]tcpserver.IHandler{
-		int32(treaty.MsgId_Msg_Login_Request):   srv.Login,
-		int32(treaty.MsgId_Msg_Logout_Request):  srv.Logout,
-		int32(treaty.MsgId_Msg_Channel_Request): srv.ChannelMsg,
+	srv := &MyConnector{conns: make(map[int32]tcpface.IConnection)}
+	srv.RouteHandler = func(s tcpface.IServer) {
+		s.AddRouter(uint32(treaty.MsgId_Msg_Login_Request), srv.Login)
 	}
 	srv.SetServerId("connector_2001")
 	srv.RegEventHandlerSelf(srv.EventHandleSelf)
 	srv.RegEventHandlerBroadcast(srv.EventHandleBroadcast)
-	srv.RegRouters(routers)
 	launch.RegisterServer(srv)
-
-	srv2 := &MyConnector{}
-	srv2.SetServerId("connector_2002")
-	srv2.RegEventHandlerSelf(srv2.EventHandleSelf)
-	srv2.RegEventHandlerBroadcast(srv2.EventHandleBroadcast)
-	srv2.RegRouters(routers)
-	launch.RegisterServer(srv2)
 }

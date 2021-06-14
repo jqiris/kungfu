@@ -7,6 +7,7 @@ require (
 	github.com/go-redis/redis/v8 v8.8.0
 	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/jqiris/nano v0.0.0-20210614061543-0c3e4b2ee9a3 // indirect
 	github.com/nats-io/nats-server/v2 v2.2.1 // indirect
 	github.com/nats-io/nats.go v1.10.1-0.20210330225420-a0b1f60162f8
 	github.com/sirupsen/logrus v1.4.2

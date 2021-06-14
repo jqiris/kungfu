@@ -1,26 +1,32 @@
-package tcpserver
+package zinx
 
 import (
 	"errors"
 	"fmt"
 	"sync"
+
+	tcpface "github.com/jqiris/kungfu/tcpface"
 )
 
-//ConnManager 连接管理模块
+/*
+	连接管理模块
+*/
 type ConnManager struct {
-	connections map[int32]IConnection //管理的连接信息
-	connLock    sync.RWMutex          //读写连接的读写锁
+	connections map[uint32]tcpface.IConnection //管理的连接信息
+	connLock    sync.RWMutex                   //读写连接的读写锁
 }
 
-//NewConnManager 创建一个链接管理
+/*
+	创建一个链接管理
+*/
 func NewConnManager() *ConnManager {
 	return &ConnManager{
-		connections: make(map[int32]IConnection),
+		connections: make(map[uint32]tcpface.IConnection),
 	}
 }
 
-//Add 添加链接
-func (connMgr *ConnManager) Add(conn IConnection) {
+//添加链接
+func (connMgr *ConnManager) Add(conn tcpface.IConnection) {
 	//保护共享资源Map 加写锁
 	connMgr.connLock.Lock()
 	defer connMgr.connLock.Unlock()
@@ -31,8 +37,8 @@ func (connMgr *ConnManager) Add(conn IConnection) {
 	fmt.Println("connection add to ConnManager successfully: conn num = ", connMgr.Len())
 }
 
-//Remove 删除连接
-func (connMgr *ConnManager) Remove(conn IConnection) {
+//删除连接
+func (connMgr *ConnManager) Remove(conn tcpface.IConnection) {
 	//保护共享资源Map 加写锁
 	connMgr.connLock.Lock()
 	defer connMgr.connLock.Unlock()
@@ -43,26 +49,25 @@ func (connMgr *ConnManager) Remove(conn IConnection) {
 	fmt.Println("connection Remove ConnID=", conn.GetConnID(), " successfully: conn num = ", connMgr.Len())
 }
 
-//Get 利用ConnID获取链接
-func (connMgr *ConnManager) Get(connID int32) (IConnection, error) {
+//利用ConnID获取链接
+func (connMgr *ConnManager) Get(connID uint32) (tcpface.IConnection, error) {
 	//保护共享资源Map 加读锁
 	connMgr.connLock.RLock()
 	defer connMgr.connLock.RUnlock()
 
 	if conn, ok := connMgr.connections[connID]; ok {
 		return conn, nil
+	} else {
+		return nil, errors.New("connection not found")
 	}
-
-	return nil, errors.New("connection not found")
-
 }
 
-//Len 获取当前连接
+//获取当前连接
 func (connMgr *ConnManager) Len() int {
 	return len(connMgr.connections)
 }
 
-//ClearConn 清除并停止所有连接
+//清除并停止所有连接
 func (connMgr *ConnManager) ClearConn() {
 	//保护共享资源Map 加写锁
 	connMgr.connLock.Lock()
@@ -77,23 +82,4 @@ func (connMgr *ConnManager) ClearConn() {
 	}
 
 	fmt.Println("Clear All Connections successfully: conn num = ", connMgr.Len())
-}
-
-//ClearOneConn  利用ConnID获取一个链接 并且删除
-func (connMgr *ConnManager) ClearOneConn(connID int32) {
-	//保护共享资源Map 加写锁
-	connMgr.connLock.Lock()
-	defer connMgr.connLock.Unlock()
-
-	if conn, ok := connMgr.connections[connID]; !ok {
-		//停止
-		conn.Stop()
-		//删除
-		delete(connMgr.connections, connID)
-		fmt.Println("Clear Connections ID:  ", connID, "succeed")
-		return
-	}
-
-	fmt.Println("Clear Connections ID:  ", connID, "err")
-	return
 }
