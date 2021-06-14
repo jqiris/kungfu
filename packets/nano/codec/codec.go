@@ -24,7 +24,7 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/jqiris/nano/internal/packet"
+	"github.com/jqiris/kungfu/packets/nano/packet"
 )
 
 // Codec constants.
