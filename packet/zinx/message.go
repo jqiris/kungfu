@@ -7,7 +7,7 @@ import (
 
 // Message represents a unmarshaled message or a message which to be marshaled
 type Message struct {
-	Id   uint32 //消息的
+	Id   int32  //消息的
 	Data []byte //消息的内容
 }
 
@@ -33,7 +33,7 @@ func (m *Message) Encode() ([]byte, error) {
 func MsgEncode(m *Message) ([]byte, error) {
 
 	buf := make([]byte, 0)
-	buf = append(buf, utils.LittleUInt32ToBytes(m.Id)...)
+	buf = append(buf, utils.LittleInt32ToBytes(m.Id)...)
 	buf = append(buf, m.Data...)
 	return buf, nil
 }
@@ -43,7 +43,7 @@ func MsgEncode(m *Message) ([]byte, error) {
 func MsgDecode(data []byte) (*Message, error) {
 	m := NewMessage()
 	offset := 4
-	m.Id = utils.LittleBytesToUint32(data[:offset])
+	m.Id = utils.LittleBytesToInt32(data[:offset])
 	m.Data = data[offset:]
 	return m, nil
 }

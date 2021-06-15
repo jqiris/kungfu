@@ -8,24 +8,18 @@ import (
 	tcpface "github.com/jqiris/kungfu/tcpface"
 )
 
-/*
-	连接管理模块
-*/
 type ConnManager struct {
 	connections map[uint32]tcpface.IConnection //管理的连接信息
 	connLock    sync.RWMutex                   //读写连接的读写锁
 }
 
-/*
-	创建一个链接管理
-*/
 func NewConnManager() *ConnManager {
 	return &ConnManager{
 		connections: make(map[uint32]tcpface.IConnection),
 	}
 }
 
-//添加链接
+// Add 添加链接
 func (connMgr *ConnManager) Add(conn tcpface.IConnection) {
 	//保护共享资源Map 加写锁
 	connMgr.connLock.Lock()
@@ -37,7 +31,7 @@ func (connMgr *ConnManager) Add(conn tcpface.IConnection) {
 	fmt.Println("connection add to ConnManager successfully: conn num = ", connMgr.Len())
 }
 
-//删除连接
+// Remove 删除连接
 func (connMgr *ConnManager) Remove(conn tcpface.IConnection) {
 	//保护共享资源Map 加写锁
 	connMgr.connLock.Lock()
@@ -49,7 +43,7 @@ func (connMgr *ConnManager) Remove(conn tcpface.IConnection) {
 	fmt.Println("connection Remove ConnID=", conn.GetConnID(), " successfully: conn num = ", connMgr.Len())
 }
 
-//利用ConnID获取链接
+// Get 利用ConnID获取链接
 func (connMgr *ConnManager) Get(connID uint32) (tcpface.IConnection, error) {
 	//保护共享资源Map 加读锁
 	connMgr.connLock.RLock()
@@ -62,12 +56,12 @@ func (connMgr *ConnManager) Get(connID uint32) (tcpface.IConnection, error) {
 	}
 }
 
-//获取当前连接
+// Len 获取当前连接
 func (connMgr *ConnManager) Len() int {
 	return len(connMgr.connections)
 }
 
-//清除并停止所有连接
+// ClearConn 清除并停止所有连接
 func (connMgr *ConnManager) ClearConn() {
 	//保护共享资源Map 加写锁
 	connMgr.connLock.Lock()

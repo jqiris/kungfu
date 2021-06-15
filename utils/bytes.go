@@ -31,8 +31,8 @@ func LittleBytesToInt(b []byte) int {
 	return result
 }
 
-func LittleBytesToUint32(b []byte) uint32 {
-	var result uint32 = 0
+func LittleBytesToInt32(b []byte) int32 {
+	var result int32 = 0
 	for k, v := range b {
 		result = result + int(v)<<(k*8)
 	}
@@ -49,7 +49,7 @@ func LittleIntToBytes(n int) []byte {
 	return buf
 }
 
-func LittleUInt32ToBytes(n uint32) []byte {
+func LittleInt32ToBytes(n int32) []byte {
 	buf := make([]byte, 4)
 	buf[0] = byte(n & 0xFF)
 	buf[1] = byte((n >> 8) & 0xFF)
