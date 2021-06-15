@@ -27,4 +27,5 @@ type IConnection interface {
 	GetProperty(key string) (interface{}, error)
 	// RemoveProperty 移除链接属性
 	RemoveProperty(key string)
+	Done() <-chan struct{}
 }

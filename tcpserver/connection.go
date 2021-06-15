@@ -87,10 +87,14 @@ func (c *Connection) StartWriter() {
 				fmt.Println("msgBuffChan is Closed")
 				return
 			}
-		case <-c.ctx.Done():
+		case <-c.Done():
 			return
 		}
 	}
+}
+
+func (c *Connection) Done() <-chan struct{} {
+	return c.ctx.Done()
 }
 
 /*
@@ -104,7 +108,7 @@ func (c *Connection) StartReader() {
 
 	for {
 		select {
-		case <-c.ctx.Done():
+		case <-c.Done():
 			return
 		default:
 			// 创建拆包解包的对象

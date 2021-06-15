@@ -3,6 +3,7 @@ package tcpserver
 import (
 	"fmt"
 	"github.com/apex/log"
+	"github.com/jqiris/kungfu/packet/zinx"
 	"net"
 
 	"github.com/jqiris/kungfu/config"
@@ -37,7 +38,7 @@ func NewServer(server *treaty.Server) tcpface.IServer {
 		IPVersion:  "tcp4",
 		IP:         server.ServerIp,
 		Port:       int(server.ClientPort),
-		msgHandler: NewMsgHandle(),
+		msgHandler: zinx.NewMsgHandle(),
 		ConnMgr:    NewConnManager(),
 	}
 	return s
