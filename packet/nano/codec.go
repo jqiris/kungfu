@@ -23,6 +23,7 @@ package nano
 import (
 	"bytes"
 	"errors"
+	"github.com/jqiris/kungfu/utils"
 )
 
 // Codec constants.
@@ -55,7 +56,7 @@ func (c *Decoder) forward() error {
 	if c.typ < Handshake || c.typ > Kick {
 		return ErrWrongPacketType
 	}
-	c.size = bytesToInt(header[1:])
+	c.size = utils.BigBytesToInt(header[1:])
 
 	// packet length limitation
 	if c.size > MaxPacketSize {
@@ -119,26 +120,8 @@ func Encode(typ PacketType, data []byte) ([]byte, error) {
 	buf := make([]byte, p.Length+HeadLength)
 	buf[0] = byte(p.Type)
 
-	copy(buf[1:HeadLength], intToBytes(p.Length))
+	copy(buf[1:HeadLength], utils.BigIntToBytes(p.Length))
 	copy(buf[HeadLength:], data)
 
 	return buf, nil
-}
-
-// MsgDecode packet data length byte to int(Big end)
-func bytesToInt(b []byte) int {
-	result := 0
-	for _, v := range b {
-		result = result<<8 + int(v)
-	}
-	return result
-}
-
-// MsgEncode packet data length to bytes(Big end)
-func intToBytes(n int) []byte {
-	buf := make([]byte, 3)
-	buf[0] = byte((n >> 16) & 0xFF)
-	buf[1] = byte((n >> 8) & 0xFF)
-	buf[2] = byte(n & 0xFF)
-	return buf
 }

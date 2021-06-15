@@ -41,7 +41,7 @@ func ClientTest(i uint32) {
 
 	for {
 		dp := zinx.NewDataPack()
-		msg, _ := dp.Pack(NewMsgPackage(i, []byte("client test message")))
+		msg, _ := dp.Pack(zinx.NewMsgPackage(i, []byte("client test message")))
 		_, err := conn.Write(msg)
 		if err != nil {
 			fmt.Println("client write err: ", err)
@@ -65,7 +65,7 @@ func ClientTest(i uint32) {
 
 		if msgHead.GetDataLen() > 0 {
 			//msg 是有data数据的，需要再次读取data数据
-			msg := msgHead.(*Message)
+			msg := msgHead.(*zinx.Message)
 			msg.Data = make([]byte, msg.GetDataLen())
 
 			//根据dataLen从io中读取字节流

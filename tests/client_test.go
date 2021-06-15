@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/jqiris/kungfu/helper"
-	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
 )
 
@@ -51,7 +50,7 @@ func TestClientLogin(t *testing.T) {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	msg, _ := dp.Pack(tcpserver.NewMsgPackage(int32(treaty.MsgId_Msg_Login_Request), data))
+	msg, _ := dp.Pack(zinx.NewMsgPackage(int32(treaty.MsgId_Msg_Login_Request), data))
 	_, err = conn.Write(msg)
 	if err != nil {
 		logger.Println("write error err ", err)
@@ -73,7 +72,7 @@ func TestClientLogin(t *testing.T) {
 
 	if msgHead.GetDataLen() > 0 {
 		//msg 是有data数据的，需要再次读取data数据
-		recMsg := msgHead.(*tcpserver.Message)
+		recMsg := msgHead.(*zinx.Message)
 		recMsg.Data = make([]byte, recMsg.GetDataLen())
 
 		//根据dataLen从io中读取字节流
@@ -103,7 +102,7 @@ func TestClientLogin(t *testing.T) {
 			logger.Fatal(err1)
 		}
 
-		msg, _ = dp.Pack(tcpserver.NewMsgPackage(int32(treaty.MsgId_Msg_Channel_Request), data1))
+		msg, _ = dp.Pack(zinx.NewMsgPackage(int32(treaty.MsgId_Msg_Channel_Request), data1))
 		_, err = conn.Write(msg)
 		if err != nil {
 			logger.Println("write error err ", err)
@@ -124,7 +123,7 @@ func TestClientLogin(t *testing.T) {
 		}
 
 		if msgHead.GetDataLen() > 0 {
-			recMsg = msgHead.(*tcpserver.Message)
+			recMsg = msgHead.(*zinx.Message)
 			recMsg.Data = make([]byte, recMsg.GetDataLen())
 
 			//根据dataLen从io中读取字节流

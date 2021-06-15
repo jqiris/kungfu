@@ -10,7 +10,7 @@ import (
 	"github.com/jqiris/kungfu/treaty"
 )
 
-type tcpserverConnector struct {
+type ZinxConnector struct {
 	ServerId              string
 	Server                *treaty.Server
 	RpcX                  rpcx.RpcConnector
@@ -20,10 +20,10 @@ type tcpserverConnector struct {
 	RouteHandler          func(s tcpface.IServer) //注册路由
 }
 
-func (b *tcpserverConnector) Init() {
+func (b *ZinxConnector) Init() {
 	//find the  server config
 	if serverConf := helper.FindServerConfig(config.GetServersConf(), b.GetServerId()); serverConf == nil {
-		logger.Fatal("tcpserverConnector can't find the server config")
+		logger.Fatal("ZinxConnector can't find the server config")
 	} else {
 		b.Server = serverConf
 	}
@@ -37,16 +37,16 @@ func (b *tcpserverConnector) Init() {
 	logger.Infoln("init the connector:", b.ServerId)
 }
 
-func (b *tcpserverConnector) AfterInit() {
+func (b *ZinxConnector) AfterInit() {
 	//Subscribe event
 	if err := b.RpcX.Subscribe(b.Server, func(req []byte) []byte {
-		logger.Infof("tcpserverConnector Subscribe received: %+v", req)
+		logger.Infof("ZinxConnector Subscribe received: %+v", req)
 		return b.EventHandlerSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
 	if err := b.RpcX.SubscribeConnector(func(req []byte) []byte {
-		logger.Infof("tcpserverConnector SubscribeConnector received: %+v", req)
+		logger.Infof("ZinxConnector SubscribeConnector received: %+v", req)
 		return b.EventHandlerBroadcast(req)
 	}); err != nil {
 		logger.Error(err)
@@ -57,14 +57,14 @@ func (b *tcpserverConnector) AfterInit() {
 	}
 }
 
-func (b *tcpserverConnector) BeforeShutdown() {
+func (b *ZinxConnector) BeforeShutdown() {
 	//unregister the service
 	if err := discover.UnRegister(b.Server); err != nil {
 		logger.Error(err)
 	}
 }
 
-func (b *tcpserverConnector) Shutdown() {
+func (b *ZinxConnector) Shutdown() {
 	//stop the server
 	if b.ClientServer != nil {
 		b.ClientServer.Stop()
@@ -72,25 +72,25 @@ func (b *tcpserverConnector) Shutdown() {
 	logger.Infoln("stop the connector:", b.ServerId)
 }
 
-func (b *tcpserverConnector) GetServer() *treaty.Server {
+func (b *ZinxConnector) GetServer() *treaty.Server {
 	return b.Server
 }
 
-func (b *tcpserverConnector) RegEventHandlerSelf(handler func(req []byte) []byte) { //注册自己事件处理器
+func (b *ZinxConnector) RegEventHandlerSelf(handler func(req []byte) []byte) { //注册自己事件处理器
 	b.EventHandlerSelf = handler
 }
 
-func (b *tcpserverConnector) RegEventHandlerBroadcast(handler func(req []byte) []byte) { //注册广播事件处理器
+func (b *ZinxConnector) RegEventHandlerBroadcast(handler func(req []byte) []byte) { //注册广播事件处理器
 	b.EventHandlerBroadcast = handler
 }
-func (b *tcpserverConnector) SetServerId(serverId string) {
+func (b *ZinxConnector) SetServerId(serverId string) {
 	b.ServerId = serverId
 }
 
-func (b *tcpserverConnector) GetServerId() string {
+func (b *ZinxConnector) GetServerId() string {
 	return b.ServerId
 }
 
-func (b *tcpserverConnector) SetRouteHandler(handler func(s tcpface.IServer)) {
+func (b *ZinxConnector) SetRouteHandler(handler func(s tcpface.IServer)) {
 	b.RouteHandler = handler
 }
