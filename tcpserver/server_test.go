@@ -88,7 +88,7 @@ func ClientTest(i uint32) {
 
 //ping test 自定义路由
 type PingRouter struct {
-	BaseRouter
+	zinx.BaseRouter
 }
 
 //Test PreHandle
@@ -122,7 +122,7 @@ func (this *PingRouter) PostHandle(request tcpface.IRequest) {
 }
 
 type HelloRouter struct {
-	BaseRouter
+	zinx.BaseRouter
 }
 
 func (this *HelloRouter) Handle(request tcpface.IRequest) {

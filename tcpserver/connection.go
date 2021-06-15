@@ -141,7 +141,7 @@ func (c *Connection) StartReader() {
 			msg.SetData(data)
 
 			//得到当前客户端请求的Request数据
-			req := Request{
+			req := zinx.Request{
 				conn: c,
 				msg:  msg,
 			}

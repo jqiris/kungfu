@@ -2,6 +2,7 @@ package examples
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/packet/zinx"
 
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/connector"
@@ -10,13 +11,12 @@ import (
 	"github.com/jqiris/kungfu/launch"
 	"github.com/jqiris/kungfu/session"
 	"github.com/jqiris/kungfu/tcpface"
-	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
 )
 
 type MyConnector struct {
 	connector.ZinxConnector
-	tcpserver.BaseRouter
+	zinx.BaseRouter
 	conns map[int32]tcpface.IConnection
 }
 

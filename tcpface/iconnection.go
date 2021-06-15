@@ -12,14 +12,14 @@ type IConnection interface {
 	// GetTCPConnection 从当前连接获取原始的socket TCPConn
 	GetTCPConnection() *net.TCPConn
 	// GetConnID 获取当前连接ID
-	GetConnID() uint32
+	GetConnID() int32
 	// RemoteAddr 获取远程客户端地址信息
 	RemoteAddr() net.Addr
 
 	// SendMsg 直接将Message数据发送数据给远程的TCP客户端(无缓冲)
-	SendMsg(msgId uint32, data []byte) error
+	SendMsg(msgId int32, data []byte) error
 	// SendBuffMsg 直接将Message数据发送给远程的TCP客户端(有缓冲)
-	SendBuffMsg(msgId uint32, data []byte) error
+	SendBuffMsg(msgId int32, data []byte) error
 
 	// SetProperty 设置链接属性
 	SetProperty(key string, value interface{})
