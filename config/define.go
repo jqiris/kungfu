@@ -34,7 +34,8 @@ type StoresConf struct {
 }
 
 type ConnectorConf struct {
-	Version          string `json:"version"`             //当前Zinx版本号
+	UseType          string `json:"use_type"`            //使用的协议
+	Version          string `json:"version"`             //当前tcpserver版本号
 	MaxPacketSize    int32  `json:"max_packet_size"`     //都需数据包的最大值
 	MaxConn          int    `json:"max_conn"`            //当前服务器主机允许的最大链接个数
 	WorkerPoolSize   int32  `json:"worker_pool_size"`    //业务工作Worker池的数量

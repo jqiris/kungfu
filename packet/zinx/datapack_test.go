@@ -1,7 +1,8 @@
-package tcpserver
+package zinx
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/tcpserver"
 	"io"
 	"net"
 	"testing"
@@ -48,7 +49,7 @@ func TestDataPack(t *testing.T) {
 
 					if msgHead.GetDataLen() > 0 {
 						//msg 是有data数据的，需要再次读取data数据
-						msg := msgHead.(*Message)
+						msg := msgHead.(*tcpserver.Message)
 						msg.Data = make([]byte, msg.GetDataLen())
 
 						//根据dataLen从io中读取字节流
@@ -77,7 +78,7 @@ func TestDataPack(t *testing.T) {
 		dp := NewDataPack()
 
 		//封装一个msg1包
-		msg1 := &Message{
+		msg1 := &tcpserver.Message{
 			Id:      0,
 			DataLen: 5,
 			Data:    []byte{'h', 'e', 'l', 'l', 'o'},
@@ -89,7 +90,7 @@ func TestDataPack(t *testing.T) {
 			return
 		}
 
-		msg2 := &Message{
+		msg2 := &tcpserver.Message{
 			Id:      1,
 			DataLen: 7,
 			Data:    []byte{'w', 'o', 'r', 'l', 'd', '!', '!'},

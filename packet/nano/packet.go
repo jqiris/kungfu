@@ -18,18 +18,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package packet
+package nano
 
 import (
 	"errors"
 	"fmt"
 )
 
-// Type represents the network packet's type such as: handshake and so on.
-type Type byte
+// PacketType represents the network packet's type such as: handshake and so on.
+type PacketType byte
 
 const (
-	_ Type = iota
+	_ PacketType = iota
 	// Handshake represents a handshake: request(client) <====> handshake response(server)
 	Handshake = 0x01
 
@@ -51,17 +51,17 @@ var ErrWrongPacketType = errors.New("wrong packet type")
 
 // Packet represents a network packet.
 type Packet struct {
-	Type   Type
+	Type   PacketType
 	Length int
 	Data   []byte
 }
 
-//New create a Packet instance.
-func New() *Packet {
+//NewPacket create a Packet instance.
+func NewPacket() *Packet {
 	return &Packet{}
 }
 
 //String represents the Packet's in text mode.
 func (p *Packet) String() string {
-	return fmt.Sprintf("Type: %d, Length: %d, Data: %s", p.Type, p.Length, string(p.Data))
+	return fmt.Sprintf("MsgType: %d, Length: %d, Data: %s", p.Type, p.Length, string(p.Data))
 }

@@ -15,7 +15,7 @@ import (
 )
 
 type MyConnector struct {
-	connector.ZinxConnector
+	connector.tcpserverConnector
 	tcpserver.BaseRouter
 	conns map[int32]tcpface.IConnection
 }

@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package message
+package nano
 
 import (
 	"encoding/binary"
@@ -28,15 +28,15 @@ import (
 	"strings"
 )
 
-// Type represents the type of message, which could be Request/Notify/Response/Push
-type Type byte
+// MsgType represents the type of message, which could be Request/Notify/Response/Push
+type MsgType byte
 
 // Message types
 const (
-	Request  Type = 0x00
-	Notify        = 0x01
-	Response      = 0x02
-	Push          = 0x03
+	Request  MsgType = 0x00
+	Notify           = 0x01
+	Response         = 0x02
+	Push             = 0x03
 )
 
 const (
@@ -46,7 +46,7 @@ const (
 	msgHeadLength        = 0x02
 )
 
-var types = map[Type]string{
+var types = map[MsgType]string{
 	Request:  "Request",
 	Notify:   "Notify",
 	Response: "Response",
@@ -67,21 +67,21 @@ var (
 
 // Message represents a unmarshaled message or a message which to be marshaled
 type Message struct {
-	Type       Type   // message type
-	ID         uint   // unique id, zero while notify mode
-	Route      string // route for locating service
-	Data       []byte // payload
-	compressed bool   // is message compressed
+	Type       MsgType // message type
+	ID         uint    // unique id, zero while notify mode
+	Route      string  // route for locating service
+	Data       []byte  // payload
+	compressed bool    // is message compressed
 }
 
-// New returns a new message instance
-func New() *Message {
+// NewMessage returns a new message instance
+func NewMessage() *Message {
 	return &Message{}
 }
 
 // String, implementation of fmt.Stringer interface
 func (m *Message) String() string {
-	return fmt.Sprintf("Type: %s, ID: %d, Route: %s, Compressed: %t, BodyLength: %d",
+	return fmt.Sprintf("MsgType: %s, ID: %d, Route: %s, Compressed: %t, BodyLength: %d",
 		types[m.Type],
 		m.ID,
 		m.Route,
@@ -91,19 +91,19 @@ func (m *Message) String() string {
 
 // Encode marshals message to binary format.
 func (m *Message) Encode() ([]byte, error) {
-	return Encode(m)
+	return MsgEncode(m)
 }
 
-func routable(t Type) bool {
+func routable(t MsgType) bool {
 	return t == Request || t == Notify || t == Push
 }
 
-func invalidType(t Type) bool {
+func invalidType(t MsgType) bool {
 	return t < Request || t > Push
 
 }
 
-// Encode marshals message to binary format. Different message types is corresponding to
+// MsgEncode marshals message to binary format. Different message types is corresponding to
 // different message header, message types is identified by 2-4 bit of flag field. The
 // relationship between message types and message header is presented as follows:
 // ------------------------------------------
@@ -116,7 +116,7 @@ func invalidType(t Type) bool {
 // ------------------------------------------
 // The figure above indicates that the bit does not affect the type of message.
 // See ref: https://github.com/lonnng/nano/blob/master/docs/communication_protocol.md
-func Encode(m *Message) ([]byte, error) {
+func MsgEncode(m *Message) ([]byte, error) {
 	if invalidType(m.Type) {
 		return nil, ErrWrongMessageType
 	}
@@ -159,16 +159,16 @@ func Encode(m *Message) ([]byte, error) {
 	return buf, nil
 }
 
-// Decode unmarshal the bytes slice to a message
+// MsgDecode unmarshal the bytes slice to a message
 // See ref: https://github.com/lonnng/nano/blob/master/docs/communication_protocol.md
-func Decode(data []byte) (*Message, error) {
+func MsgDecode(data []byte) (*Message, error) {
 	if len(data) < msgHeadLength {
 		return nil, ErrInvalidMessage
 	}
-	m := New()
+	m := NewMessage()
 	flag := data[0]
 	offset := 1
-	m.Type = Type((flag >> 1) & msgTypeMask)
+	m.Type = MsgType((flag >> 1) & msgTypeMask)
 
 	if invalidType(m.Type) {
 		return nil, ErrWrongMessageType

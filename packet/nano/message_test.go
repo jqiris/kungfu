@@ -1,4 +1,4 @@
-package message
+package nano
 
 import (
 	"reflect"
@@ -24,7 +24,7 @@ func TestEncode(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	dm1, err := Decode(em1)
+	dm1, err := MsgDecode(em1)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -43,7 +43,7 @@ func TestEncode(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	dm2, err := Decode(em2)
+	dm2, err := MsgDecode(em2)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -61,7 +61,7 @@ func TestEncode(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	dm3, err := Decode(em3)
+	dm3, err := MsgDecode(em3)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -79,7 +79,7 @@ func TestEncode(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	dm4, err := Decode(em4)
+	dm4, err := MsgDecode(em4)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -98,7 +98,7 @@ func TestEncode(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	dm5, err := Decode(em5)
+	dm5, err := MsgDecode(em5)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -116,7 +116,7 @@ func TestEncode(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	dm6, err := Decode(em6)
+	dm6, err := MsgDecode(em6)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -134,7 +134,7 @@ func TestEncode(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	dm7, err := Decode(em7)
+	dm7, err := MsgDecode(em7)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -153,7 +153,7 @@ func TestEncode(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	dm8, err := Decode(em8)
+	dm8, err := MsgDecode(em8)
 	if err != nil {
 		t.Error(err.Error())
 	}

@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/jqiris/kungfu/config"
-	tcpface "github.com/jqiris/kungfu/tcpface"
+	"github.com/jqiris/kungfu/tcpface"
 )
 
 type MsgHandle struct {
@@ -24,7 +24,7 @@ func NewMsgHandle() *MsgHandle {
 	}
 }
 
-//将消息交给TaskQueue,由worker进行处理
+// SendMsgToTaskQueue 将消息交给TaskQueue,由worker进行处理
 func (mh *MsgHandle) SendMsgToTaskQueue(request tcpface.IRequest) {
 	//根据ConnID来分配当前的连接应该由哪个worker负责处理
 	//轮询的平均分配法则
@@ -36,7 +36,7 @@ func (mh *MsgHandle) SendMsgToTaskQueue(request tcpface.IRequest) {
 	mh.TaskQueue[workerID] <- request
 }
 
-//马上以非阻塞方式处理消息
+// DoMsgHandler 马上以非阻塞方式处理消息
 func (mh *MsgHandle) DoMsgHandler(request tcpface.IRequest) {
 	handler, ok := mh.Apis[request.GetMsgID()]
 	if !ok {
@@ -48,7 +48,7 @@ func (mh *MsgHandle) DoMsgHandler(request tcpface.IRequest) {
 	handler(request)
 }
 
-//为消息添加具体的处理逻辑
+// AddRouter 为消息添加具体的处理逻辑
 func (mh *MsgHandle) AddRouter(msgId uint32, router tcpface.IRouter) {
 	//1 判断当前msg绑定的API处理方法是否已经存在
 	if _, ok := mh.Apis[msgId]; ok {
@@ -59,7 +59,7 @@ func (mh *MsgHandle) AddRouter(msgId uint32, router tcpface.IRouter) {
 	fmt.Println("Add api msgId = ", msgId)
 }
 
-//启动一个Worker工作流程
+// StartOneWorker 启动一个Worker工作流程
 func (mh *MsgHandle) StartOneWorker(workerID int, taskQueue chan tcpface.IRequest) {
 	fmt.Println("Worker ID = ", workerID, " is started.")
 	//不断的等待队列中的消息
@@ -72,7 +72,7 @@ func (mh *MsgHandle) StartOneWorker(workerID int, taskQueue chan tcpface.IReques
 	}
 }
 
-//启动worker工作池
+// StartWorkerPool 启动worker工作池
 func (mh *MsgHandle) StartWorkerPool() {
 	cfg := config.GetConnectorConf()
 	//遍历需要启动worker的数量，依此启动

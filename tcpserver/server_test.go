@@ -2,6 +2,7 @@ package tcpserver
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/packet/zinx"
 	"io"
 	"log"
 	"net"
@@ -39,7 +40,7 @@ func ClientTest(i uint32) {
 	}
 
 	for {
-		dp := NewDataPack()
+		dp := zinx.NewDataPack()
 		msg, _ := dp.Pack(NewMsgPackage(i, []byte("client test message")))
 		_, err := conn.Write(msg)
 		if err != nil {

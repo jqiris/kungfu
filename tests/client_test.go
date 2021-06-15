@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jqiris/kungfu/config"
+	"github.com/jqiris/kungfu/packet/zinx"
 	"github.com/jqiris/kungfu/serialize"
 	"io"
 	"io/ioutil"
@@ -40,7 +41,7 @@ func TestClientLogin(t *testing.T) {
 	}
 	//发送登录信息
 	encoder := serialize.NewProtoSerializer()
-	dp := tcpserver.NewDataPack(config.GetConnectorConf())
+	dp := zinx.NewDataPack(config.GetConnectorConf())
 	data, err := encoder.Marshal(&treaty.LoginRequest{
 		Uid:      1001,
 		Nickname: "jason",

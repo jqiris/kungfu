@@ -2,14 +2,15 @@ package tcpserver
 
 import (
 	"fmt"
+	"github.com/apex/log"
 	"net"
 
 	"github.com/jqiris/kungfu/config"
-	tcpface "github.com/jqiris/kungfu/tcpface"
+	"github.com/jqiris/kungfu/tcpface"
 	"github.com/jqiris/kungfu/treaty"
 )
 
-//iServer 接口实现，定义一个Server服务类
+// Server 接口实现，定义一个Server服务类
 type Server struct {
 	//服务器的名称
 	Name string
@@ -29,9 +30,7 @@ type Server struct {
 	OnConnStop func(conn tcpface.IConnection)
 }
 
-/*
-  创建一个服务器句柄
-*/
+// NewServer 创建一个服务器句柄
 func NewServer(server *treaty.Server) tcpface.IServer {
 	s := &Server{
 		Name:       server.ServerName,
@@ -46,11 +45,11 @@ func NewServer(server *treaty.Server) tcpface.IServer {
 
 //============== 实现 tcpface.IServer 里的全部接口方法 ========
 
-//开启网络服务
+// Start 开启网络服务
 func (s *Server) Start() {
 	fmt.Printf("[START] Server name: %s,listenner at IP: %s, Port %d is starting\n", s.Name, s.IP, s.Port)
 	cfg := config.GetConnectorConf()
-	//开启一个go去做服务端Linster业务
+	//开启一个go去做服务端Lister业务
 	go func() {
 		//0 启动worker工作池机制
 		s.msgHandler.StartWorkerPool()
@@ -70,7 +69,7 @@ func (s *Server) Start() {
 		}
 
 		//已经监听成功
-		fmt.Println("start Zinx server  ", s.Name, " succ, now listenning...")
+		fmt.Println("start tcpserver server  ", s.Name, " succ, now listenning...")
 
 		//TODO server.go 应该有一个自动生成ID的方法
 		var cid uint32
@@ -87,13 +86,16 @@ func (s *Server) Start() {
 			fmt.Println("Get conn remote addr = ", conn.RemoteAddr().String())
 
 			//3.2 设置服务器最大连接控制,如果超过最大连接，那么则关闭此新的连接
-			if s.ConnMgr.Len() >= cfg.MaxConn {
-				conn.Close()
+			if cfg.MaxConn > 0 && s.ConnMgr.Len() >= cfg.MaxConn {
+				err = conn.Close()
+				if err != nil {
+					log.Error(err.Error())
+				}
 				continue
 			}
 
 			//3.3 处理该新连接请求的 业务 方法， 此时应该有 handler 和 conn是绑定的
-			dealConn := NewConntion(s, conn, cid, s.msgHandler)
+			dealConn := NewConnection(s, conn, cid, s.msgHandler)
 			cid++
 
 			//3.4 启动当前链接的处理业务
@@ -102,45 +104,45 @@ func (s *Server) Start() {
 	}()
 }
 
-//停止服务
+// Stop 停止服务
 func (s *Server) Stop() {
-	fmt.Println("[STOP] Zinx server , name ", s.Name)
+	fmt.Println("[STOP] tcpserver server , name ", s.Name)
 
 	//将其他需要清理的连接信息或者其他信息 也要一并停止或者清理
 	s.ConnMgr.ClearConn()
 }
 
-//运行服务
+// Serve 运行服务
 func (s *Server) Serve() {
 	s.Start()
 
 	//TODO Server.Serve() 是否在启动服务的时候 还要处理其他的事情呢 可以在这里添加
 
-	//阻塞,否则主Go退出， listenner的go将会退出
+	//阻塞,否则主Go退出， listener的go将会退出
 	select {}
 }
 
-//路由功能：给当前服务注册一个路由业务方法，供客户端链接处理使用
+// AddRouter 路由功能：给当前服务注册一个路由业务方法，供客户端链接处理使用
 func (s *Server) AddRouter(msgId uint32, router tcpface.IRouter) {
 	s.msgHandler.AddRouter(msgId, router)
 }
 
-//得到链接管理
+// GetConnMgr 得到链接管理
 func (s *Server) GetConnMgr() tcpface.IConnManager {
 	return s.ConnMgr
 }
 
-//设置该Server的连接创建时Hook函数
+// SetOnConnStart 设置该Server的连接创建时Hook函数
 func (s *Server) SetOnConnStart(hookFunc func(tcpface.IConnection)) {
 	s.OnConnStart = hookFunc
 }
 
-//设置该Server的连接断开时的Hook函数
+// SetOnConnStop 设置该Server的连接断开时的Hook函数
 func (s *Server) SetOnConnStop(hookFunc func(tcpface.IConnection)) {
 	s.OnConnStop = hookFunc
 }
 
-//调用连接OnConnStart Hook函数
+// CallOnConnStart 调用连接OnConnStart Hook函数
 func (s *Server) CallOnConnStart(conn tcpface.IConnection) {
 	if s.OnConnStart != nil {
 		fmt.Println("---> CallOnConnStart....")
@@ -148,7 +150,7 @@ func (s *Server) CallOnConnStart(conn tcpface.IConnection) {
 	}
 }
 
-//调用连接OnConnStop Hook函数
+// CallOnConnStop 调用连接OnConnStop Hook函数
 func (s *Server) CallOnConnStop(conn tcpface.IConnection) {
 	if s.OnConnStop != nil {
 		fmt.Println("---> CallOnConnStop....")
