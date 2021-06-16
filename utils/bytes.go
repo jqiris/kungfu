@@ -34,7 +34,7 @@ func LittleBytesToInt(b []byte) int {
 func LittleBytesToInt32(b []byte) int32 {
 	var result int32 = 0
 	for k, v := range b {
-		result = result + int(v)<<(k*8)
+		result = result + int32(v)<<(k*8)
 	}
 	return result
 }

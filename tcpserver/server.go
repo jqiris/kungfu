@@ -4,11 +4,16 @@ import (
 	"fmt"
 	"github.com/apex/log"
 	"github.com/jqiris/kungfu/packet/zinx"
+	"github.com/sirupsen/logrus"
 	"net"
 
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/tcpface"
 	"github.com/jqiris/kungfu/treaty"
+)
+
+var (
+	logger = logrus.WithField("package", "tcpserver")
 )
 
 // Server 接口实现，定义一个Server服务类
@@ -21,10 +26,14 @@ type Server struct {
 	IP string
 	//服务绑定的端口
 	Port int
-	//当前Server的消息管理模块，用来绑定MsgId和对应的处理方法
-	msgHandler tcpface.IMsgHandle
+	//配置
+	Config config.ConnectorConf
 	//当前Server的链接管理器
 	ConnMgr tcpface.IConnManager
+	//消息处理器
+	MsgHandler tcpface.IMsgHandle
+	//连接处理器
+	ConnHandler tcpface.IConnHandler
 	//该Server的连接创建时Hook函数
 	OnConnStart func(conn tcpface.IConnection)
 	//该Server的连接断开时的Hook函数
@@ -33,14 +42,29 @@ type Server struct {
 
 // NewServer 创建一个服务器句柄
 func NewServer(server *treaty.Server) tcpface.IServer {
+	cfg := config.GetConnectorConf()
 	s := &Server{
-		Name:       server.ServerName,
-		IPVersion:  "tcp4",
-		IP:         server.ServerIp,
-		Port:       int(server.ClientPort),
-		msgHandler: zinx.NewMsgHandle(),
-		ConnMgr:    NewConnManager(),
+		Name:      server.ServerName,
+		IPVersion: "tcp4",
+		IP:        server.ServerIp,
+		Port:      int(server.ClientPort),
+		ConnMgr:   NewConnManager(),
+		Config:    cfg,
 	}
+	//开启一个go去做服务端Lister业务
+	var msgHandler tcpface.IMsgHandle
+	var connHandler tcpface.IConnHandler
+	switch cfg.UseType {
+	case "zinx":
+		msgHandler = zinx.NewMsgHandle()
+		connHandler = func(server tcpface.IServer, conn net.Conn, connId int) tcpface.IConnection {
+			return zinx.NewAgent(server, conn, connId)
+		}
+	default:
+		logger.Fatalf("no suitable connector type:%v", cfg.UseType)
+	}
+	s.MsgHandler = msgHandler
+	s.ConnHandler = connHandler
 	return s
 }
 
@@ -49,60 +73,56 @@ func NewServer(server *treaty.Server) tcpface.IServer {
 // Start 开启网络服务
 func (s *Server) Start() {
 	fmt.Printf("[START] Server name: %s,listenner at IP: %s, Port %d is starting\n", s.Name, s.IP, s.Port)
-	cfg := config.GetConnectorConf()
-	//开启一个go去做服务端Lister业务
 	go func() {
-		//0 启动worker工作池机制
-		s.msgHandler.StartWorkerPool()
-
-		//1 获取一个TCP的Addr
-		addr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
-		if err != nil {
-			fmt.Println("resolve tcp addr err: ", err)
-			return
-		}
-
-		//2 监听服务器地址
-		listener, err := net.ListenTCP(s.IPVersion, addr)
-		if err != nil {
-			fmt.Println("listen", s.IPVersion, "err", err)
-			return
-		}
-
-		//已经监听成功
-		fmt.Println("start tcpserver server  ", s.Name, " succ, now listenning...")
-
-		//TODO server.go 应该有一个自动生成ID的方法
-		var cid uint32
-		cid = 0
-
-		//3 启动server网络连接业务
-		for {
-			//3.1 阻塞等待客户端建立连接请求
-			conn, err := listener.AcceptTCP()
-			if err != nil {
-				fmt.Println("Accept err ", err)
-				continue
-			}
-			fmt.Println("Get conn remote addr = ", conn.RemoteAddr().String())
-
-			//3.2 设置服务器最大连接控制,如果超过最大连接，那么则关闭此新的连接
-			if cfg.MaxConn > 0 && s.ConnMgr.Len() >= cfg.MaxConn {
-				err = conn.Close()
-				if err != nil {
-					log.Error(err.Error())
-				}
-				continue
-			}
-
-			//3.3 处理该新连接请求的 业务 方法， 此时应该有 handler 和 conn是绑定的
-			dealConn := NewConnection(s, conn, cid, s.msgHandler)
-			cid++
-
-			//3.4 启动当前链接的处理业务
-			go dealConn.Start()
-		}
+		s.ListenAndServe(s.MsgHandler, s.ConnHandler)
 	}()
+}
+
+func (s *Server) ListenAndServe(msgHandler tcpface.IMsgHandle, connHandler tcpface.IConnHandler) {
+	//0 启动worker工作池机制
+	msgHandler.StartWorkerPool()
+
+	//1 获取一个TCP的Addr
+	addr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
+	if err != nil {
+		fmt.Println("resolve tcp addr err: ", err)
+		return
+	}
+
+	//2 监听服务器地址
+	listener, err := net.ListenTCP(s.IPVersion, addr)
+	if err != nil {
+		fmt.Println("listen", s.IPVersion, "err", err)
+		return
+	}
+
+	//已经监听成功
+	fmt.Println("start tcpserver server  ", s.Name, " succ, now listenning...")
+
+	cid := 0
+
+	//3 启动server网络连接业务
+	for {
+		//3.1 阻塞等待客户端建立连接请求
+		conn, err := listener.AcceptTCP()
+		if err != nil {
+			fmt.Println("Accept err ", err)
+			continue
+		}
+		fmt.Println("Get conn remote addr = ", conn.RemoteAddr().String())
+
+		//3.2 设置服务器最大连接控制,如果超过最大连接，那么则关闭此新的连接
+		if s.Config.MaxConn > 0 && s.ConnMgr.Len() >= s.Config.MaxConn {
+			err = conn.Close()
+			if err != nil {
+				log.Error(err.Error())
+			}
+			continue
+		}
+		cid++
+		agent := connHandler(s, conn, cid)
+		go msgHandler.Handle(agent)
+	}
 }
 
 // Stop 停止服务
@@ -116,16 +136,8 @@ func (s *Server) Stop() {
 // Serve 运行服务
 func (s *Server) Serve() {
 	s.Start()
-
-	//TODO Server.Serve() 是否在启动服务的时候 还要处理其他的事情呢 可以在这里添加
-
 	//阻塞,否则主Go退出， listener的go将会退出
 	select {}
-}
-
-// AddRouter 路由功能：给当前服务注册一个路由业务方法，供客户端链接处理使用
-func (s *Server) AddRouter(msgId uint32, router tcpface.IRouter) {
-	s.msgHandler.AddRouter(msgId, router)
 }
 
 // GetConnMgr 得到链接管理
@@ -159,5 +171,6 @@ func (s *Server) CallOnConnStop(conn tcpface.IConnection) {
 	}
 }
 
-func init() {
+func (s *Server) GetMsgHandler() tcpface.IMsgHandle {
+	return s.MsgHandler
 }

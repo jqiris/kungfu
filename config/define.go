@@ -38,7 +38,7 @@ type ConnectorConf struct {
 	Version          string `json:"version"`             //当前tcpserver版本号
 	MaxPacketSize    int32  `json:"max_packet_size"`     //都需数据包的最大值
 	MaxConn          int    `json:"max_conn"`            //当前服务器主机允许的最大链接个数
-	WorkerPoolSize   int32  `json:"worker_pool_size"`    //业务工作Worker池的数量
+	WorkerPoolSize   int    `json:"worker_pool_size"`    //业务工作Worker池的数量
 	MaxWorkerTaskLen int32  `json:"max_worker_task_len"` //业务工作Worker对应负责的任务队列最大任务存储数量
 	MaxMsgChanLen    int32  `json:"max_msg_chan_len"`    //SendBuffMsg发送消息的缓冲最大长度
 	LogDir           string `json:"log_dir"`             //日志所在文件夹 默认"./log"

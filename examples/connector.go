@@ -16,7 +16,6 @@ import (
 
 type MyConnector struct {
 	connector.ZinxConnector
-	zinx.BaseRouter
 	conns map[int32]tcpface.IConnection
 }
 
@@ -50,7 +49,7 @@ func (b *MyConnector) EventHandleBroadcast(req []byte) []byte {
 }
 
 //Login 登录操作
-func (b *MyConnector) Login(request tcpface.IRequest) {
+func (b *MyConnector) Login(request *zinx.Request) {
 
 	//先读取客户端的数据
 	logger.Println("Login recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
@@ -294,7 +293,9 @@ func (b *MyConnector) ChannelMsg(request tcpface.IRequest) {
 func init() {
 	srv := &MyConnector{conns: make(map[int32]tcpface.IConnection)}
 	srv.RouteHandler = func(s tcpface.IServer) {
-		s.AddRouter(uint32(treaty.MsgId_Msg_Login_Request), srv.Login)
+		rs := s.GetMsgHandler()
+		router := rs.(zinx.MsgHandle)
+		router.AddRouter(treaty.MsgId_Msg_Login_Request, srv.Login)
 	}
 	srv.SetServerId("connector_2001")
 	srv.RegEventHandlerSelf(srv.EventHandleSelf)

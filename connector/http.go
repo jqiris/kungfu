@@ -5,7 +5,6 @@ import (
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/rpcx"
-	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
 )
 
@@ -78,8 +77,4 @@ func (g *HttpConnector) SetServerId(serverId string) {
 
 func (g *HttpConnector) GetServerId() string {
 	return g.ServerId
-}
-
-//RegRouters 注册路由函数
-func (g *HttpConnector) RegRouters(routers map[int32]tcpserver.IHandler) {
 }

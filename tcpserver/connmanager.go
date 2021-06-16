@@ -9,13 +9,13 @@ import (
 )
 
 type ConnManager struct {
-	connections map[uint32]tcpface.IConnection //管理的连接信息
-	connLock    sync.RWMutex                   //读写连接的读写锁
+	connections map[int]tcpface.IConnection //管理的连接信息
+	connLock    sync.RWMutex                //读写连接的读写锁
 }
 
 func NewConnManager() *ConnManager {
 	return &ConnManager{
-		connections: make(map[uint32]tcpface.IConnection),
+		connections: make(map[int]tcpface.IConnection),
 	}
 }
 
@@ -44,7 +44,7 @@ func (connMgr *ConnManager) Remove(conn tcpface.IConnection) {
 }
 
 // Get 利用ConnID获取链接
-func (connMgr *ConnManager) Get(connID uint32) (tcpface.IConnection, error) {
+func (connMgr *ConnManager) Get(connID int) (tcpface.IConnection, error) {
 	//保护共享资源Map 加读锁
 	connMgr.connLock.RLock()
 	defer connMgr.connLock.RUnlock()
@@ -70,7 +70,10 @@ func (connMgr *ConnManager) ClearConn() {
 	//停止并删除全部的连接信息
 	for connID, conn := range connMgr.connections {
 		//停止
-		conn.Stop()
+		err := conn.Close()
+		if err != nil {
+			logger.Error(err)
+		}
 		//删除
 		delete(connMgr.connections, connID)
 	}

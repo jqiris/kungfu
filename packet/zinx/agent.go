@@ -5,13 +5,17 @@ import (
 	"github.com/apex/log"
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/packet"
+	"github.com/jqiris/kungfu/tcpface"
 	"net"
 	"sync/atomic"
 )
 
 type Agent struct {
-	conn  net.Conn
-	state int32 // current Agent state
+	//当前Server的链接管理器
+	server tcpface.IServer
+	conn   net.Conn
+	connId int
+	state  int32 // current Agent state
 	//无缓冲管道，用于读、写两个goroutine之间的消息通信
 	msgChan chan []byte
 	//有缓冲管道，用于读、写两个goroutine之间的消息通信
@@ -20,15 +24,28 @@ type Agent struct {
 	lastAt      int64    // last msg time stamp
 }
 
-func newAgent(conn net.Conn) *Agent {
+func NewAgent(server tcpface.IServer, conn net.Conn, connId int) *Agent {
 	cfg := config.GetConnectorConf()
-	return &Agent{
+	agent := &Agent{
+		server:      server,
 		conn:        conn,
+		connId:      connId,
 		state:       packet.StatusStart,
 		msgChan:     make(chan []byte),
 		msgBuffChan: make(chan []byte, cfg.MaxMsgChanLen),
 		decoder:     NewDecoder(),
 	}
+	agent.server.GetConnMgr().Add(agent)
+	agent.server.CallOnConnStart(agent)
+	return agent
+}
+
+func (a *Agent) GetConnID() int {
+	return a.connId
+}
+
+func (a *Agent) GetConn() net.Conn {
+	return a.conn
 }
 
 /*
@@ -74,11 +91,12 @@ func (a *Agent) Close() error {
 	a.setStatus(packet.StatusClosed)
 	close(a.msgChan)
 	close(a.msgBuffChan)
+	a.server.GetConnMgr().Remove(a) //从管理器移除
+	a.server.CallOnConnStop(a)      //连接关闭事件
 	return a.conn.Close()
 }
 
-// RemoteAddr, implementation for session.NetworkEntity interface
-// returns the remote network address.
+// RemoteAddr  implementation for session.NetworkEntity interface
 func (a *Agent) RemoteAddr() net.Addr {
 	return a.conn.RemoteAddr()
 }

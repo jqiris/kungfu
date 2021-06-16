@@ -2,8 +2,8 @@ package zinx
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/tcpface"
 	"github.com/sirupsen/logrus"
-	"net"
 	"strconv"
 	"time"
 
@@ -17,7 +17,7 @@ var (
 
 type MsgHandle struct {
 	Apis           map[int32]Router //存放每个MsgId 所对应的处理方法的map属性
-	WorkerPoolSize int32            //业务工作Worker池的数量
+	WorkerPoolSize int              //业务工作Worker池的数量
 	TaskQueue      []chan *Request  //Worker负责取任务的消息队列
 }
 
@@ -25,7 +25,7 @@ func NewMsgHandle() *MsgHandle {
 	cfg := config.GetConnectorConf()
 	return &MsgHandle{
 		Apis:           make(map[int32]Router),
-		WorkerPoolSize: int32(cfg.WorkerPoolSize),
+		WorkerPoolSize: cfg.WorkerPoolSize,
 		//一个worker对应一个queue
 		TaskQueue: make([]chan *Request, cfg.WorkerPoolSize),
 	}
@@ -37,7 +37,7 @@ func (h *MsgHandle) SendMsgToTaskQueue(request *Request) {
 	//轮询的平均分配法则
 
 	//得到需要处理此条连接的workerID
-	workerID := request.GetConnection().GetConnID() % h.WorkerPoolSize
+	workerID := request.GetConnID() % h.WorkerPoolSize
 	//fmt.Println("Add ConnID=", request.GetConnection().GetConnID()," request msgID=", request.GetMsgID(), "to workerID=", workerID)
 	//将请求消息发送给任务队列
 	h.TaskQueue[workerID] <- request
@@ -92,10 +92,16 @@ func (h *MsgHandle) StartWorkerPool() {
 	}
 }
 
-func (h *MsgHandle) Handle(conn net.Conn) {
-	agent := newAgent(conn)
+func (h *MsgHandle) Handle(iConn tcpface.IConnection) {
+	agent := iConn.(*Agent)
 	go agent.StartWriter()
-
+	defer func() {
+		err := agent.Close()
+		if err != nil {
+			logger.Error(err)
+		}
+	}()
+	conn := agent.GetConn()
 	// read loop
 	buf := make([]byte, 2048)
 	for {
