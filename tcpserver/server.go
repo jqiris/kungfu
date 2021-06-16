@@ -38,6 +38,8 @@ type Server struct {
 	OnConnStart func(conn tcpface.IConnection)
 	//该Server的连接断开时的Hook函数
 	OnConnStop func(conn tcpface.IConnection)
+	//服务配置信息
+	Server *treaty.Server
 }
 
 // NewServer 创建一个服务器句柄
@@ -50,6 +52,7 @@ func NewServer(server *treaty.Server) tcpface.IServer {
 		Port:      int(server.ClientPort),
 		ConnMgr:   NewConnManager(),
 		Config:    cfg,
+		Server:    server,
 	}
 	//开启一个go去做服务端Lister业务
 	var msgHandler tcpface.IMsgHandle
@@ -173,4 +176,8 @@ func (s *Server) CallOnConnStop(conn tcpface.IConnection) {
 
 func (s *Server) GetMsgHandler() tcpface.IMsgHandle {
 	return s.MsgHandler
+}
+
+func (s *Server) GetServerID() string {
+	return s.Server.ServerId
 }

@@ -52,7 +52,7 @@ func (b *MyConnector) EventHandleBroadcast(req []byte) []byte {
 func (b *MyConnector) Login(request *zinx.Request) {
 
 	//先读取客户端的数据
-	logger.Println("Login recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
+	logger.Println("Login recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetMsgData()))
 
 	//回复信息
 	resp := &treaty.LoginResponse{}
@@ -170,9 +170,9 @@ func (b *MyConnector) Login(request *zinx.Request) {
 }
 
 //Logout 登出操作
-func (b *MyConnector) Logout(request tcpface.IRequest) {
+func (b *MyConnector) Logout(request *zinx.Request) {
 	//先读取客户端的数据
-	logger.Println("Logout recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
+	logger.Println("Logout recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetMsgData()))
 
 	//回复信息
 	resp := &treaty.LogoutResponse{}
@@ -228,9 +228,9 @@ func (b *MyConnector) Logout(request tcpface.IRequest) {
 }
 
 //ChannelMsg 消息转发
-func (b *MyConnector) ChannelMsg(request tcpface.IRequest) {
+func (b *MyConnector) ChannelMsg(request *zinx.Request) {
 	//先读取客户端的数据
-	logger.Println("ChannelMsg recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
+	logger.Println("ChannelMsg recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetMsgData()))
 
 	//回复信息
 	resp := &treaty.ChannelMsgResponse{}
@@ -294,8 +294,8 @@ func init() {
 	srv := &MyConnector{conns: make(map[int32]tcpface.IConnection)}
 	srv.RouteHandler = func(s tcpface.IServer) {
 		rs := s.GetMsgHandler()
-		router := rs.(zinx.MsgHandle)
-		router.AddRouter(treaty.MsgId_Msg_Login_Request, srv.Login)
+		router := rs.(*zinx.MsgHandle)
+		router.AddRouter(int32(treaty.MsgId_Msg_Login_Request), srv.Login)
 	}
 	srv.SetServerId("connector_2001")
 	srv.RegEventHandlerSelf(srv.EventHandleSelf)

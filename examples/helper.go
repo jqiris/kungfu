@@ -2,8 +2,9 @@ package examples
 
 import (
 	"github.com/golang/protobuf/proto"
+	"github.com/jqiris/kungfu/packet/zinx"
 	"github.com/jqiris/kungfu/serialize"
-	"github.com/jqiris/kungfu/tcpserver"
+	"github.com/jqiris/kungfu/tcpface"
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/sirupsen/logrus"
 )
@@ -13,14 +14,15 @@ var (
 	encoder = serialize.NewProtoSerializer()
 )
 
-func GetRequest(request tcpserver.IRequest, v interface{}) error {
-	if err := encoder.Unmarshal(request.GetData(), v); err != nil {
+func GetRequest(request *zinx.Request, v interface{}) error {
+	if err := encoder.Unmarshal(request.GetMsgData(), v); err != nil {
 		return err
 	}
 	return nil
 }
 
-func SendMsg(conn tcpserver.IConnection, msgId treaty.MsgId, msg interface{}) {
+func SendMsg(iConn tcpface.IConnection, msgId treaty.MsgId, msg interface{}) {
+	conn := iConn.(*zinx.Agent)
 	res, err := encoder.Marshal(msg)
 	if err != nil {
 		logger.Error(err)
@@ -32,7 +34,8 @@ func SendMsg(conn tcpserver.IConnection, msgId treaty.MsgId, msg interface{}) {
 		return
 	}
 }
-func SendByteMsg(conn tcpserver.IConnection, msgId treaty.MsgId, msg []byte) {
+func SendByteMsg(iConn tcpface.IConnection, msgId treaty.MsgId, msg []byte) {
+	conn := iConn.(*zinx.Agent)
 	err := conn.SendBuffMsg(int32(msgId), msg)
 	if err != nil {
 		logger.Error(err)

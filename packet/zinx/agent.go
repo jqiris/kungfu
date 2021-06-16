@@ -1,16 +1,19 @@
 package zinx
 
 import (
+	"errors"
 	"fmt"
 	"github.com/apex/log"
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/packet"
 	"github.com/jqiris/kungfu/tcpface"
 	"net"
+	"sync"
 	"sync/atomic"
 )
 
 type Agent struct {
+	sync.RWMutex
 	//当前Server的链接管理器
 	server tcpface.IServer
 	conn   net.Conn
@@ -112,4 +115,52 @@ func (a *Agent) status() int32 {
 
 func (a *Agent) setStatus(state int32) {
 	atomic.StoreInt32(&a.state, state)
+}
+
+//SendMsg 直接将Message数据发送数据给远程的TCP客户端
+func (a *Agent) SendMsg(msgID int32, data []byte) error {
+	a.RLock()
+	defer a.RUnlock()
+	if a.status() == packet.StatusClosed {
+		return errors.New("connection closed when send msg")
+	}
+	msg, err := MsgEncode(&Message{
+		Id:   msgID,
+		Data: data,
+	})
+	if err != nil {
+		return err
+	}
+	pk, err := Encode(msg)
+	if err != nil {
+		return err
+	}
+	//写回客户端
+	a.msgChan <- pk
+	return nil
+}
+
+//SendBuffMsg  发生BuffMsg
+func (a *Agent) SendBuffMsg(msgID int32, data []byte) error {
+	a.RLock()
+	defer a.RUnlock()
+	if a.status() == packet.StatusClosed {
+		return errors.New("connection closed when send msg")
+	}
+
+	msg, err := MsgEncode(&Message{
+		Id:   msgID,
+		Data: data,
+	})
+	if err != nil {
+		return err
+	}
+	pk, err := Encode(msg)
+	if err != nil {
+		return err
+	}
+	//写回客户端
+	a.msgChan <- pk
+
+	return nil
 }
