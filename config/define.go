@@ -35,6 +35,7 @@ type StoresConf struct {
 
 type ConnectorConf struct {
 	UseType          string `json:"use_type"`            //使用的协议
+	UseSerializer    string `json:"use_serializer"`      //使用的协议
 	Version          string `json:"version"`             //当前tcpserver版本号
 	MaxPacketSize    int32  `json:"max_packet_size"`     //都需数据包的最大值
 	MaxConn          int    `json:"max_conn"`            //当前服务器主机允许的最大链接个数

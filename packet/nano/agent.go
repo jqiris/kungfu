@@ -6,30 +6,76 @@ import (
 	"github.com/apex/log"
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/packet"
+	"github.com/jqiris/kungfu/serialize"
+	"github.com/jqiris/kungfu/session"
 	"github.com/jqiris/kungfu/tcpface"
 	"net"
+	"reflect"
 	"sync"
 	"sync/atomic"
 )
 
 type Agent struct {
 	sync.RWMutex
+	session *session.Session // session
 	//当前Server的链接管理器
-	server tcpface.IServer
-	conn   net.Conn
-	connId int
-	state  int32 // current Agent state
+	server  tcpface.IServer
+	conn    net.Conn
+	connId  int
+	lastMid uint  // last message id
+	state   int32 // current Agent state
 	//无缓冲管道，用于读、写两个goroutine之间的消息通信
 	msgChan chan []byte
 	//有缓冲管道，用于读、写两个goroutine之间的消息通信
 	msgBuffChan chan []byte
-	decoder     *Decoder // binary decoder
-	lastAt      int64    // last msg time stamp
+	decoder     *Decoder             // binary decoder
+	lastAt      int64                // last msg time stamp
+	srv         reflect.Value        // cached session reflect.Value
+	Serializer  serialize.Serializer //序列化对象
+}
+
+type pendingMessage struct {
+	typ     MsgType     // message type
+	route   string      // message route(push)
+	mid     uint        // response message id(response)
+	payload interface{} // payload
+}
+
+func (a *Agent) MID() uint {
+	return a.lastMid
+}
+
+// Push, implementation for session.NetworkEntity interface
+func (a *Agent) Push(route string, v interface{}) error {
+	if a.status() == packet.StatusClosed {
+		return packet.ErrBrokenPipe
+	}
+
+	return a.SendBuffMsg(pendingMessage{typ: Push, route: route, payload: v})
+}
+
+// Response, implementation for session.NetworkEntity interface
+// Response message to session
+func (a *Agent) Response(v interface{}) error {
+	return a.ResponseMID(a.lastMid, v)
+}
+
+// Response, implementation for session.NetworkEntity interface
+// Response message to session
+func (a *Agent) ResponseMID(mid uint, v interface{}) error {
+	if a.status() == packet.StatusClosed {
+		return packet.ErrBrokenPipe
+	}
+
+	if mid <= 0 {
+		return packet.ErrSessionOnNotify
+	}
+	return a.SendBuffMsg(pendingMessage{typ: Response, mid: mid, payload: v})
 }
 
 func NewAgent(server tcpface.IServer, conn net.Conn, connId int) *Agent {
 	cfg := config.GetConnectorConf()
-	agent := &Agent{
+	a := &Agent{
 		server:      server,
 		conn:        conn,
 		connId:      connId,
@@ -38,9 +84,20 @@ func NewAgent(server tcpface.IServer, conn net.Conn, connId int) *Agent {
 		msgBuffChan: make(chan []byte, cfg.MaxMsgChanLen),
 		decoder:     NewDecoder(),
 	}
-	agent.server.GetConnMgr().Add(agent)
-	agent.server.CallOnConnStart(agent)
-	return agent
+	a.server.GetConnMgr().Add(a)
+	a.server.CallOnConnStart(a)
+	s := session.NewSession(a.connId, a)
+	a.session = s
+	a.srv = reflect.ValueOf(s)
+	switch cfg.UseSerializer {
+	case "proto":
+		a.Serializer = serialize.NewProtoSerializer()
+	case "json":
+		a.Serializer = serialize.NewJsonSerializer()
+	default:
+		logger.Fatalf("no suitable serializer:%v", cfg.UseSerializer)
+	}
+	return a
 }
 
 func (a *Agent) GetConnID() int {
@@ -117,17 +174,29 @@ func (a *Agent) setStatus(state int32) {
 	atomic.StoreInt32(&a.state, state)
 }
 
-//SendMsg 直接将Message数据发送数据给远程的TCP客户端
-func (a *Agent) SendMsg(msgID int32, data []byte) error {
+func (a *Agent) SendRawMessage(useBuffer bool, data []byte) error {
 	a.RLock()
 	defer a.RUnlock()
 	if a.status() == packet.StatusClosed {
 		return errors.New("connection closed when send msg")
 	}
-	pk, err := Encode(&Message{
-		Id:   msgID,
-		Data: data,
-	})
+	//写回客户端
+	if useBuffer {
+		a.msgBuffChan <- data
+	} else {
+		a.msgChan <- data
+	}
+	return nil
+}
+
+//SendMsg 直接将Message数据发送数据给远程的TCP客户端
+func (a *Agent) SendMsg(data pendingMessage) error {
+	a.RLock()
+	defer a.RUnlock()
+	if a.status() == packet.StatusClosed {
+		return errors.New("connection closed when send msg")
+	}
+	pk, err := a.serializeOrRaw(data)
 	if err != nil {
 		return err
 	}
@@ -137,21 +206,50 @@ func (a *Agent) SendMsg(msgID int32, data []byte) error {
 }
 
 //SendBuffMsg  发生BuffMsg
-func (a *Agent) SendBuffMsg(msgID int32, data []byte) error {
+func (a *Agent) SendBuffMsg(data pendingMessage) error {
 	a.RLock()
 	defer a.RUnlock()
 	if a.status() == packet.StatusClosed {
 		return errors.New("connection closed when send msg")
 	}
 
-	pk, err := Encode(&Message{
-		Id:   msgID,
-		Data: data,
-	})
+	pk, err := a.serializeOrRaw(data)
 	if err != nil {
 		return err
 	}
 	//写回客户端
 	a.msgBuffChan <- pk
 	return nil
+}
+
+func (a *Agent) serializeOrRaw(data pendingMessage) ([]byte, error) {
+	var payload []byte
+	var err error
+	if v, ok := data.payload.([]byte); ok {
+		payload = v
+	} else {
+		payload, err = a.Serializer.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	m := &Message{
+		Type:  data.typ,
+		Data:  payload,
+		Route: data.route,
+		ID:    data.mid,
+	}
+
+	em, err := m.Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	// packet encode
+	p, err := Encode(Data, em)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
 }

@@ -65,6 +65,7 @@
   },
   "connector": {
     "use_type": "zinx",
+    "use_serializer": "proto",
     "max_conn": 3000,
     "worker_pool_size": 10,
     "token_key": "kungfu token"

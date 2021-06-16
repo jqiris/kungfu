@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jqiris/kungfu/component"
+	"github.com/jqiris/kungfu/serialize"
 	"github.com/jqiris/kungfu/tcpface"
 	"github.com/sirupsen/logrus"
 	"reflect"
-	"strconv"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/jqiris/kungfu/config"
@@ -22,21 +24,37 @@ type MsgHandle struct {
 	services       map[string]*component.Service // all registered service
 	handlers       map[string]*component.Handler // all handler method
 	WorkerPoolSize int                           //业务工作Worker池的数量
-	TaskQueue      []chan *Request               //Worker负责取任务的消息队列
+	Serializer     serialize.Serializer          //序列化对象
+	TaskQueue      []chan unhandledMessage       //Worker负责取任务的消息队列
 	// serialized data
 	hrd []byte // handshake response data
 	hbd []byte // heartbeat packet data
+}
+type unhandledMessage struct {
+	agent   *Agent
+	lastMid uint
+	handler reflect.Method
+	args    []reflect.Value
 }
 
 func NewMsgHandle() *MsgHandle {
 	cfg := config.GetConnectorConf()
 	h := &MsgHandle{
-		Apis:           make(map[int32]Router),
+		services:       make(map[string]*component.Service),
+		handlers:       make(map[string]*component.Handler),
 		WorkerPoolSize: cfg.WorkerPoolSize,
 		//一个worker对应一个queue
-		TaskQueue: make([]chan *Request, cfg.WorkerPoolSize),
+		TaskQueue: make([]chan unhandledMessage, cfg.WorkerPoolSize),
 	}
 	h.hbdEncode()
+	switch cfg.UseSerializer {
+	case "proto":
+		h.Serializer = serialize.NewProtoSerializer()
+	case "json":
+		h.Serializer = serialize.NewJsonSerializer()
+	default:
+		logger.Fatalf("no suitable serializer:%v", cfg.UseSerializer)
+	}
 	return h
 }
 
@@ -61,27 +79,68 @@ func (h *MsgHandle) hbdEncode() {
 }
 
 // SendMsgToTaskQueue 将消息交给TaskQueue,由worker进行处理
-func (h *MsgHandle) SendMsgToTaskQueue(request *Request) {
+func (h *MsgHandle) SendMsgToTaskQueue(request unhandledMessage) {
 	//根据ConnID来分配当前的连接应该由哪个worker负责处理
 	//轮询的平均分配法则
 
 	//得到需要处理此条连接的workerID
-	workerID := request.GetConnID() % h.WorkerPoolSize
+	workerID := request.agent.connId % h.WorkerPoolSize
 	//fmt.Println("Add ConnID=", request.GetConnection().GetConnID()," request msgID=", request.GetMsgID(), "to workerID=", workerID)
 	//将请求消息发送给任务队列
 	h.TaskQueue[workerID] <- request
 }
+func stack() string {
+	buf := make([]byte, 10000)
+	n := runtime.Stack(buf, false)
+	buf = buf[:n]
+
+	s := string(buf)
+
+	// skip nano frames lines
+	const skip = 7
+	count := 0
+	index := strings.IndexFunc(s, func(c rune) bool {
+		if c != '\n' {
+			return false
+		}
+		count++
+		return count == skip
+	})
+	return s[index+1:]
+}
+
+// call handler with protected
+func pcall(method reflect.Method, args []reflect.Value) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Println(fmt.Sprintf("nano/dispatch: %v", err))
+			println(stack())
+		}
+	}()
+
+	if r := method.Func.Call(args); len(r) > 0 {
+		if err := r[0].Interface(); err != nil {
+			logger.Println(err.(error).Error())
+		}
+	}
+}
+
+// call handler with protected
+func pinvoke(fn func()) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Println(fmt.Sprintf("nano/invoke: %v", err))
+			println(stack())
+		}
+	}()
+
+	fn()
+}
 
 // DoMsgHandler 马上以非阻塞方式处理消息
-func (h *MsgHandle) DoMsgHandler(request *Request) {
-	handler, ok := h.Apis[request.GetMsgID()]
-	if !ok {
-		fmt.Println("api msgId = ", request.GetMsgID(), " is not FOUND!")
-		return
-	}
-
-	//执行对应处理方法
-	handler(request)
+func (h *MsgHandle) DoMsgHandler(request unhandledMessage) {
+	request.agent.lastMid = request.lastMid
+	pcall(request.handler, request.args)
 }
 
 func (h *MsgHandle) register(comp component.Component, opts []component.Option) error {
@@ -104,7 +163,7 @@ func (h *MsgHandle) register(comp component.Component, opts []component.Option) 
 }
 
 // StartOneWorker 启动一个Worker工作流程
-func (h *MsgHandle) StartOneWorker(workerID int, taskQueue chan *Request) {
+func (h *MsgHandle) StartOneWorker(workerID int, taskQueue chan unhandledMessage) {
 	fmt.Println("Worker ID = ", workerID, " is started.")
 	//不断的等待队列中的消息
 	for {
@@ -123,7 +182,7 @@ func (h *MsgHandle) StartWorkerPool() {
 	for i := 0; i < int(h.WorkerPoolSize); i++ {
 		//一个worker被启动
 		//给当前worker对应的任务队列开辟空间
-		h.TaskQueue[i] = make(chan *Request, cfg.MaxWorkerTaskLen)
+		h.TaskQueue[i] = make(chan unhandledMessage, cfg.MaxWorkerTaskLen)
 		//启动当前Worker，阻塞的等待对应的任务队列是否有消息传递进来
 		go h.StartOneWorker(i, h.TaskQueue[i])
 	}
@@ -172,7 +231,7 @@ func (h *MsgHandle) processPacket(agent *Agent, p *Packet) error {
 
 	switch p.Type {
 	case Handshake:
-		if _, err := agent.conn.Write(h.hbd); err != nil {
+		if err := agent.SendRawMessage(true, h.hbd); err != nil {
 			return err
 		}
 
@@ -227,19 +286,20 @@ func (h *MsgHandle) processMessage(agent *Agent, msg *Message) {
 		data = payload
 	} else {
 		data = reflect.New(handler.Type.Elem()).Interface()
-		err := serializer.Unmarshal(payload, data)
+		err := h.Serializer.Unmarshal(payload, data)
 		if err != nil {
 			logger.Println("deserialize error", err.Error())
 			return
 		}
 	}
-
+	args := []reflect.Value{handler.Receiver, agent.srv, reflect.ValueOf(data)}
+	request := unhandledMessage{agent, lastMid, handler.Method, args}
 	if h.WorkerPoolSize > 0 {
 		//已经启动工作池机制，将消息交给Worker处理
-		h.SendMsgToTaskQueue(req)
+		h.SendMsgToTaskQueue(request)
 	} else {
 		//从绑定好的消息和对应的处理方法中执行对应的Handle方法
-		go h.DoMsgHandler(req)
+		go h.DoMsgHandler(request)
 	}
 
 }
