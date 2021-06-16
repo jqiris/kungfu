@@ -1,19 +1,11 @@
 package treaty
 
-import (
-	"github.com/sirupsen/logrus"
-)
-
-var (
-	logger = logrus.WithField("package", "treaty")
-)
-
 const (
 	MinServerId       = 1000
 	MessageHeaderSize = 20
 )
 
-//server entity
+// ServerEntity server entity
 type ServerEntity interface {
 	Init()                                                    //初始化
 	AfterInit()                                               //初始化后执行操作

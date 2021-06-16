@@ -3,8 +3,6 @@ package nano
 import (
 	"reflect"
 	"testing"
-
-	. "github.com/jqiris/kungfu/packets/nano/packet"
 )
 
 func TestPack(t *testing.T) {
