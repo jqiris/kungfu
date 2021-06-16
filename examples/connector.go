@@ -296,6 +296,7 @@ func init() {
 		rs := s.GetMsgHandler()
 		router := rs.(*zinx.MsgHandle)
 		router.AddRouter(int32(treaty.MsgId_Msg_Login_Request), srv.Login)
+		router.AddRouter(int32(treaty.MsgId_Msg_Channel_Request), srv.ChannelMsg)
 	}
 	srv.SetServerId("connector_2001")
 	srv.RegEventHandlerSelf(srv.EventHandleSelf)

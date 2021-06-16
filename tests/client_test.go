@@ -1,12 +1,10 @@
 package tests
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/packet/zinx"
 	"github.com/jqiris/kungfu/serialize"
-	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -26,9 +24,11 @@ func TestClientLogin(t *testing.T) {
 	if err != nil {
 		logger.Fatal(err)
 	}
+	coder := serialize.NewProtoSerializer()
 	res := &treaty.BalanceResult{}
-	if err := json.Unmarshal(bytes, res); err != nil {
-		logger.Fatal(err)
+	if err = coder.Unmarshal(bytes, res); err != nil {
+		logger.Error(err)
+		return
 	}
 	if res.Code > 0 {
 		logger.Fatal("no suitable connector find:", res.Code)
@@ -39,9 +39,7 @@ func TestClientLogin(t *testing.T) {
 		logger.Fatal("client start err, exit!")
 	}
 	//发送登录信息
-	encoder := serialize.NewProtoSerializer()
-	dp := zinx.NewDataPack(config.GetConnectorConf())
-	data, err := encoder.Marshal(&treaty.LoginRequest{
+	reqData, err := coder.Marshal(&treaty.LoginRequest{
 		Uid:      1001,
 		Nickname: "jason",
 		Token:    "ce0da27df7150196625e48c843deb1f9",
@@ -50,91 +48,57 @@ func TestClientLogin(t *testing.T) {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	msg, _ := dp.Pack(zinx.NewMsgPackage(int32(treaty.MsgId_Msg_Login_Request), data))
+	msg, _ := zinx.Encode(&zinx.Message{
+		int32(treaty.MsgId_Msg_Login_Request),
+		reqData,
+	})
 	_, err = conn.Write(msg)
 	if err != nil {
 		logger.Println("write error err ", err)
 		return
 	}
-	//先读出流中的head部分
-	headData := make([]byte, dp.GetHeadLen())
-	_, err = io.ReadFull(conn, headData) //ReadFull 会把msg填充满为止
-	if err != nil {
-		fmt.Println("read head error")
-		return
-	}
-	//将headData字节流 拆包到msg中
-	msgHead, err := dp.Unpack(headData)
+	recMsg, err := zinx.ReadMsg(conn)
 	if err != nil {
 		fmt.Println("server unpack err:", err)
 		return
 	}
 
-	if msgHead.GetDataLen() > 0 {
-		//msg 是有data数据的，需要再次读取data数据
-		recMsg := msgHead.(*zinx.Message)
-		recMsg.Data = make([]byte, recMsg.GetDataLen())
-
-		//根据dataLen从io中读取字节流
-		_, err := io.ReadFull(conn, recMsg.Data)
-		if err != nil {
-			fmt.Println("server unpack data err:", err)
-			return
-		}
-		//解析data数据
-		data := &treaty.LoginResponse{}
-		if err = encoder.Unmarshal(recMsg.Data, data); err != nil {
-			logger.Printf("login received err:%v", err)
-		}
-		logger.Infof("login result is:%+v", data)
-		//登录成功后尝试发送一次聊天数据
-		send := &treaty.ChannelMsgRequest{
-			Uid: 1001,
-			RpcMsg: &treaty.RpcMsg{
-				MsgId:     treaty.RpcMsgId_RpcMsgChatTest,
-				MsgServer: res.Connector,
-				MsgData:   []byte("hello chat"),
-			},
-		}
-
-		data1, err1 := encoder.Marshal(send)
-		if err1 != nil {
-			logger.Fatal(err1)
-		}
-
-		msg, _ = dp.Pack(zinx.NewMsgPackage(int32(treaty.MsgId_Msg_Channel_Request), data1))
-		_, err = conn.Write(msg)
-		if err != nil {
-			logger.Println("write error err ", err)
-			return
-		}
-		//先读出流中的head部分
-		headData = make([]byte, dp.GetHeadLen())
-		_, err = io.ReadFull(conn, headData) //ReadFull 会把msg填充满为止
-		if err != nil {
-			fmt.Println("read head error")
-			return
-		}
-		//将headData字节流 拆包到msg中
-		msgHead, err = dp.Unpack(headData)
-		if err != nil {
-			fmt.Println("server unpack err:", err)
-			return
-		}
-
-		if msgHead.GetDataLen() > 0 {
-			recMsg = msgHead.(*zinx.Message)
-			recMsg.Data = make([]byte, recMsg.GetDataLen())
-
-			//根据dataLen从io中读取字节流
-			_, err = io.ReadFull(conn, recMsg.Data)
-			if err != nil {
-				fmt.Println("server unpack data err:", err)
-				return
-			}
-			logger.Infof("received chat resp:%v", string(recMsg.Data))
-		}
+	//解析data数据
+	respData := &treaty.LoginResponse{}
+	if err = coder.Unmarshal(recMsg.Data, respData); err != nil {
+		logger.Printf("login received err:%v", err)
 	}
+	logger.Infof("login result is:%+v", respData)
+	//登录成功后尝试发送一次聊天数据
+	send := &treaty.ChannelMsgRequest{
+		Uid: 1001,
+		RpcMsg: &treaty.RpcMsg{
+			MsgId:     treaty.RpcMsgId_RpcMsgChatTest,
+			MsgServer: res.Connector,
+			MsgData:   []byte("hello chat"),
+		},
+	}
+
+	data1, err1 := coder.Marshal(send)
+	if err1 != nil {
+		logger.Fatal(err1)
+	}
+
+	msg, _ = zinx.Encode(&zinx.Message{
+		Id:   int32(treaty.MsgId_Msg_Channel_Request),
+		Data: data1,
+	})
+	_, err = conn.Write(msg)
+	if err != nil {
+		logger.Println("write error err ", err)
+		return
+	}
+	recMsg, err = zinx.ReadMsg(conn)
+	if err != nil {
+		fmt.Println("server unpack err:", err)
+		return
+	}
+	logger.Infof("received chat resp:%v", string(recMsg.Data))
 
 }
 

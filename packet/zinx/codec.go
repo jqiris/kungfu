@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"github.com/jqiris/kungfu/utils"
+	"io"
+	"net"
 )
 
 // Codec constants.
@@ -79,12 +81,28 @@ func (c *Decoder) Decode(data []byte) ([]*Packet, error) {
 	return packets, nil
 }
 
-// Encode create a packet.Packet from  the raw bytes slice and then encode to network bytes slice
-//
-// --------<length>--------|-<data>-
-// ------------------------|--------
-// 4 bytes packet data length(little end), and data segment
-func Encode(data []byte) ([]byte, error) {
+func ReadMsg(conn net.Conn) (*Message, error) {
+	buf := make([]byte, HeadLength)
+	_, err := io.ReadFull(conn, buf)
+	if err != nil {
+		return nil, err
+	}
+	p := NewPacket()
+	p.Length = utils.LittleBytesToInt(buf)
+	buf = make([]byte, p.Length)
+	_, err = io.ReadFull(conn, buf)
+	if err != nil {
+		return nil, err
+	}
+	p.Data = buf
+	return MsgDecode(p.Data)
+}
+
+func Encode(msg *Message) ([]byte, error) {
+	data, err := MsgEncode(msg)
+	if err != nil {
+		return nil, err
+	}
 	p := &Packet{Length: len(data)}
 	buf := make([]byte, p.Length+HeadLength)
 	copy(buf[:HeadLength], utils.LittleIntToBytes(p.Length))

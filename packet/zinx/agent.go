@@ -33,7 +33,7 @@ func NewAgent(server tcpface.IServer, conn net.Conn, connId int) *Agent {
 		server:      server,
 		conn:        conn,
 		connId:      connId,
-		state:       packet.StatusStart,
+		state:       packet.StatusWorking,
 		msgChan:     make(chan []byte),
 		msgBuffChan: make(chan []byte, cfg.MaxMsgChanLen),
 		decoder:     NewDecoder(),
@@ -124,14 +124,10 @@ func (a *Agent) SendMsg(msgID int32, data []byte) error {
 	if a.status() == packet.StatusClosed {
 		return errors.New("connection closed when send msg")
 	}
-	msg, err := MsgEncode(&Message{
+	pk, err := Encode(&Message{
 		Id:   msgID,
 		Data: data,
 	})
-	if err != nil {
-		return err
-	}
-	pk, err := Encode(msg)
 	if err != nil {
 		return err
 	}
@@ -148,19 +144,14 @@ func (a *Agent) SendBuffMsg(msgID int32, data []byte) error {
 		return errors.New("connection closed when send msg")
 	}
 
-	msg, err := MsgEncode(&Message{
+	pk, err := Encode(&Message{
 		Id:   msgID,
 		Data: data,
 	})
 	if err != nil {
 		return err
 	}
-	pk, err := Encode(msg)
-	if err != nil {
-		return err
-	}
 	//写回客户端
-	a.msgChan <- pk
-
+	a.msgBuffChan <- pk
 	return nil
 }

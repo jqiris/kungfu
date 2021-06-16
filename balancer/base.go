@@ -45,7 +45,7 @@ func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
 		b.WriteResponse(w, res)
 		return
 	}
-	connetor, err := b.Balance(r.RemoteAddr)
+	connector, err := b.Balance(r.RemoteAddr)
 	if err != nil {
 		res := &treaty.BalanceResult{
 			Code: treaty.CodeType_CodeFailed,
@@ -61,7 +61,7 @@ func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
 	}
 	res := &treaty.BalanceResult{
 		Code:       treaty.CodeType_CodeSuccess,
-		Connector:  connetor,
+		Connector:  connector,
 		Backend:    backend,
 		BackendPre: backendPre,
 	}
