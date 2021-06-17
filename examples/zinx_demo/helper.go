@@ -1,4 +1,4 @@
-package examples
+package main
 
 import (
 	"github.com/golang/protobuf/proto"
@@ -6,11 +6,9 @@ import (
 	"github.com/jqiris/kungfu/serialize"
 	"github.com/jqiris/kungfu/tcpface"
 	"github.com/jqiris/kungfu/treaty"
-	"github.com/sirupsen/logrus"
 )
 
 var (
-	logger  = logrus.WithField("package", "handler")
 	encoder = serialize.NewProtoSerializer()
 )
 

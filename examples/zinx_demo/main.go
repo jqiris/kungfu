@@ -9,7 +9,6 @@ import (
 	"github.com/jqiris/kungfu/config"
 
 	"github.com/jqiris/kungfu/discover"
-	_ "github.com/jqiris/kungfu/examples"
 	"github.com/jqiris/kungfu/launch"
 	"github.com/jqiris/kungfu/stores"
 	"github.com/sirupsen/logrus"
@@ -21,7 +20,7 @@ var (
 
 func main() {
 	//init conf
-	if err := config.InitConf("config.json"); err != nil {
+	if err := config.InitConf("./examples/nano_demo/config.json"); err != nil {
 		logger.Fatal(err)
 	}
 	//init discover
