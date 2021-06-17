@@ -3,10 +3,13 @@ package tcpserver
 import (
 	"fmt"
 	"github.com/apex/log"
+	"github.com/gorilla/websocket"
 	"github.com/jqiris/kungfu/packet/nano"
 	"github.com/jqiris/kungfu/packet/zinx"
 	"github.com/sirupsen/logrus"
 	"net"
+	"net/http"
+	"strings"
 
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/tcpface"
@@ -83,7 +86,11 @@ func NewServer(server *treaty.Server) tcpface.IServer {
 func (s *Server) Start() {
 	fmt.Printf("[START] Server name: %s,listenner at IP: %s, Port %d is starting\n", s.Name, s.IP, s.Port)
 	go func() {
-		s.ListenAndServe(s.MsgHandler, s.ConnHandler)
+		if s.Config.UseWebsocket {
+			s.ListenAndServeWs(s.MsgHandler, s.ConnHandler)
+		} else {
+			s.ListenAndServe(s.MsgHandler, s.ConnHandler)
+		}
 	}()
 }
 
@@ -129,8 +136,51 @@ func (s *Server) ListenAndServe(msgHandler tcpface.IMsgHandle, connHandler tcpfa
 			continue
 		}
 		cid++
+
 		agent := connHandler(s, conn, cid)
 		go msgHandler.Handle(agent)
+	}
+}
+
+func (s *Server) ListenAndServeWs(msgHandler tcpface.IMsgHandle, connHandler tcpface.IConnHandler) {
+	//0 启动worker工作池机制
+	msgHandler.StartWorkerPool()
+
+	//1 获取一个TCP的Addr
+	addr := fmt.Sprintf("%s:%d", s.IP, s.Port)
+
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin:     func(_ *http.Request) bool { return true },
+	}
+	cid := 0
+	http.HandleFunc("/"+strings.TrimPrefix(s.Config.WebsocketPath, "/"), func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			logger.Println(fmt.Sprintf("Upgrade failure, URI=%s, Error=%s", r.RequestURI, err.Error()))
+			return
+		}
+
+		if wc, err := newWSConn(conn); err == nil {
+			//3.2 设置服务器最大连接控制,如果超过最大连接，那么则关闭此新的连接
+			if s.Config.MaxConn > 0 && s.ConnMgr.Len() >= s.Config.MaxConn {
+				err = wc.Close()
+				if err != nil {
+					log.Error(err.Error())
+				}
+				return
+			}
+			cid++
+			agent := connHandler(s, wc, cid)
+			go msgHandler.Handle(agent)
+		} else {
+			logger.Fatal(err)
+		}
+	})
+
+	if err := http.ListenAndServe(addr, nil); err != nil {
+		logger.Fatal(err.Error())
 	}
 }
 
