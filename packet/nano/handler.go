@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	logger = logrus.WithField("package", "zinx")
+	logger = logrus.WithField("package", "nano")
 )
 
 type MsgHandle struct {
@@ -143,7 +143,7 @@ func (h *MsgHandle) DoMsgHandler(request unhandledMessage) {
 	pcall(request.handler, request.args)
 }
 
-func (h *MsgHandle) register(comp component.Component, opts []component.Option) error {
+func (h *MsgHandle) Register(comp component.Component, opts ...component.Option) error {
 	s := component.NewService(comp, opts)
 
 	if _, ok := h.services[s.Name]; ok {
@@ -159,6 +159,7 @@ func (h *MsgHandle) register(comp component.Component, opts []component.Option) 
 	for name, handler := range s.Handlers {
 		h.handlers[fmt.Sprintf("%s.%s", s.Name, name)] = handler
 	}
+	h.DumpServices()
 	return nil
 }
 
@@ -301,5 +302,12 @@ func (h *MsgHandle) processMessage(agent *Agent, msg *Message) {
 		//从绑定好的消息和对应的处理方法中执行对应的Handle方法
 		go h.DoMsgHandler(request)
 	}
+}
 
+// DumpServices outputs all registered services
+func (h *MsgHandle) DumpServices() {
+	logger.Println("DumpServices:")
+	for name := range h.handlers {
+		logger.Println("registered service：", name)
+	}
 }

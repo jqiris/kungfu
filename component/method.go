@@ -25,13 +25,13 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/jqiris/nano/session"
+	"github.com/jqiris/kungfu/session"
 )
 
 var (
 	typeOfError   = reflect.TypeOf((*error)(nil)).Elem()
 	typeOfBytes   = reflect.TypeOf(([]byte)(nil))
-	typeOfSession = reflect.TypeOf(session.New(nil))
+	typeOfSession = reflect.TypeOf(session.NewSession(0, nil))
 )
 
 func isExported(name string) bool {

@@ -3,6 +3,7 @@ package tcpserver
 import (
 	"fmt"
 	"github.com/apex/log"
+	"github.com/jqiris/kungfu/packet/nano"
 	"github.com/jqiris/kungfu/packet/zinx"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -62,6 +63,11 @@ func NewServer(server *treaty.Server) tcpface.IServer {
 		msgHandler = zinx.NewMsgHandle()
 		connHandler = func(server tcpface.IServer, conn net.Conn, connId int) tcpface.IConnection {
 			return zinx.NewAgent(server, conn, connId)
+		}
+	case "nano":
+		msgHandler = nano.NewMsgHandle()
+		connHandler = func(server tcpface.IServer, conn net.Conn, connId int) tcpface.IConnection {
+			return nano.NewAgent(server, conn, connId)
 		}
 	default:
 		logger.Fatalf("no suitable connector type:%v", cfg.UseType)

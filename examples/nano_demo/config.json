@@ -1,0 +1,79 @@
+{
+  "discover": {
+    "use_type": "etcd",
+    "dial_timeout": 5,
+    "endpoints": [
+      "127.0.0.1:23791",
+      "127.0.0.1:23792",
+      "127.0.0.1:23793"
+    ]
+  },
+  "rpcx": {
+    "use_type": "nats",
+    "dial_timeout": 5,
+    "endpoints": [
+      "nats:@kungfu2021@localhost:4222",
+      "nats:@kungfu2021@localhost:4223",
+      "nats:@kungfu2021@localhost:4224"
+    ]
+  },
+  "stores": {
+    "use_type": "redis",
+    "dial_timeout": 5,
+    "endpoints": [
+      "127.0.0.1:6379"
+    ],
+    "password": "",
+    "db": 0
+  },
+  "servers": {
+    "balancer_1001": {
+      "server_id": "balancer_1001",
+      "server_type": "balancer",
+      "server_name": "kungfu balancer",
+      "server_ip": "127.0.0.1",
+      "client_port": 8188
+    },
+    "balancer_1002": {
+      "server_id": "balancer_1002",
+      "server_type": "balancer",
+      "server_name": "kungfu balancer",
+      "server_ip": "127.0.0.1",
+      "client_port": 8189
+    },
+    "connector_2001": {
+      "server_id": "connector_2001",
+      "server_type": "connector",
+      "server_name": "kungfu connector",
+      "server_ip": "127.0.0.1",
+      "client_port": 8288
+    },
+    "connector_2002": {
+      "server_id": "connector_2002",
+      "server_type": "connector",
+      "server_name": "kungfu connector",
+      "server_ip": "127.0.0.1",
+      "client_port": 8289
+    },
+    "backend_3001": {
+      "server_id": "backend_3001",
+      "server_type": "backend",
+      "server_name": "kungfu backend",
+      "server_ip": "127.0.0.1",
+      "client_port": 8388
+    }
+  },
+  "connector": {
+    "use_type": "nano",
+    "use_serializer": "proto",
+    "max_conn": 3000,
+    "worker_pool_size": 10,
+    "token_key": "kungfu token"
+  },
+  "launch": [
+    "balancer_1001",
+    "connector_2001",
+    "connector_2002",
+    "backend_3001"
+  ]
+}
