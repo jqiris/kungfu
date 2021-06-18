@@ -14,7 +14,7 @@ var (
 func GetChannel(server *treaty.Server, uid int32) *treaty.GameChannel {
 	if stores.HExists(channelKey, server.ServerId) {
 		res := make(map[int32]*treaty.GameChannel)
-		if err := stores.HGet(channelKey, server.ServerId, res); err != nil {
+		if err := stores.HGet(channelKey, server.ServerId, &res); err != nil {
 			logger.Error(err)
 			return nil
 		}
@@ -26,7 +26,7 @@ func GetChannel(server *treaty.Server, uid int32) *treaty.GameChannel {
 func SaveChannel(ch *treaty.GameChannel) error {
 	chMap := make(map[int32]*treaty.GameChannel)
 	if stores.HExists(channelKey, ch.Backend.ServerId) {
-		if err := stores.HGet(channelKey, ch.Backend.ServerId, chMap); err != nil {
+		if err := stores.HGet(channelKey, ch.Backend.ServerId, &chMap); err != nil {
 			logger.Error(err)
 		}
 	}
@@ -37,7 +37,7 @@ func SaveChannel(ch *treaty.GameChannel) error {
 func DestroyChannel(backend *treaty.Server, uid int32) error {
 	chMap := make(map[int32]*treaty.GameChannel)
 	if stores.HExists(channelKey, backend.ServerId) {
-		if err := stores.HGet(channelKey, backend.ServerId, chMap); err != nil {
+		if err := stores.HGet(channelKey, backend.ServerId, &chMap); err != nil {
 			logger.Error(err)
 		}
 	}

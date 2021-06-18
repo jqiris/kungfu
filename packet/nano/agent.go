@@ -225,9 +225,10 @@ func (a *Agent) SendBuffMsg(data pendingMessage) error {
 func (a *Agent) serializeOrRaw(data pendingMessage) ([]byte, error) {
 	var payload []byte
 	var err error
-	if v, ok := data.payload.([]byte); ok {
+	switch v := data.payload.(type) {
+	case []byte:
 		payload = v
-	} else {
+	default:
 		payload, err = a.Serializer.Marshal(v)
 		if err != nil {
 			return nil, err

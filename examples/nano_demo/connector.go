@@ -22,6 +22,7 @@ func NewUserConnector() *UserConnector {
 }
 
 func (u *UserConnector) Login(s *session.Session, req *treaty.LoginRequest) error {
+	logger.Infof("login received: %+v", req)
 	//回复信息
 	resp := &treaty.LoginResponse{}
 	uid, nickname := req.Uid, req.Nickname
@@ -85,6 +86,7 @@ func (u *UserConnector) Login(s *session.Session, req *treaty.LoginRequest) erro
 }
 
 func (u *UserConnector) ChannelMsg(s *session.Session, req *treaty.ChannelMsgRequest) error {
+	logger.Infof("ChannelMsg received: %+v", req)
 	//回复信息
 	resp := &treaty.ChannelMsgResponse{}
 	if s.UID() < 1 {

@@ -61,7 +61,40 @@ func NewMsgHandle() *MsgHandle {
 func (h *MsgHandle) hbdEncode() {
 	data, err := json.Marshal(map[string]interface{}{
 		"code": 200,
-		"sys":  map[string]float64{"heartbeat": 30},
+		"sys": map[string]interface{}{
+			"heartbeat": 30,
+			"protos": map[string]interface{}{
+				"client": map[string]interface{}{
+					"UserConnector.Login": map[string]interface{}{
+						"required uInt32 uid":      1,
+						"required string nickname": 2,
+						"required string token":    3,
+						"message Server": map[string]interface{}{
+							"required string server_id":   1,
+							"required string server_type": 2,
+							"required string server_name": 3,
+							"required string server_ip":   4,
+							"required uInt32 client_port": 5,
+						},
+						"required Server backend": 4,
+					},
+				},
+				"server": map[string]interface{}{
+					"UserConnector.Login": map[string]interface{}{
+						"required uInt32 code": 1,
+						"required string msg":  2,
+						"message Server": map[string]interface{}{
+							"required string server_id":   1,
+							"required string server_type": 2,
+							"required string server_name": 3,
+							"required string server_ip":   4,
+							"required uInt32 client_port": 5,
+						},
+						"required Server backend": 3,
+					},
+				},
+			},
+		},
 	})
 	if err != nil {
 		panic(err)
@@ -110,17 +143,17 @@ func stack() string {
 }
 
 // call handler with protected
-func pcall(method reflect.Method, args []reflect.Value) {
+func pCall(method reflect.Method, args []reflect.Value) {
 	defer func() {
 		if err := recover(); err != nil {
-			logger.Println(fmt.Sprintf("nano/dispatch: %v", err))
+			logger.Errorf("dispatch: %v", err)
 			println(stack())
 		}
 	}()
 
 	if r := method.Func.Call(args); len(r) > 0 {
 		if err := r[0].Interface(); err != nil {
-			logger.Println(err.(error).Error())
+			logger.Errorf(err.(error).Error())
 		}
 	}
 }
@@ -140,7 +173,7 @@ func pinvoke(fn func()) {
 // DoMsgHandler 马上以非阻塞方式处理消息
 func (h *MsgHandle) DoMsgHandler(request unhandledMessage) {
 	request.agent.lastMid = request.lastMid
-	pcall(request.handler, request.args)
+	pCall(request.handler, request.args)
 }
 
 func (h *MsgHandle) Register(comp component.Component, opts ...component.Option) error {
@@ -232,7 +265,7 @@ func (h *MsgHandle) processPacket(agent *Agent, p *Packet) error {
 
 	switch p.Type {
 	case Handshake:
-		if err := agent.SendRawMessage(true, h.hbd); err != nil {
+		if err := agent.SendRawMessage(true, h.hrd); err != nil {
 			return err
 		}
 
