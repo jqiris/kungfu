@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package treaty;
+option go_package = "./.;treaty";
+
+enum CodeType{
+  CodeSuccess = 0; //成功
+  CodeFailed = 1;//失败
+  CodeChooseBackendLogin = 2;//选择后端服务器进行登录
+  CodeLoginReconnect = 3;//进行重连
+  CodeCannotFindBackend = 4;//找不到后端服务器
+  CodeUndefinedDealMsg = 5;//未定义处理消息
+  CodeNotLogin = 6;//未登录
+  CodeNotRightConnector = 7; //请登录绑定connector
+  CodeNotLoginBackend = 8;//没有登录后端服务器
+}
+
+enum MsgId{
+  Msg_None = 0;
+  Msg_Login_Request = 1; //登录请求
+  Msg_Login_Response = 2; //登录回复
+  Msg_Multi_Login_Out = 3;//多端登录退出
+  Msg_Logout_Request = 4; //登出请求
+  Msg_Logout_Response = 5; //登出回复
+  Msg_Channel_Request = 6; //通道消息请求
+  Msg_Channel_Response = 7;//通道消息返回
+}
+
+message Server{
+  string server_id = 1; //服务器ID
+  string server_type = 2; //服务器类型
+  string server_name = 3; //服务器名字
+  string server_ip = 4; //服务器IP
+  int32  client_port = 5; //客户端端口
+}
+
+message BalanceResult{
+  CodeType code = 1; //0-成功 1-失败
+  Server connector = 2; //连接器
+  Server backend = 3;//服务器
+  Server backend_pre = 4;//之前连接的服务器
+}
+
+message Session{  //用户会话信息
+  int32 uid = 1; // 用户ID
+  Server connector = 2; // 连接器
+  Server backend = 3; //服务器
+}
+
+message GameChannel{ //游戏通道信息
+    int32 uid = 1;//用户ID
+    Server connector = 2; // 连接器
+    Server backend = 3; //服务器
+    int64  create_time = 4;//创建时间
+    int32 reconnect_num = 5;//重连次数
+    int64 reconnect_time = 6;//重连时间
+}
+
+
+enum RpcMsgId {
+  RpcMsgNone = 0;
+  RpcMsgMultiLoginOut = 1;
+  RpcMsgBackendLogin = 2;
+  RpcMsgBackendLogout = 3;
+  RpcMsgChatTest = 4;
+}
+
+message MultiLoginOut{ //多connector登录登出
+  int32 uid = 1; //用户ID
+}
+
+message LoginRequest{
+  int32 uid = 1; //用户ID
+  string nickname = 2; //用户昵称
+  string token = 3; //用户token
+  Server backend = 4; //后端服务器
+}
+
+message LoginResponse{
+  CodeType code = 1; //登录结果
+  string msg = 2;   //登录消息
+  Server backend = 3; //后端服务器
+}
+
+message RpcMsg{
+    RpcMsgId msg_id = 1; //消息ID
+    Server  msg_server = 2; //消息来源服务器
+    bytes msg_data = 3;//消息内容
+}
+
+message LogoutRequest{
+  int32 uid = 1; //用户ID
+  Server backend = 2; //登出服务器
+}
+
+message LogoutResponse{
+  CodeType code = 1; //登出结果
+  string msg = 2;//登出消息
+}
+
+message ChannelMsgRequest{
+  int32 uid = 1; //用户ID
+  RpcMsg rpc_msg = 2;//rpc消息
+}
+
+message ChannelMsgResponse{
+  CodeType code = 1; //通道消息结果
+  string msg = 2;//通道消息消息
+  bytes  msg_data = 3;//通道返回内容
+  Server connector = 4;//绑定的connector
+}

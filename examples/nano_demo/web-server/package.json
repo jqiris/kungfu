@@ -1,0 +1,11 @@
+{
+  "name": "nano_kungfu",
+  "version": "0.0.1",
+  "private": false,
+  "dependencies": {
+    "express": "3.4.8",
+    "google-protobuf": "^3.17.3",
+    "protocol-buffers": "^4.2.0",
+    "protocol-buffers-encodings": "^1.1.1"
+  }
+}

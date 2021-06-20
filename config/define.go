@@ -38,6 +38,7 @@ type ConnectorConf struct {
 	UseWebsocket     bool   `json:"use_websocket"`       //是否使用websocket
 	WebsocketPath    string `json:"websocket_path"`      //websocket路径
 	UseSerializer    string `json:"use_serializer"`      //使用的协议
+	ProtoPath        string `json:"proto_path"`          //protobuf位置
 	Version          string `json:"version"`             //当前tcpserver版本号
 	MaxPacketSize    int32  `json:"max_packet_size"`     //都需数据包的最大值
 	MaxConn          int    `json:"max_conn"`            //当前服务器主机允许的最大链接个数

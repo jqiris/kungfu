@@ -1,0 +1,1 @@
+browserify generate.js > treaty.js

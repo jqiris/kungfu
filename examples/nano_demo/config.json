@@ -12,9 +12,9 @@
     "use_type": "nats",
     "dial_timeout": 5,
     "endpoints": [
-      "nats:@xgtf1988@localhost:4222",
-      "nats:@xgtf1988@localhost:4223",
-      "nats:@xgtf1988@localhost:4224"
+      "nats:@kungfu2021@localhost:4222",
+      "nats:@kungfu2021@localhost:4223",
+      "nats:@kungfu2021@localhost:4224"
     ]
   },
   "stores": {
@@ -68,6 +68,7 @@
     "use_websocket": true,
     "websocket_path": "/",
     "use_serializer": "proto",
+    "proto_path":"./examples/nano_demo/protobuf/protos.json",
     "max_conn": 3000,
     "worker_pool_size": 10,
     "token_key": "kungfu token"

@@ -26,6 +26,7 @@ type MsgHandle struct {
 	WorkerPoolSize int                           //业务工作Worker池的数量
 	Serializer     serialize.Serializer          //序列化对象
 	TaskQueue      []chan unhandledMessage       //Worker负责取任务的消息队列
+	Cfg            config.ConnectorConf          //配置
 	// serialized data
 	hrd []byte // handshake response data
 	hbd []byte // heartbeat packet data
@@ -45,6 +46,7 @@ func NewMsgHandle() *MsgHandle {
 		WorkerPoolSize: cfg.WorkerPoolSize,
 		//一个worker对应一个queue
 		TaskQueue: make([]chan unhandledMessage, cfg.WorkerPoolSize),
+		Cfg:       cfg,
 	}
 	h.hbdEncode()
 	switch cfg.UseSerializer {
@@ -59,47 +61,26 @@ func NewMsgHandle() *MsgHandle {
 }
 
 func (h *MsgHandle) hbdEncode() {
-	data, err := json.Marshal(map[string]interface{}{
+	sys := map[string]interface{}{
+		"heartbeat": 30,
+	}
+	hbd := map[string]interface{}{
 		"code": 200,
-		"sys": map[string]interface{}{
-			"heartbeat": 30,
-			"protos": map[string]interface{}{
-				"client": map[string]interface{}{
-					"UserConnector.Login": map[string]interface{}{
-						"required uInt32 uid":      1,
-						"required string nickname": 2,
-						"required string token":    3,
-						"message Server": map[string]interface{}{
-							"required string server_id":   1,
-							"required string server_type": 2,
-							"required string server_name": 3,
-							"required string server_ip":   4,
-							"required uInt32 client_port": 5,
-						},
-						"required Server backend": 4,
-					},
-				},
-				"server": map[string]interface{}{
-					"UserConnector.Login": map[string]interface{}{
-						"required uInt32 code": 1,
-						"required string msg":  2,
-						"message Server": map[string]interface{}{
-							"required string server_id":   1,
-							"required string server_type": 2,
-							"required string server_name": 3,
-							"required string server_ip":   4,
-							"required uInt32 client_port": 5,
-						},
-						"required Server backend": 3,
-					},
-				},
-			},
-		},
-	})
+		"sys":  sys,
+	}
+
+	if h.Cfg.UseSerializer == "proto" {
+		protos, err := LoadProtos(h.Cfg.ProtoPath)
+		if err != nil {
+			logger.Fatal(err)
+		}
+		sys["protos"] = protos
+	}
+	data, err := json.Marshal(hbd)
 	if err != nil {
 		panic(err)
 	}
-
+	logger.Info("the protos is:", string(data))
 	h.hrd, err = Encode(Handshake, data)
 	if err != nil {
 		panic(err)
