@@ -12,9 +12,9 @@
     "use_type": "nats",
     "dial_timeout": 5,
     "endpoints": [
-      "nats:@kungfu2021@localhost:4222",
-      "nats:@kungfu2021@localhost:4223",
-      "nats:@kungfu2021@localhost:4224"
+      "nats:@xgtf1988@localhost:4222",
+      "nats:@xgtf1988@localhost:4223",
+      "nats:@xgtf1988@localhost:4224"
     ]
   },
   "stores": {
@@ -65,7 +65,7 @@
   },
   "connector": {
     "use_type": "nano",
-    "use_websocket": true,
+    "use_websocket": false,
     "websocket_path": "/",
     "use_serializer": "proto",
     "proto_path":"./examples/nano_demo/protobuf/protos.json",

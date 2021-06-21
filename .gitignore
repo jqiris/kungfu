@@ -16,3 +16,4 @@
 .idea/
 __debug_bin
 examples/nano_demo/web-server/node_modules/
+examples/nano_demo/nano_client/node_modules/
