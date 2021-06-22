@@ -18,11 +18,16 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.strdecode = exports.strencode = exports.Message = exports.MessageType = exports.Package = exports.PacketType = exports.Pomelo = void 0;
 /* eslint-disable no-param-reassign */
 /* eslint-disable max-params */
 var net = __importStar(require("net"));
+var protobuf = __importStar(require("protocol-buffers"));
+var fs_1 = __importDefault(require("fs"));
 var PKG_HEAD_BYTES = 4;
 var MSG_FLAG_BYTES = 1;
 var MSG_ROUTE_CODE_BYTES = 2;
@@ -32,24 +37,40 @@ var MSG_COMPRESS_ROUTE_MASK = 0x1;
 var MSG_COMPRESS_GZIP_MASK = 0x1;
 var MSG_COMPRESS_GZIP_ENCODE_MASK = 1 << 4;
 var MSG_TYPE_MASK = 0x7;
+var RES_OK = 200;
+var RES_FAIL = 500;
+var RES_OLD_CLIENT = 501;
 var Pomelo = /** @class */ (function () {
     function Pomelo() {
+        this.reqId = 1;
+        this.routeMap = {};
+        this.callbacks = {};
+        this.packet = new Package();
+        this.message = new Message();
+        this.protos = null;
+        this.data = { protos: { client: {}, server: {} } };
+        this.dict = null;
+        this.handlers = {};
     }
     Pomelo.prototype.init = function (params, cb) {
         var _this = this;
         this.params = params;
+        if (params.useProtos && params.protoPath.length > 0) {
+            this.protos = protobuf(fs_1.default.readFileSync(params.protoPath));
+        }
         var host = params.host;
         var port = params.port;
         var url = host + ":" + port;
         this.socket = new net.Socket();
-        this.socket.connect(port, host, function () {
-            console.log('connect to ' + url);
-            if (cb) {
-                cb(_this.socket);
-            }
+        this.socket.connect(port, host);
+        this.socket.on('connect', function () {
+            console.log('connect to url:', url);
         });
-        this.socket.on('reconnect', function () {
-            console.log('reconnect');
+        this.socket.on('ready', function () {
+            console.log('connect ready');
+            if (cb) {
+                cb();
+            }
         });
         this.socket.on('data', function (data) {
             console.log("data:", data);
@@ -57,11 +78,74 @@ var Pomelo = /** @class */ (function () {
         this.socket.on('error', function (error) {
             console.log("err:", error);
         });
-        this.socket.on("disconnect", function () {
-            _this.socket.close();
+        this.socket.on("close", function () {
+            _this.socket.destroy();
             _this.socket = null;
-            console.log("socket disconnect");
+            console.log("socket close");
         });
+        // 注册时间类型
+        this.handlers[PacketType.TYPE_HANDSHAKE] = this.handshake;
+        this.handlers[PacketType.TYPE_HEARTBEAT] = this.heartbeat;
+        this.handlers[PacketType.TYPE_DATA] = this.onData;
+        this.handlers[PacketType.TYPE_KICK] = this.onKick;
+    };
+    Pomelo.prototype.onData = function (data) {
+    };
+    Pomelo.prototype.onKick = function (data) {
+    };
+    Pomelo.prototype.heartbeat = function (data) {
+    };
+    Pomelo.prototype.handshake = function (data) {
+        data = JSON.parse(exports.strdecode(data));
+        if (data.code === RES_OLD_CLIENT) {
+            this.emit('error', 'client version not fullfill');
+            return;
+        }
+        if (data.code !== RES_OK) {
+            pinus.emit('error', 'handshake fail');
+            return;
+        }
+        console.log('handshake callback:', data);
+        handshakeInit(data);
+        var obj = Package.encode(Package.TYPE_HANDSHAKE_ACK);
+        send(obj);
+        if (initCallback) {
+            initCallback(socket);
+            initCallback = null;
+        }
+    };
+    Pomelo.prototype.request = function (route, msg, cb) {
+        if (!route) {
+            return;
+        }
+        this.reqId++;
+        this.sendMessage(this.reqId, route, msg);
+        this.callbacks[this.reqId] = cb;
+        this.routeMap[this.reqId] = route;
+    };
+    Pomelo.prototype.sendMessage = function (reqId, route, msg) {
+        var _a;
+        var type = reqId ? MessageType.TYPE_REQUEST : MessageType.TYPE_NOTIFY;
+        // compress message by protobuf
+        var protos = this.data.protos ? this.data.protos.client : {};
+        var proto = protos[route];
+        if (proto && this.protos[proto]) {
+            msg = this.protos[proto].encode(route, msg);
+        }
+        else {
+            msg = exports.strencode(JSON.stringify(msg));
+        }
+        var compressRoute = false;
+        if ((_a = this.dict) === null || _a === void 0 ? void 0 : _a[route]) {
+            route = this.dict[route];
+            compressRoute = true;
+        }
+        msg = this.message.encode(reqId, type, compressRoute, route, msg);
+        var packet = this.packet.encode(PacketType.TYPE_DATA, msg);
+        this.send(packet);
+    };
+    Pomelo.prototype.send = function (packet) {
+        this.socket.send(packet.Buffer);
     };
     return Pomelo;
 }());

@@ -1,6 +1,8 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable max-params */
 import * as net from "net"
+import * as protobuf from "protocol-buffers";
+import fs from "fs";
 declare let Buffer: any;
 
 let PKG_HEAD_BYTES = 4;
@@ -15,24 +17,42 @@ let MSG_COMPRESS_GZIP_MASK = 0x1;
 let MSG_COMPRESS_GZIP_ENCODE_MASK = 1 << 4;
 let MSG_TYPE_MASK = 0x7;
 
+let RES_OK = 200;
+let RES_FAIL = 500;
+let RES_OLD_CLIENT = 501;
+
 export class Pomelo {
     private params;
     private socket;
+    private reqId = 1;
+    private routeMap = {};
+    private callbacks = {};
+    private packet = new Package();
+    private message = new Message();
+    private protos = null;
+    private data = { protos: { client: {}, server: {} } };
+    private dict = null;
+    private handlers = {}
     public init(params, cb) {
         this.params = params
+        if (params.useProtos && params.protoPath.length > 0) {
+            this.protos = protobuf(fs.readFileSync(params.protoPath))
+        }
         let host = params.host
         let port = params.port
         let url = host + ":" + port
 
         this.socket = new net.Socket();
-        this.socket.connect(port, host, () => {
-            console.log('connect to ' + url);
+        this.socket.connect(port, host)
+        this.socket.on('connect', () => {
+            console.log('connect to url:', url);
+        });
+        this.socket.on('ready', () => {
+            console.log('connect ready');
             if (cb) {
-                cb(this.socket);
+                cb();
             }
-        })
-        this.socket.on('reconnect', () => {
-            console.log('reconnect');
+
         });
         this.socket.on('data', (data) => {
             console.log("data:", data)
@@ -40,12 +60,86 @@ export class Pomelo {
         this.socket.on('error', (error) => {
             console.log("err:", error)
         })
-        this.socket.on("disconnect", () => {
-            this.socket.close();
+        this.socket.on("close", () => {
+            this.socket.destroy();
             this.socket = null;
-            console.log("socket disconnect");
+            console.log("socket close");
         })
+        // 注册时间类型
+        this.handlers[PacketType.TYPE_HANDSHAKE] = this.handshake;
+        this.handlers[PacketType.TYPE_HEARTBEAT] = this.heartbeat;
+        this.handlers[PacketType.TYPE_DATA] = this.onData;
+        this.handlers[PacketType.TYPE_KICK] = this.onKick;
+    }
 
+    public onData(data) {
+
+    }
+    public onKick(data) {
+
+    }
+    public heartbeat(data) {
+
+    }
+
+    public handshake(data) {
+        data = JSON.parse(strdecode(data));
+        if (data.code === RES_OLD_CLIENT) {
+            this.emit('error', 'client version not fullfill');
+            return;
+        }
+
+        if (data.code !== RES_OK) {
+            pinus.emit('error', 'handshake fail');
+            return;
+        }
+        console.log('handshake callback:', data)
+
+        handshakeInit(data);
+
+        let obj = Package.encode(Package.TYPE_HANDSHAKE_ACK);
+        send(obj);
+        if (initCallback) {
+            initCallback(socket);
+            initCallback = null;
+        }
+    }
+    public request(route, msg, cb) {
+        if (!route) {
+            return;
+        }
+        this.reqId++;
+        this.sendMessage(this.reqId, route, msg);
+        this.callbacks[this.reqId] = cb;
+        this.routeMap[this.reqId] = route;
+    }
+
+    private sendMessage(reqId, route, msg) {
+        let type = reqId ? MessageType.TYPE_REQUEST : MessageType.TYPE_NOTIFY;
+
+        // compress message by protobuf
+        let protos = this.data.protos ? this.data.protos.client : {};
+        let proto = protos[route]
+        if (proto && this.protos[proto]) {
+            msg = this.protos[proto].encode(route, msg);
+        } else {
+            msg = strencode(JSON.stringify(msg));
+        }
+
+
+        let compressRoute = false;
+        if (this.dict?.[route]) {
+            route = this.dict[route];
+            compressRoute = true;
+        }
+
+        msg = this.message.encode(reqId, type, compressRoute, route, msg);
+        let packet = this.packet.encode(PacketType.TYPE_DATA, msg);
+        this.send(packet);
+    }
+
+    private send(packet) {
+        this.socket.send(packet.Buffer);
     }
 }
 

@@ -9,6 +9,6 @@ let pomelo = new Protocol.Pomelo();
 pomelo.init({
     host: "127.0.0.1",
     port: "8288"
-}, (res) => {
-
+}, () => {
+    console.log("cb callback")
 });
