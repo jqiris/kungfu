@@ -1,8 +1,10 @@
 {
   "client": {
-    "UserConnector.Login": "LoginRequest"
+    "UserConnector.Login": "LoginRequest",
+    "UserConnector.ChannelMsg": "ChannelMsgRequest"
   },
   "server": {
-    "UserConnector.Login": "LoginResponse"
+    "UserConnector.Login": "LoginResponse",
+    "UserConnector.ChannelMsg": "ChannelMsgResponse"
   }
 }

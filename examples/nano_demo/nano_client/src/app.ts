@@ -25,6 +25,20 @@ pomelo.init({
             client_port: 8388
         }
     }, (data) => {
-        console.log(data);
+        if (data.code === 0) {
+            // 登录成功
+            pomelo.request("UserConnector.ChannelMsg", {
+                uid: 1001,
+                rpc_msg: {
+                    msg_id: 4,
+                    msg_data: "hello chat"
+                }
+            }, (resp) => {
+                console.log("channel msg resp:", resp)
+            })
+
+        } else {
+            console.log("登录失败:", data.msg);
+        }
     });
 });

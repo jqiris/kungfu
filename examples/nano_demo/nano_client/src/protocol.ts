@@ -136,7 +136,7 @@ export class Pomelo {
         }
 
         let heartbeat = () => {
-            console.log("heartbeat")
+            // console.log("heartbeat")
             if (!this.heartbeatInterval) {
                 // no heartbeat
                 return;

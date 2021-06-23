@@ -146,7 +146,7 @@ var Pomelo = /** @class */ (function () {
             console.log("onKick:", data);
         };
         var heartbeat = function () {
-            console.log("heartbeat");
+            // console.log("heartbeat")
             if (!_this.heartbeatInterval) {
                 // no heartbeat
                 return;
