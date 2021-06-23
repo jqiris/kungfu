@@ -18,15 +18,35 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var Protocol = __importStar(require("./protocol"));
+var path_1 = __importDefault(require("path"));
 // let Package = Protocol.Package;
 // let Message = Protocol.Message;
 var pomelo = new Protocol.Pomelo();
 pomelo.init({
     host: "127.0.0.1",
-    port: "8288"
+    port: "8288",
+    useProtos: true,
+    protoPath: path_1.default.join(__dirname, "../src/treaty.proto") // test
 }, function () {
     console.log("cb callback");
+    pomelo.request("UserConnector.Login", {
+        uid: 1001,
+        nickname: "jason",
+        token: "ce0da27df7150196625e48c843deb1f9",
+        backend: {
+            server_id: "backend_3001",
+            server_type: "backend",
+            server_name: "kungfu backend",
+            server_ip: "127.0.0.1",
+            client_port: 8388
+        }
+    }, function (data) {
+        console.log(data);
+    });
 });
 //# sourceMappingURL=app.js.map

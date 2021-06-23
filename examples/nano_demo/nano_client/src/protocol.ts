@@ -1,8 +1,11 @@
+/* eslint-disable guard-for-in */
+/* eslint-disable @typescript-eslint/prefer-optional-chain */
 /* eslint-disable no-param-reassign */
 /* eslint-disable max-params */
 import * as net from "net"
-import * as protobuf from "protocol-buffers";
+import protobuf from "protocol-buffers";
 import fs from "fs";
+import mitt from 'mitt';
 declare let Buffer: any;
 
 let PKG_HEAD_BYTES = 4;
@@ -21,6 +24,8 @@ let RES_OK = 200;
 let RES_FAIL = 500;
 let RES_OLD_CLIENT = 501;
 
+let JS_CLIENT_TYPE = 'js-socket';
+let JS_CLIENT_VERSION = '0.0.1';
 export class Pomelo {
     private params;
     private socket;
@@ -30,10 +35,31 @@ export class Pomelo {
     private packet = new Package();
     private message = new Message();
     private protos = null;
-    private data = { protos: { client: {}, server: {} } };
+    private data: any;
     private dict = null;
     private handlers = {}
+    private emitter = mitt();
+    private heartbeatInterval = 0;
+    private heartbeatTimeout = 0;
+    private nextHeartbeatTimeout = 0;
+    private gapThreshold = 100; // heartbeat gap threashold
+    private heartbeatId = null;
+    private heartbeatTimeoutId = null;
+    private handshakeBuffer = {
+        'sys': {
+            type: JS_CLIENT_TYPE,
+            version: JS_CLIENT_VERSION
+        },
+        'user': {}
+    };
+    private handshakeCallback = null;
+    private initCallback = null;
+
     public init(params, cb) {
+        this.initCallback = cb;
+        this.handshakeBuffer.user = params.user;
+        this.handshakeCallback = params.handshakeCallback;
+        this.emitter.on("*", (t: string, e) => { this["on" + t](e) });
         this.params = params
         if (params.useProtos && params.protoPath.length > 0) {
             this.protos = protobuf(fs.readFileSync(params.protoPath))
@@ -43,65 +69,214 @@ export class Pomelo {
         let url = host + ":" + port
 
         this.socket = new net.Socket();
+        this.socket.setNoDelay(true);
         this.socket.connect(port, host)
         this.socket.on('connect', () => {
             console.log('connect to url:', url);
         });
         this.socket.on('ready', () => {
             console.log('connect ready');
-            if (cb) {
-                cb();
-            }
-
+            let obj = this.packet.encode(PacketType.TYPE_HANDSHAKE, strencode(JSON.stringify(this.handshakeBuffer)));
+            this.send(obj);
         });
         this.socket.on('data', (data) => {
-            console.log("data:", data)
+            this.processPackage(this.packet.decode(data));
+            // new package arrived, update the heartbeat timeout
+            if (this.heartbeatTimeout) {
+                this.nextHeartbeatTimeout = Date.now() + this.heartbeatTimeout;
+            }
         })
         this.socket.on('error', (error) => {
-            console.log("err:", error)
+            this.emitter.emit('Error', error)
         })
         this.socket.on("close", () => {
+            this.disconnect();
+        })
+        // 注册事件
+        let handshake = (data) => {
+            data = JSON.parse(strdecode(data));
+            if (data.code === RES_OLD_CLIENT) {
+                this.emitter.emit('Error', 'client version not fullfill');
+                return;
+            }
+
+            if (data.code !== RES_OK) {
+                this.emitter.emit('Error', 'handshake fail');
+                return;
+            }
+            console.log('handshake callback:', data)
+            this.handshakeInit(data);
+
+            let obj = this.packet.encode(PacketType.TYPE_HANDSHAKE_ACK);
+            this.send(obj);
+            if (this.initCallback) {
+                this.initCallback();
+                this.initCallback = null;
+            }
+        }
+
+        let onData = (data) => {
+            let msg = this.message.decode(data);
+
+            if (msg.id > 0) {
+                msg.route = this.routeMap[msg.id];
+                delete this.routeMap[msg.id];
+                if (!msg.route) {
+                    return;
+                }
+            }
+
+            msg.body = this.deCompose(msg);
+
+            this.processMessage(msg);
+        }
+        let onKick = (data) => {
+            console.log("onKick:", data)
+        }
+
+        let heartbeat = (data) => {
+            console.log("heartbeat:", data)
+            if (!this.heartbeatInterval) {
+                // no heartbeat
+                return;
+            }
+
+            let obj = this.packet.encode(PacketType.TYPE_HEARTBEAT);
+            if (this.heartbeatTimeoutId) {
+                clearTimeout(this.heartbeatTimeoutId);
+                this.heartbeatTimeoutId = null;
+            }
+
+            if (this.heartbeatId) {
+                // already in a heartbeat interval
+                return;
+            }
+
+            this.heartbeatId = setTimeout(() => {
+                this.heartbeatId = null;
+                this.send(obj);
+
+                this.nextHeartbeatTimeout = Date.now() + this.heartbeatTimeout;
+                this.heartbeatTimeoutId = setTimeout(heartbeatTimeoutCb, this.heartbeatTimeout);
+            }, this.heartbeatInterval);
+        };
+
+        let heartbeatTimeoutCb = () => {
+            let gap = this.nextHeartbeatTimeout - Date.now();
+            if (gap > this.gapThreshold) {
+                this.heartbeatTimeoutId = setTimeout(heartbeatTimeoutCb, gap);
+            } else {
+                console.error('server heartbeat timeout');
+                this.emitter.emit("Error", 'heartbeat timeout');
+                this.disconnect();
+            }
+        };
+        this.handlers[PacketType.TYPE_HANDSHAKE] = handshake;
+        this.handlers[PacketType.TYPE_HEARTBEAT] = heartbeat;
+        this.handlers[PacketType.TYPE_DATA] = onData;
+        this.handlers[PacketType.TYPE_KICK] = onKick;
+
+    }
+    public disconnect() {
+        if (this.socket) {
             this.socket.destroy();
             this.socket = null;
             console.log("socket close");
-        })
-        // 注册时间类型
-        this.handlers[PacketType.TYPE_HANDSHAKE] = this.handshake;
-        this.handlers[PacketType.TYPE_HEARTBEAT] = this.heartbeat;
-        this.handlers[PacketType.TYPE_DATA] = this.onData;
-        this.handlers[PacketType.TYPE_KICK] = this.onKick;
+        }
+        if (this.heartbeatId) {
+            clearTimeout(this.heartbeatId);
+            this.heartbeatId = null;
+        }
+        if (this.heartbeatTimeoutId) {
+            clearTimeout(this.heartbeatTimeoutId);
+            this.heartbeatTimeoutId = null;
+        }
     }
 
-    public onData(data) {
 
+    public processPackage(msg) {
+        this.handlers[msg.type](msg.body);
     }
-    public onKick(data) {
-
-    }
-    public heartbeat(data) {
-
-    }
-
-    public handshake(data) {
-        data = JSON.parse(strdecode(data));
-        if (data.code === RES_OLD_CLIENT) {
-            this.emit('error', 'client version not fullfill');
+    public processMessage(msg) {
+        if (!msg.id) {
+            // server push message
+            this.emitter.emit(msg.route, msg.body);
             return;
         }
 
-        if (data.code !== RES_OK) {
-            pinus.emit('error', 'handshake fail');
+        // if have a id then find the callback function with the request
+        let cb = this.callbacks[msg.id];
+
+        delete this.callbacks[msg.id];
+        if (typeof cb !== 'function') {
             return;
         }
-        console.log('handshake callback:', data)
 
-        handshakeInit(data);
+        cb(msg.body);
+    }
+    public onError(data) {
+        console.log("received error:", data);
+    }
+    public deCompose(msg) {
+        let protos = this.data.protos ? this.data.protos.server : {};
+        let abbrs = this.data.abbrs;
+        let route = msg.route;
 
-        let obj = Package.encode(Package.TYPE_HANDSHAKE_ACK);
-        send(obj);
-        if (initCallback) {
-            initCallback(socket);
-            initCallback = null;
+        if (msg.compressRoute) {
+            if (!abbrs[route]) {
+                return {};
+            }
+
+            route = msg.route = abbrs[route];
+        }
+        let proto = protos[route]
+        if (proto && this.protos[proto]) {
+            return this.protos[proto].decode(msg.body);
+        } else {
+            return JSON.parse(strdecode(msg.body));
+        }
+    };
+
+
+    public handshakeInit(data) {
+        if (data.sys && data.sys.heartbeat) {
+            this.heartbeatInterval = data.sys.heartbeat * 1000; // heartbeat interval
+            this.heartbeatTimeout = this.heartbeatInterval * 2; // max heartbeat timeout
+        } else {
+            this.heartbeatInterval = 0;
+            this.heartbeatTimeout = 0;
+        }
+
+        this.initData(data);
+
+        if (typeof this.handshakeCallback === 'function') {
+            this.handshakeCallback(data.user);
+        }
+    };
+    public initData(data) {
+        if (!data || !data.sys) {
+            return;
+        }
+        this.data = this.data || {};
+        let dict = data.sys.dict;
+        let protos = data.sys.protos;
+
+        // Init compress dict
+        if (dict) {
+            this.data.dict = dict;
+            this.data.abbrs = {};
+
+            for (let route in dict) {
+                this.data.abbrs[dict[route]] = route;
+            }
+        }
+
+        // Init protobuf protos
+        if (protos) {
+            this.data.protos = {
+                server: protos.server || {},
+                client: protos.client || {}
+            };
         }
     }
     public request(route, msg, cb) {
@@ -121,7 +296,7 @@ export class Pomelo {
         let protos = this.data.protos ? this.data.protos.client : {};
         let proto = protos[route]
         if (proto && this.protos[proto]) {
-            msg = this.protos[proto].encode(route, msg);
+            msg = this.protos[proto].encode(msg);
         } else {
             msg = strencode(JSON.stringify(msg));
         }
@@ -139,7 +314,7 @@ export class Pomelo {
     }
 
     private send(packet) {
-        this.socket.send(packet.Buffer);
+        this.socket.write(packet);
     }
 }
 

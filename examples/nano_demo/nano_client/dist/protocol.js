@@ -23,11 +23,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.strdecode = exports.strencode = exports.Message = exports.MessageType = exports.Package = exports.PacketType = exports.Pomelo = void 0;
+/* eslint-disable guard-for-in */
+/* eslint-disable @typescript-eslint/prefer-optional-chain */
 /* eslint-disable no-param-reassign */
 /* eslint-disable max-params */
 var net = __importStar(require("net"));
-var protobuf = __importStar(require("protocol-buffers"));
+var protocol_buffers_1 = __importDefault(require("protocol-buffers"));
 var fs_1 = __importDefault(require("fs"));
+var mitt_1 = __importDefault(require("mitt"));
 var PKG_HEAD_BYTES = 4;
 var MSG_FLAG_BYTES = 1;
 var MSG_ROUTE_CODE_BYTES = 2;
@@ -40,6 +43,8 @@ var MSG_TYPE_MASK = 0x7;
 var RES_OK = 200;
 var RES_FAIL = 500;
 var RES_OLD_CLIENT = 501;
+var JS_CLIENT_TYPE = 'js-socket';
+var JS_CLIENT_VERSION = '0.0.1';
 var Pomelo = /** @class */ (function () {
     function Pomelo() {
         this.reqId = 1;
@@ -48,70 +53,225 @@ var Pomelo = /** @class */ (function () {
         this.packet = new Package();
         this.message = new Message();
         this.protos = null;
-        this.data = { protos: { client: {}, server: {} } };
         this.dict = null;
         this.handlers = {};
+        this.emitter = mitt_1.default();
+        this.heartbeatInterval = 0;
+        this.heartbeatTimeout = 0;
+        this.nextHeartbeatTimeout = 0;
+        this.gapThreshold = 100; // heartbeat gap threashold
+        this.heartbeatId = null;
+        this.heartbeatTimeoutId = null;
+        this.handshakeBuffer = {
+            'sys': {
+                type: JS_CLIENT_TYPE,
+                version: JS_CLIENT_VERSION
+            },
+            'user': {}
+        };
+        this.handshakeCallback = null;
+        this.initCallback = null;
     }
     Pomelo.prototype.init = function (params, cb) {
         var _this = this;
+        this.initCallback = cb;
+        this.handshakeBuffer.user = params.user;
+        this.handshakeCallback = params.handshakeCallback;
+        this.emitter.on("*", function (t, e) { _this["on" + t](e); });
         this.params = params;
         if (params.useProtos && params.protoPath.length > 0) {
-            this.protos = protobuf(fs_1.default.readFileSync(params.protoPath));
+            this.protos = protocol_buffers_1.default(fs_1.default.readFileSync(params.protoPath));
         }
         var host = params.host;
         var port = params.port;
         var url = host + ":" + port;
         this.socket = new net.Socket();
+        this.socket.setNoDelay(true);
         this.socket.connect(port, host);
         this.socket.on('connect', function () {
             console.log('connect to url:', url);
         });
         this.socket.on('ready', function () {
             console.log('connect ready');
-            if (cb) {
-                cb();
-            }
+            var obj = _this.packet.encode(PacketType.TYPE_HANDSHAKE, exports.strencode(JSON.stringify(_this.handshakeBuffer)));
+            _this.send(obj);
         });
         this.socket.on('data', function (data) {
-            console.log("data:", data);
+            _this.processPackage(_this.packet.decode(data));
+            // new package arrived, update the heartbeat timeout
+            if (_this.heartbeatTimeout) {
+                _this.nextHeartbeatTimeout = Date.now() + _this.heartbeatTimeout;
+            }
         });
         this.socket.on('error', function (error) {
-            console.log("err:", error);
+            _this.emitter.emit('Error', error);
         });
         this.socket.on("close", function () {
-            _this.socket.destroy();
-            _this.socket = null;
-            console.log("socket close");
+            _this.disconnect();
         });
-        // 注册时间类型
-        this.handlers[PacketType.TYPE_HANDSHAKE] = this.handshake;
-        this.handlers[PacketType.TYPE_HEARTBEAT] = this.heartbeat;
-        this.handlers[PacketType.TYPE_DATA] = this.onData;
-        this.handlers[PacketType.TYPE_KICK] = this.onKick;
+        // 注册事件
+        var handshake = function (data) {
+            data = JSON.parse(exports.strdecode(data));
+            if (data.code === RES_OLD_CLIENT) {
+                _this.emitter.emit('Error', 'client version not fullfill');
+                return;
+            }
+            if (data.code !== RES_OK) {
+                _this.emitter.emit('Error', 'handshake fail');
+                return;
+            }
+            console.log('handshake callback:', data);
+            _this.handshakeInit(data);
+            var obj = _this.packet.encode(PacketType.TYPE_HANDSHAKE_ACK);
+            _this.send(obj);
+            if (_this.initCallback) {
+                _this.initCallback();
+                _this.initCallback = null;
+            }
+        };
+        var onData = function (data) {
+            var msg = _this.message.decode(data);
+            if (msg.id > 0) {
+                msg.route = _this.routeMap[msg.id];
+                delete _this.routeMap[msg.id];
+                if (!msg.route) {
+                    return;
+                }
+            }
+            msg.body = _this.deCompose(msg);
+            _this.processMessage(msg);
+        };
+        var onKick = function (data) {
+            console.log("onKick:", data);
+        };
+        var heartbeat = function (data) {
+            console.log("heartbeat:", data);
+            if (!_this.heartbeatInterval) {
+                // no heartbeat
+                return;
+            }
+            var obj = _this.packet.encode(PacketType.TYPE_HEARTBEAT);
+            if (_this.heartbeatTimeoutId) {
+                clearTimeout(_this.heartbeatTimeoutId);
+                _this.heartbeatTimeoutId = null;
+            }
+            if (_this.heartbeatId) {
+                // already in a heartbeat interval
+                return;
+            }
+            _this.heartbeatId = setTimeout(function () {
+                _this.heartbeatId = null;
+                _this.send(obj);
+                _this.nextHeartbeatTimeout = Date.now() + _this.heartbeatTimeout;
+                _this.heartbeatTimeoutId = setTimeout(heartbeatTimeoutCb, _this.heartbeatTimeout);
+            }, _this.heartbeatInterval);
+        };
+        var heartbeatTimeoutCb = function () {
+            var gap = _this.nextHeartbeatTimeout - Date.now();
+            if (gap > _this.gapThreshold) {
+                _this.heartbeatTimeoutId = setTimeout(heartbeatTimeoutCb, gap);
+            }
+            else {
+                console.error('server heartbeat timeout');
+                _this.emitter.emit("Error", 'heartbeat timeout');
+                _this.disconnect();
+            }
+        };
+        this.handlers[PacketType.TYPE_HANDSHAKE] = handshake;
+        this.handlers[PacketType.TYPE_HEARTBEAT] = heartbeat;
+        this.handlers[PacketType.TYPE_DATA] = onData;
+        this.handlers[PacketType.TYPE_KICK] = onKick;
     };
-    Pomelo.prototype.onData = function (data) {
+    Pomelo.prototype.disconnect = function () {
+        if (this.socket) {
+            this.socket.destroy();
+            this.socket = null;
+            console.log("socket close");
+        }
+        if (this.heartbeatId) {
+            clearTimeout(this.heartbeatId);
+            this.heartbeatId = null;
+        }
+        if (this.heartbeatTimeoutId) {
+            clearTimeout(this.heartbeatTimeoutId);
+            this.heartbeatTimeoutId = null;
+        }
     };
-    Pomelo.prototype.onKick = function (data) {
+    Pomelo.prototype.processPackage = function (msg) {
+        this.handlers[msg.type](msg.body);
     };
-    Pomelo.prototype.heartbeat = function (data) {
-    };
-    Pomelo.prototype.handshake = function (data) {
-        data = JSON.parse(exports.strdecode(data));
-        if (data.code === RES_OLD_CLIENT) {
-            this.emit('error', 'client version not fullfill');
+    Pomelo.prototype.processMessage = function (msg) {
+        if (!msg.id) {
+            // server push message
+            this.emitter.emit(msg.route, msg.body);
             return;
         }
-        if (data.code !== RES_OK) {
-            pinus.emit('error', 'handshake fail');
+        // if have a id then find the callback function with the request
+        var cb = this.callbacks[msg.id];
+        delete this.callbacks[msg.id];
+        if (typeof cb !== 'function') {
             return;
         }
-        console.log('handshake callback:', data);
-        handshakeInit(data);
-        var obj = Package.encode(Package.TYPE_HANDSHAKE_ACK);
-        send(obj);
-        if (initCallback) {
-            initCallback(socket);
-            initCallback = null;
+        cb(msg.body);
+    };
+    Pomelo.prototype.onError = function (data) {
+        console.log("received error:", data);
+    };
+    Pomelo.prototype.deCompose = function (msg) {
+        var protos = this.data.protos ? this.data.protos.server : {};
+        var abbrs = this.data.abbrs;
+        var route = msg.route;
+        if (msg.compressRoute) {
+            if (!abbrs[route]) {
+                return {};
+            }
+            route = msg.route = abbrs[route];
+        }
+        var proto = protos[route];
+        if (proto && this.protos[proto]) {
+            return this.protos[proto].decode(msg.body);
+        }
+        else {
+            return JSON.parse(exports.strdecode(msg.body));
+        }
+    };
+    ;
+    Pomelo.prototype.handshakeInit = function (data) {
+        if (data.sys && data.sys.heartbeat) {
+            this.heartbeatInterval = data.sys.heartbeat * 1000; // heartbeat interval
+            this.heartbeatTimeout = this.heartbeatInterval * 2; // max heartbeat timeout
+        }
+        else {
+            this.heartbeatInterval = 0;
+            this.heartbeatTimeout = 0;
+        }
+        this.initData(data);
+        if (typeof this.handshakeCallback === 'function') {
+            this.handshakeCallback(data.user);
+        }
+    };
+    ;
+    Pomelo.prototype.initData = function (data) {
+        if (!data || !data.sys) {
+            return;
+        }
+        this.data = this.data || {};
+        var dict = data.sys.dict;
+        var protos = data.sys.protos;
+        // Init compress dict
+        if (dict) {
+            this.data.dict = dict;
+            this.data.abbrs = {};
+            for (var route in dict) {
+                this.data.abbrs[dict[route]] = route;
+            }
+        }
+        // Init protobuf protos
+        if (protos) {
+            this.data.protos = {
+                server: protos.server || {},
+                client: protos.client || {}
+            };
         }
     };
     Pomelo.prototype.request = function (route, msg, cb) {
@@ -130,7 +290,7 @@ var Pomelo = /** @class */ (function () {
         var protos = this.data.protos ? this.data.protos.client : {};
         var proto = protos[route];
         if (proto && this.protos[proto]) {
-            msg = this.protos[proto].encode(route, msg);
+            msg = this.protos[proto].encode(msg);
         }
         else {
             msg = exports.strencode(JSON.stringify(msg));
@@ -145,7 +305,7 @@ var Pomelo = /** @class */ (function () {
         this.send(packet);
     };
     Pomelo.prototype.send = function (packet) {
-        this.socket.send(packet.Buffer);
+        this.socket.write(packet);
     };
     return Pomelo;
 }());

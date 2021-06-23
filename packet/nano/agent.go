@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type Agent struct {
@@ -27,11 +28,13 @@ type Agent struct {
 	//无缓冲管道，用于读、写两个goroutine之间的消息通信
 	msgChan chan []byte
 	//有缓冲管道，用于读、写两个goroutine之间的消息通信
-	msgBuffChan chan []byte
-	decoder     *Decoder             // binary decoder
-	lastAt      int64                // last msg time stamp
-	srv         reflect.Value        // cached session reflect.Value
-	Serializer  serialize.Serializer //序列化对象
+	msgBuffChan       chan []byte
+	decoder           *Decoder             // binary decoder
+	lastAt            int64                // last msg time stamp
+	srv               reflect.Value        // cached session reflect.Value
+	serializer        serialize.Serializer //序列化对象
+	heartbeatInterval int                  //心跳间隔
+	hbd               []byte               // heartbeat packet data
 }
 
 type pendingMessage struct {
@@ -45,7 +48,7 @@ func (a *Agent) MID() uint {
 	return a.lastMid
 }
 
-// Push, implementation for session.NetworkEntity interface
+// Push Push, implementation for session.NetworkEntity interface
 func (a *Agent) Push(route string, v interface{}) error {
 	if a.status() == packet.StatusClosed {
 		return packet.ErrBrokenPipe
@@ -54,13 +57,13 @@ func (a *Agent) Push(route string, v interface{}) error {
 	return a.SendBuffMsg(pendingMessage{typ: Push, route: route, payload: v})
 }
 
-// Response, implementation for session.NetworkEntity interface
+// Response Response, implementation for session.NetworkEntity interface
 // Response message to session
 func (a *Agent) Response(v interface{}) error {
 	return a.ResponseMID(a.lastMid, v)
 }
 
-// Response, implementation for session.NetworkEntity interface
+// ResponseMID Response, implementation for session.NetworkEntity interface
 // Response message to session
 func (a *Agent) ResponseMID(mid uint, v interface{}) error {
 	if a.status() == packet.StatusClosed {
@@ -76,13 +79,14 @@ func (a *Agent) ResponseMID(mid uint, v interface{}) error {
 func NewAgent(server tcpface.IServer, conn net.Conn, connId int) *Agent {
 	cfg := config.GetConnectorConf()
 	a := &Agent{
-		server:      server,
-		conn:        conn,
-		connId:      connId,
-		state:       packet.StatusStart,
-		msgChan:     make(chan []byte),
-		msgBuffChan: make(chan []byte, cfg.MaxMsgChanLen),
-		decoder:     NewDecoder(),
+		server:            server,
+		conn:              conn,
+		connId:            connId,
+		state:             packet.StatusStart,
+		msgChan:           make(chan []byte),
+		msgBuffChan:       make(chan []byte, cfg.MaxMsgChanLen),
+		decoder:           NewDecoder(),
+		heartbeatInterval: cfg.HeartbeatInterval,
 	}
 	a.server.GetConnMgr().Add(a)
 	a.server.CallOnConnStart(a)
@@ -91,12 +95,13 @@ func NewAgent(server tcpface.IServer, conn net.Conn, connId int) *Agent {
 	a.srv = reflect.ValueOf(s)
 	switch cfg.UseSerializer {
 	case "proto":
-		a.Serializer = serialize.NewProtoSerializer()
+		a.serializer = serialize.NewProtoSerializer()
 	case "json":
-		a.Serializer = serialize.NewJsonSerializer()
+		a.serializer = serialize.NewJsonSerializer()
 	default:
 		logger.Fatalf("no suitable serializer:%v", cfg.UseSerializer)
 	}
+
 	return a
 }
 
@@ -120,8 +125,18 @@ func (a *Agent) StartWriter() {
 		}
 		fmt.Println(a.conn.RemoteAddr().String(), "[conn Writer exit!]")
 	}()
+	heartbeat := time.Duration(a.heartbeatInterval) * time.Second
+	ticker := time.NewTicker(heartbeat)
 	for {
 		select {
+		case <-ticker.C:
+			deadline := time.Now().Add(-2 * heartbeat).Unix()
+			if a.lastAt < deadline {
+				logger.Infof("Session heartbeat timeout, LastTime=%d, Deadline=%d", a.lastAt, deadline)
+				return
+			}
+			logger.Infof("send heartbeat data:%v", hbd)
+			a.msgChan <- hbd
 		case data := <-a.msgChan:
 			//有数据要写给客户端
 			if _, err := a.conn.Write(data); err != nil {
@@ -229,7 +244,7 @@ func (a *Agent) serializeOrRaw(data pendingMessage) ([]byte, error) {
 	case []byte:
 		payload = v
 	default:
-		payload, err = a.Serializer.Marshal(v)
+		payload, err = a.serializer.Marshal(v)
 		if err != nil {
 			return nil, err
 		}

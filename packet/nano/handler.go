@@ -18,7 +18,16 @@ import (
 
 var (
 	logger = logrus.WithField("package", "nano")
+	err    error
+	hbd    []byte
 )
+
+func init() {
+	hbd, err = Encode(Heartbeat, nil)
+	if err != nil {
+		panic(err)
+	}
+}
 
 type MsgHandle struct {
 	services       map[string]*component.Service // all registered service
@@ -29,7 +38,7 @@ type MsgHandle struct {
 	Cfg            config.ConnectorConf          //配置
 	// serialized data
 	hrd []byte // handshake response data
-	hbd []byte // heartbeat packet data
+
 }
 type unhandledMessage struct {
 	agent   *Agent
@@ -70,7 +79,7 @@ func (h *MsgHandle) hbdEncode() {
 	}
 
 	if h.Cfg.UseSerializer == "proto" {
-		protos, err := LoadProtos(h.Cfg.ProtoPath)
+		protos, err := LoadProtobuf(h.Cfg.ProtoPath)
 		if err != nil {
 			logger.Fatal(err)
 		}
@@ -82,11 +91,6 @@ func (h *MsgHandle) hbdEncode() {
 	}
 	logger.Info("the protos is:", string(data))
 	h.hrd, err = Encode(Handshake, data)
-	if err != nil {
-		panic(err)
-	}
-
-	h.hbd, err = Encode(Heartbeat, nil)
 	if err != nil {
 		panic(err)
 	}

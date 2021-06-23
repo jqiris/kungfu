@@ -1,0 +1,8 @@
+{
+  "client": {
+    "UserConnector.Login": "LoginRequest"
+  },
+  "server": {
+    "UserConnector.Login": "LoginResponse"
+  }
+}
