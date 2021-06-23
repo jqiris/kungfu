@@ -97,6 +97,7 @@ var Pomelo = /** @class */ (function () {
             _this.send(obj);
         });
         this.socket.on('data', function (data) {
+            // console.log("socket data:", data);
             _this.processPackage(_this.packet.decode(data));
             // new package arrived, update the heartbeat timeout
             if (_this.heartbeatTimeout) {
@@ -144,8 +145,8 @@ var Pomelo = /** @class */ (function () {
         var onKick = function (data) {
             console.log("onKick:", data);
         };
-        var heartbeat = function (data) {
-            console.log("heartbeat:", data);
+        var heartbeat = function () {
+            console.log("heartbeat");
             if (!_this.heartbeatInterval) {
                 // no heartbeat
                 return;
@@ -183,6 +184,7 @@ var Pomelo = /** @class */ (function () {
         this.handlers[PacketType.TYPE_KICK] = onKick;
     };
     Pomelo.prototype.disconnect = function () {
+        console.log('disconnect');
         if (this.socket) {
             this.socket.destroy();
             this.socket = null;

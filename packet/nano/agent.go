@@ -35,6 +35,7 @@ type Agent struct {
 	serializer        serialize.Serializer //序列化对象
 	heartbeatInterval int                  //心跳间隔
 	hbd               []byte               // heartbeat packet data
+	chDie             chan struct{}        // wait for close
 }
 
 type pendingMessage struct {
@@ -78,15 +79,21 @@ func (a *Agent) ResponseMID(mid uint, v interface{}) error {
 
 func NewAgent(server tcpface.IServer, conn net.Conn, connId int) *Agent {
 	cfg := config.GetConnectorConf()
+	maxMsgChanLen := 1024
+	if cfg.MaxMsgChanLen > 0 {
+		maxMsgChanLen = int(cfg.MaxMsgChanLen)
+	}
 	a := &Agent{
 		server:            server,
 		conn:              conn,
 		connId:            connId,
 		state:             packet.StatusStart,
 		msgChan:           make(chan []byte),
-		msgBuffChan:       make(chan []byte, cfg.MaxMsgChanLen),
+		msgBuffChan:       make(chan []byte, maxMsgChanLen),
 		decoder:           NewDecoder(),
 		heartbeatInterval: cfg.HeartbeatInterval,
+		lastAt:            time.Now().Unix(),
+		chDie:             make(chan struct{}),
 	}
 	a.server.GetConnMgr().Add(a)
 	a.server.CallOnConnStart(a)
@@ -117,16 +124,18 @@ func (a *Agent) GetConn() net.Conn {
 	写消息Goroutine， 用户将数据发送给客户端
 */
 func (a *Agent) StartWriter() {
-	fmt.Println("[Writer Goroutine is running]")
+	logger.Info("[Writer Goroutine is running]")
+	heartbeat := time.Duration(a.heartbeatInterval) * time.Second
+	ticker := time.NewTicker(heartbeat)
 	defer func() {
+		ticker.Stop()
 		err := a.Close()
 		if err != nil {
 			log.Error(err.Error())
 		}
-		fmt.Println(a.conn.RemoteAddr().String(), "[conn Writer exit!]")
+		logger.Info(a.conn.RemoteAddr().String(), "[conn Writer exit!]")
 	}()
-	heartbeat := time.Duration(a.heartbeatInterval) * time.Second
-	ticker := time.NewTicker(heartbeat)
+
 	for {
 		select {
 		case <-ticker.C:
@@ -135,26 +144,34 @@ func (a *Agent) StartWriter() {
 				logger.Infof("Session heartbeat timeout, LastTime=%d, Deadline=%d", a.lastAt, deadline)
 				return
 			}
-			logger.Infof("send heartbeat data:%v", hbd)
-			a.msgChan <- hbd
-		case data := <-a.msgChan:
+			a.msgBuffChan <- hbd
+		case data, ok := <-a.msgChan:
 			//有数据要写给客户端
-			if _, err := a.conn.Write(data); err != nil {
-				fmt.Println("Send Data error:, ", err, " Conn Writer exit")
+			if ok {
+				if _, err := a.conn.Write(data); err != nil {
+					logger.Info("Send Data error:, ", err, " Conn Writer exit")
+					return
+				}
+			} else {
+				logger.Info("msgChan is Closed")
 				return
 			}
+
 			//fmt.Printf("Send data succ! data = %+v\n", data)
 		case data, ok := <-a.msgBuffChan:
 			if ok {
 				//有数据要写给客户端
 				if _, err := a.conn.Write(data); err != nil {
-					fmt.Println("Send Buff Data error:, ", err, " Conn Writer exit")
+					logger.Info("Send Buff Data error:, ", err, " Conn Writer exit")
 					return
 				}
 			} else {
-				fmt.Println("msgBuffChan is Closed")
+				logger.Info("msgBuffChan is Closed")
 				return
 			}
+		case <-a.chDie:
+			logger.Info("received agent closed signal")
+			return
 		}
 	}
 }
@@ -164,6 +181,7 @@ func (a *Agent) Close() error {
 		return packet.ErrCloseClosedSession
 	}
 	a.setStatus(packet.StatusClosed)
+	close(a.chDie)
 	close(a.msgChan)
 	close(a.msgBuffChan)
 	a.server.GetConnMgr().Remove(a) //从管理器移除

@@ -11,17 +11,17 @@ type ProtoNano struct {
 }
 
 func LoadProtobuf(filename string) (*ProtoNano, error) {
-	protos := new(ProtoNano)
+	ps := new(ProtoNano)
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
 		logger.Error("read file: %v error:%v", filename, err)
 		return nil, err
 	}
-	err = json.Unmarshal(content, protos)
+	err = json.Unmarshal(content, ps)
 	if err != nil {
 		logger.Error("decode json error: %v", err)
 		return nil, err
 	}
-	logger.Warnf("the proto is:%+v", protos)
-	return protos, nil
+	logger.Warnf("the proto is:%+v", ps)
+	return ps, nil
 }

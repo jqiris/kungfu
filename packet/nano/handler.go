@@ -49,12 +49,16 @@ type unhandledMessage struct {
 
 func NewMsgHandle() *MsgHandle {
 	cfg := config.GetConnectorConf()
+	workerPoolSize := 0
+	if cfg.WorkerPoolSize > 0 {
+		workerPoolSize = cfg.WorkerPoolSize
+	}
 	h := &MsgHandle{
 		services:       make(map[string]*component.Service),
 		handlers:       make(map[string]*component.Handler),
-		WorkerPoolSize: cfg.WorkerPoolSize,
+		WorkerPoolSize: workerPoolSize,
 		//一个worker对应一个queue
-		TaskQueue: make([]chan unhandledMessage, cfg.WorkerPoolSize),
+		TaskQueue: make([]chan unhandledMessage, workerPoolSize),
 		Cfg:       cfg,
 	}
 	h.hbdEncode()
@@ -71,7 +75,7 @@ func NewMsgHandle() *MsgHandle {
 
 func (h *MsgHandle) hbdEncode() {
 	sys := map[string]interface{}{
-		"heartbeat": 30,
+		"heartbeat": h.Cfg.HeartbeatInterval,
 	}
 	hbd := map[string]interface{}{
 		"code": 200,
@@ -79,17 +83,17 @@ func (h *MsgHandle) hbdEncode() {
 	}
 
 	if h.Cfg.UseSerializer == "proto" {
-		protos, err := LoadProtobuf(h.Cfg.ProtoPath)
+		ps, err := LoadProtobuf(h.Cfg.ProtoPath)
 		if err != nil {
 			logger.Fatal(err)
 		}
-		sys["protos"] = protos
+		sys["protos"] = ps
 	}
 	data, err := json.Marshal(hbd)
 	if err != nil {
 		panic(err)
 	}
-	logger.Info("the protos is:", string(data))
+	logger.Info("the protobuf is:", string(data))
 	h.hrd, err = Encode(Handshake, data)
 	if err != nil {
 		panic(err)
@@ -183,7 +187,6 @@ func (h *MsgHandle) Register(comp component.Component, opts ...component.Option)
 
 // StartOneWorker 启动一个Worker工作流程
 func (h *MsgHandle) StartOneWorker(workerID int, taskQueue chan unhandledMessage) {
-	fmt.Println("Worker ID = ", workerID, " is started.")
 	//不断的等待队列中的消息
 	for {
 		select {
@@ -198,10 +201,15 @@ func (h *MsgHandle) StartOneWorker(workerID int, taskQueue chan unhandledMessage
 func (h *MsgHandle) StartWorkerPool() {
 	cfg := config.GetConnectorConf()
 	//遍历需要启动worker的数量，依此启动
+	var maxWorkerTaskLen int32 = 1024
+	if cfg.MaxWorkerTaskLen > 0 {
+		maxWorkerTaskLen = cfg.MaxWorkerTaskLen
+	}
+	logger.Infof("start worker pool:%v， one pool size:%v", h.WorkerPoolSize, maxWorkerTaskLen)
 	for i := 0; i < int(h.WorkerPoolSize); i++ {
 		//一个worker被启动
 		//给当前worker对应的任务队列开辟空间
-		h.TaskQueue[i] = make(chan unhandledMessage, cfg.MaxWorkerTaskLen)
+		h.TaskQueue[i] = make(chan unhandledMessage, maxWorkerTaskLen)
 		//启动当前Worker，阻塞的等待对应的任务队列是否有消息传递进来
 		go h.StartOneWorker(i, h.TaskQueue[i])
 	}

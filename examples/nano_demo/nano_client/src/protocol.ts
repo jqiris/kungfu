@@ -80,6 +80,7 @@ export class Pomelo {
             this.send(obj);
         });
         this.socket.on('data', (data) => {
+            // console.log("socket data:", data);
             this.processPackage(this.packet.decode(data));
             // new package arrived, update the heartbeat timeout
             if (this.heartbeatTimeout) {
@@ -134,8 +135,8 @@ export class Pomelo {
             console.log("onKick:", data)
         }
 
-        let heartbeat = (data) => {
-            console.log("heartbeat:", data)
+        let heartbeat = () => {
+            console.log("heartbeat")
             if (!this.heartbeatInterval) {
                 // no heartbeat
                 return;
@@ -178,6 +179,7 @@ export class Pomelo {
 
     }
     public disconnect() {
+        console.log('disconnect');
         if (this.socket) {
             this.socket.destroy();
             this.socket = null;

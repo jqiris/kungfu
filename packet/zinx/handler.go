@@ -23,11 +23,15 @@ type MsgHandle struct {
 
 func NewMsgHandle() *MsgHandle {
 	cfg := config.GetConnectorConf()
+	workerPoolSize := 10
+	if cfg.WorkerPoolSize > 0 {
+		workerPoolSize = cfg.WorkerPoolSize
+	}
 	return &MsgHandle{
 		Apis:           make(map[int32]Router),
-		WorkerPoolSize: cfg.WorkerPoolSize,
+		WorkerPoolSize: workerPoolSize,
 		//一个worker对应一个queue
-		TaskQueue: make([]chan *Request, cfg.WorkerPoolSize),
+		TaskQueue: make([]chan *Request, workerPoolSize),
 	}
 }
 
@@ -68,7 +72,6 @@ func (h *MsgHandle) AddRouter(msgId int32, router Router) {
 
 // StartOneWorker 启动一个Worker工作流程
 func (h *MsgHandle) StartOneWorker(workerID int, taskQueue chan *Request) {
-	fmt.Println("Worker ID = ", workerID, " is started.")
 	//不断的等待队列中的消息
 	for {
 		select {
@@ -83,10 +86,15 @@ func (h *MsgHandle) StartOneWorker(workerID int, taskQueue chan *Request) {
 func (h *MsgHandle) StartWorkerPool() {
 	cfg := config.GetConnectorConf()
 	//遍历需要启动worker的数量，依此启动
+	var maxWorkerTaskLen int32 = 1024
+	if cfg.MaxMsgChanLen > 0 {
+		maxWorkerTaskLen = cfg.MaxWorkerTaskLen
+	}
+	logger.Infof("start worker pool:%v， one pool size:%v", h.WorkerPoolSize, maxWorkerTaskLen)
 	for i := 0; i < int(h.WorkerPoolSize); i++ {
 		//一个worker被启动
 		//给当前worker对应的任务队列开辟空间
-		h.TaskQueue[i] = make(chan *Request, cfg.MaxWorkerTaskLen)
+		h.TaskQueue[i] = make(chan *Request, maxWorkerTaskLen)
 		//启动当前Worker，阻塞的等待对应的任务队列是否有消息传递进来
 		go h.StartOneWorker(i, h.TaskQueue[i])
 	}
