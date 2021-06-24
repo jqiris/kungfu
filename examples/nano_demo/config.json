@@ -12,9 +12,9 @@
     "use_type": "nats",
     "dial_timeout": 5,
     "endpoints": [
-      "nats:@xgtf1988@localhost:4222",
-      "nats:@xgtf1988@localhost:4223",
-      "nats:@xgtf1988@localhost:4224"
+      "nats:@kungfu2021@localhost:4222",
+      "nats:@kungfu2021@localhost:4223",
+      "nats:@kungfu2021@localhost:4224"
     ]
   },
   "stores": {

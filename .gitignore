@@ -17,3 +17,9 @@
 __debug_bin
 examples/nano_demo/web-server/node_modules/
 examples/nano_demo/nano_client/node_modules/
+deploy/nats/streaming1/data/
+deploy/nats/streaming1/log/
+deploy/nats/streaming2/data/
+deploy/nats/streaming2/log/
+deploy/nats/streaming3/data/
+deploy/nats/streaming3/log/

@@ -32,15 +32,17 @@ func TestNatsEncoder(t *testing.T) {
 	//	Backend:  nil,
 	//})
 	resp := &treaty.LoginResponse{}
-	if err := c.Request("/nats_test", &treaty.LoginRequest{
+	err := c.Request("/nats_test", &treaty.LoginRequest{
 		Uid:      111,
 		Nickname: "jason",
 		Token:    "dfs",
 		Backend:  nil,
-	}, resp, 10*time.Second); err == nil {
-		fmt.Printf("sub resp:%v", resp)
+	}, resp, 10*time.Second)
+
+	if err == nil {
+		logger.Printf("sub resp:%+v", resp)
 	} else {
-		fmt.Errorf("sub resp error: %v", err)
+		logger.Errorf("sub resp error: %v", err)
 	}
 
 	select {}
