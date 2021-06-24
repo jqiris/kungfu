@@ -56,7 +56,7 @@ type Session struct {
 	data         map[string]interface{} // session data store
 }
 
-// New returns a new session instance
+// NewSession New returns a new session instance
 // a NetworkEntity is a low-level network instance
 func NewSession(connId int, entity NetworkEntity) *Session {
 	return &Session{

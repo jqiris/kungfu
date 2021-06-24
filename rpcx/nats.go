@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+func init() {
+	encoder := NewNatsEncoder("proto")
+	nats.RegisterEncoder(NATS_ENCODER, encoder)
+}
+
 type RpcNats struct {
 	Endpoints   []string
 	Options     []nats.Option
