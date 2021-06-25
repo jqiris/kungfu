@@ -122,17 +122,20 @@ func TestChannelSubProto(t *testing.T) {
 func TestChannelNats(t *testing.T) {
 	rpcConf := config.GetRpcXConf()
 	url := strings.Join(rpcConf.Endpoints, ",")
-	nc, _ := nats.Connect(url)
+	nc, _ := nats.Connect(url, nats.Name("good"))
+	fmt.Println(nc.HeadersSupported())
 
-	ch := make(chan *nats.Msg, 64)
-	nc.ChanSubscribe("hello", ch)
+	nc.Subscribe("hello", func(msg *nats.Msg) {
+		fmt.Println(string(msg.Data), msg.Header.Get("msgId"), msg.Header.Get("msgSource"))
+	})
 
 	req := nats.NewMsg("hello")
 	req.Data = []byte("hello world")
-	ch <- req
-	msg := <-ch
-
-	fmt.Println(string(msg.Data))
+	req.Header = make(map[string][]string)
+	req.Header.Set("msgId", "1")
+	req.Header.Set("msgSource", "server_001")
+	resp, err := nc.RequestMsg(req, 10*time.Second)
+	fmt.Println(resp, err)
 }
 
 //func (r *RpcNats) Request(server *treaty.Server, msgId int32, req, resp interface{}) error {
