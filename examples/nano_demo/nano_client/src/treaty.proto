@@ -80,6 +80,7 @@ message LoginResponse{
   CodeType code = 1; //登录结果
   string msg = 2;   //登录消息
   Server backend = 3; //后端服务器
+  uint64 test_int = 4; //测试值
 }
 
 message RpcMsg{

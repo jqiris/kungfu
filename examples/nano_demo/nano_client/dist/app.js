@@ -46,6 +46,8 @@ pomelo.init({
             client_port: 8388
         }
     }, function (data) {
+        var testInt = data.test_int;
+        console.log("login resp:", data, testInt);
         if (data.code === 0) {
             // 登录成功
             pomelo.request("UserConnector.ChannelMsg", {

@@ -17,6 +17,7 @@ func TestNatsEncoder(t *testing.T) {
 	nc, _ := nats.Connect(url)
 	c, _ := nats.NewEncodedConn(nc, rpcx.NATS_ENCODER)
 	defer c.Close()
+
 	c.Subscribe("/nats_test", func(subj, reply string, req *treaty.LoginRequest) {
 		fmt.Printf("sub subj:%v,reply:%v, req:%+v\n", subj, reply, req)
 		c.Publish(reply, &treaty.LoginResponse{
@@ -47,3 +48,44 @@ func TestNatsEncoder(t *testing.T) {
 
 	select {}
 }
+
+//func (r *RpcNats) Request(server *treaty.Server, msgId int32, req, resp interface{}) error {
+//	var msg *nats.Msg
+//	var err error
+//	rpcMsg := &RpcMsg{
+//		MsgType: Request,
+//		MsgId:   msgId,
+//		MsgData: req,
+//	}
+//	data, err := r.rpcEncoder.Encode(rpcMsg)
+//	if err != nil {
+//		return err
+//	}
+//	if msg, err = r.Client.Request("/rpcx/"+treaty.RegSeverItem(server), data, r.DialTimeout); err == nil {
+//		respMsg := &RpcMsg{MsgData: resp}
+//		err = r.rpcEncoder.Decode(msg.Data, respMsg)
+//		if err != nil {
+//			return err
+//		}
+//	} else {
+//		return err
+//	}
+//	return nil
+//}
+//
+//func (r *RpcNats) Notify(server *treaty.Server, msgId int32, req interface{}) error {
+//	var err error
+//	rpcMsg := &RpcMsg{
+//		MsgType: Notify,
+//		MsgId:   msgId,
+//		MsgData: req,
+//	}
+//	data, err := r.rpcEncoder.Encode(rpcMsg)
+//	if err != nil {
+//		return err
+//	}
+//	if _, err = r.Client.Request("/rpcx/"+treaty.RegSeverItem(server), data, r.DialTimeout); err != nil {
+//		return err
+//	}
+//	return nil
+//}

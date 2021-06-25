@@ -80,6 +80,9 @@ func (u *UserConnector) Login(s *session.Session, req *treaty.LoginRequest) erro
 				s.Set("backend", req.Backend)
 
 			}
+			var a uint64 = 1<<55 - 1
+			logger.Infof("a is:%v", a)
+			respBack.TestInt = a
 			return s.Response(respBack)
 		}
 	}
