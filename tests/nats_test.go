@@ -49,6 +49,92 @@ func TestNatsEncoder(t *testing.T) {
 	select {}
 }
 
+func TestChannelSub(t *testing.T) {
+	rpcConf := config.GetRpcXConf()
+	url := strings.Join(rpcConf.Endpoints, ",")
+	nc, _ := nats.Connect(url)
+	ec, _ := nats.NewEncodedConn(nc, nats.JSON_ENCODER)
+	defer ec.Close()
+
+	type person struct {
+		Name    string
+		Address string
+		Age     int
+	}
+
+	recvCh := make(chan *person)
+	ec.BindRecvChan("hello", recvCh)
+
+	sendCh := make(chan *person)
+	ec.BindSendChan("hello", sendCh)
+
+	me := &person{Name: "derek", Age: 22, Address: "140 New Montgomery Street"}
+
+	// Send via Go channels
+	sendCh <- me
+
+	// Receive via Go channels
+
+	who := <-recvCh
+	fmt.Println(who)
+}
+
+func TestChannelSubProto(t *testing.T) {
+	rpcConf := config.GetRpcXConf()
+	url := strings.Join(rpcConf.Endpoints, ",")
+	nc, _ := nats.Connect(url)
+	ec, _ := nats.NewEncodedConn(nc, rpcx.NATS_ENCODER)
+	defer ec.Close()
+
+	//type person struct {
+	//	Name    string
+	//	Address string
+	//	Age     int
+	//}
+
+	recvCh := make(chan *treaty.RpcMsg)
+	ec.BindRecvChan("hello", recvCh)
+
+	sendCh := make(chan *treaty.RpcMsg)
+	ec.BindSendChan("hello", sendCh)
+
+	me := &treaty.RpcMsg{
+		MsgId: treaty.RpcMsgId_RpcMsgBackendLogin,
+		MsgServer: &treaty.Server{
+			ServerId:   "999",
+			ServerType: "sdsfs",
+			ServerName: "sfds",
+			ServerIp:   "dsss",
+			ClientPort: 9999,
+		},
+		MsgData: []byte("hello world"),
+	}
+
+	// Send via Go channels
+	sendCh <- me
+
+	// Receive via Go channels
+
+	who := <-recvCh
+	fmt.Println(who)
+}
+
+func TestChannelNats(t *testing.T) {
+	rpcConf := config.GetRpcXConf()
+	url := strings.Join(rpcConf.Endpoints, ",")
+	nc, _ := nats.Connect(url)
+
+	ch := make(chan *nats.Msg, 64)
+	nc.ChanSubscribe("hello", ch)
+
+	req := nats.NewMsg("hello")
+	req.Data = []byte("hello world")
+	ch <- req
+	msg := <-ch
+
+	fmt.Println(string(msg.Data))
+}
+
 //func (r *RpcNats) Request(server *treaty.Server, msgId int32, req, resp interface{}) error {
 //	var msg *nats.Msg
 //	var err error
