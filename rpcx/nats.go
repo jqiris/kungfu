@@ -112,7 +112,8 @@ func (r *RpcNats) DealMsg(msg *nats.Msg, callback CallbackFunc) {
 func (r *RpcNats) Request(server *treaty.Server, msgId int32, req, resp interface{}) error {
 	var msg *nats.Msg
 	var err error
-	data, err := r.EncodeMsg(Request, msgId, req)
+	var data []byte
+	data, err = r.EncodeMsg(Request, msgId, req)
 	if err != nil {
 		return err
 	}
@@ -181,6 +182,14 @@ func (r *RpcNats) EncodeMsg(msgType MessageType, msgId int32, req interface{}) (
 	return data, nil
 }
 
+func (r *RpcNats) DecodeMsg(data []byte, v interface{}) error {
+	return r.RpcCoder.DecodeMsg(data, v)
+}
+
 func (r *RpcNats) GetCoder() *RpcEncoder {
 	return r.RpcCoder
+}
+
+func (r *RpcNats) Response(v interface{}) []byte {
+	return r.RpcCoder.Response(v)
 }

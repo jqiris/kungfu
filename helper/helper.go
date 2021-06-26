@@ -8,6 +8,7 @@ import (
 
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/sirupsen/logrus"
+	"reflect"
 )
 
 var (
@@ -51,4 +52,12 @@ func SafeRun(f func()) {
 	if f != nil {
 		f()
 	}
+}
+
+func IsNil(i interface{}) bool {
+	defer func() {
+		recover()
+	}()
+	vi := reflect.ValueOf(i)
+	return vi.IsNil()
 }

@@ -74,6 +74,7 @@ message LoginRequest{
   string nickname = 2; //用户昵称
   string token = 3; //用户token
   Server backend = 4; //后端服务器
+  Server connector = 5;//客户端服务器
 }
 
 message LoginResponse{
@@ -81,12 +82,6 @@ message LoginResponse{
   string msg = 2;   //登录消息
   Server backend = 3; //后端服务器
   uint64 test_int = 4; //测试值
-}
-
-message RpcMsg{
-    RpcMsgId msg_id = 1; //消息ID
-    Server  msg_server = 2; //消息来源服务器
-    bytes msg_data = 3;//消息内容
 }
 
 message LogoutRequest{
@@ -101,12 +96,12 @@ message LogoutResponse{
 
 message ChannelMsgRequest{
   int32 uid = 1; //用户ID
-  RpcMsg rpc_msg = 2;//rpc消息
+  string msg_data = 2;//消息内容
 }
 
 message ChannelMsgResponse{
   CodeType code = 1; //通道消息结果
   string msg = 2;//通道消息消息
-  bytes  msg_data = 3;//通道返回内容
+  string  msg_data = 3;//通道返回内容
   Server connector = 4;//绑定的connector
 }

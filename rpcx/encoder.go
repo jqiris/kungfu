@@ -40,9 +40,18 @@ func NewRpcEncoder() *RpcEncoder {
 // --------<length>--------|--type--|----<MsgId>------|-<data>-
 // ----------3byte---------|-1 byte-|-----2 byte------|--------
 func (r *RpcEncoder) Encode(rpcMsg *RpcMsg) ([]byte, error) {
-	data, err := r.encoder.Marshal(rpcMsg.MsgData)
-	if err != nil {
-		return nil, err
+	var data []byte
+	var err error
+	switch rpcData := rpcMsg.MsgData.(type) {
+	case string:
+		data = []byte(rpcData)
+	case []byte:
+		data = rpcData
+	default:
+		data, err = r.encoder.Marshal(rpcMsg.MsgData)
+		if err != nil {
+			return nil, err
+		}
 	}
 	//大端序
 	length := msgHeadLength + len(data)
@@ -84,4 +93,18 @@ func (r *RpcEncoder) DecodeMsg(data []byte, v interface{}) error {
 		return err
 	}
 	return nil
+}
+
+func (r *RpcEncoder) Response(v interface{}) []byte {
+	rpcMsg := &RpcMsg{
+		MsgType: Response,
+		MsgId:   0,
+		MsgData: v,
+	}
+	res, err := r.Encode(rpcMsg)
+	if err != nil {
+		logger.Error(err)
+		return nil
+	}
+	return res
 }

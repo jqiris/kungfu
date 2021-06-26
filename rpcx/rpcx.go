@@ -26,6 +26,8 @@ type RpcServer interface {
 	PublishConnector(msgId int32, req interface{}) error                     //connect publish
 	PublishServer(msgId int32, req interface{}) error                        //server publish
 	GetCoder() *RpcEncoder                                                   //get encoder
+	Response(v interface{}) []byte                                           //response the msg
+	DecodeMsg(data []byte, v interface{}) error                              //decode msg
 }
 
 //create rpc server

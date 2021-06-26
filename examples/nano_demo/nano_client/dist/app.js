@@ -44,6 +44,13 @@ pomelo.init({
             server_name: "kungfu backend",
             server_ip: "127.0.0.1",
             client_port: 8388
+        },
+        connector: {
+            server_id: "connector_2001",
+            server_type: "connector",
+            server_name: "kungfu connector",
+            server_ip: "127.0.0.1",
+            client_port: 8288
         }
     }, function (data) {
         var testInt = data.test_int;
@@ -52,10 +59,7 @@ pomelo.init({
             // 登录成功
             pomelo.request("UserConnector.ChannelMsg", {
                 uid: 1001,
-                rpc_msg: {
-                    msg_id: 4,
-                    msg_data: "hello chat"
-                }
+                msg_data: "hello chat"
             }, function (resp) {
                 console.log("channel msg resp:", resp);
             });

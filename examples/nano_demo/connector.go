@@ -8,6 +8,7 @@ import (
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/launch"
 	"github.com/jqiris/kungfu/packet/nano"
+	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/session"
 	"github.com/jqiris/kungfu/tcpface"
 	"github.com/jqiris/kungfu/treaty"
@@ -51,40 +52,27 @@ func (u *UserConnector) Login(s *session.Session, req *treaty.LoginRequest) erro
 		return s.Response(resp)
 	}
 	//后端服务器进行登录操作
-	if msg, err := RpcMsgEncode(treaty.RpcMsgId_RpcMsgBackendLogin, req); err != nil {
+	respBack := &treaty.LoginResponse{}
+	if err := u.RpcX.Request(backend, int32(treaty.RpcMsgId_RpcMsgBackendLogin), req, respBack); err != nil {
 		resp.Code = treaty.CodeType_CodeFailed
 		resp.Msg = err.Error()
 		return s.Response(resp)
 	} else {
-		if bResp, err := u.RpcX.Request(backend, msg); err != nil {
-			resp.Code = treaty.CodeType_CodeFailed
-			resp.Msg = err.Error()
-			return s.Response(resp)
-		} else {
-			//结果直接由服务端返回
-			respBack := &treaty.LoginResponse{}
-			if err = encoder.Unmarshal(bResp, respBack); err != nil {
+		if respBack.Code == treaty.CodeType_CodeSuccess {
+			//成功绑定session
+			err = s.Bind(int64(req.Uid))
+			if err != nil {
 				resp.Code = treaty.CodeType_CodeFailed
 				resp.Msg = err.Error()
 				return s.Response(resp)
 			}
-			if respBack.Code == treaty.CodeType_CodeSuccess {
-				//成功绑定session
-				err = s.Bind(int64(req.Uid))
-				if err != nil {
-					resp.Code = treaty.CodeType_CodeFailed
-					resp.Msg = err.Error()
-					return s.Response(resp)
-				}
-				//设置后端服务器
-				s.Set("backend", req.Backend)
-
-			}
-			var a uint64 = 1<<55 - 1
-			logger.Infof("a is:%v", a)
-			respBack.TestInt = a
-			return s.Response(respBack)
+			//设置后端服务器
+			s.Set("backend", req.Backend)
 		}
+		var a uint64 = 1<<55 - 1
+		logger.Infof("a is:%v", a)
+		respBack.TestInt = a
+		return s.Response(respBack)
 	}
 }
 
@@ -103,34 +91,25 @@ func (u *UserConnector) ChannelMsg(s *session.Session, req *treaty.ChannelMsgReq
 		resp.Msg = "请先登录2"
 		return s.Response(resp)
 	}
-	if msg, err := encoder.Marshal(req.RpcMsg); err != nil {
+	bResp := &treaty.ChannelMsgResponse{}
+	if err := u.RpcX.Request(backend, int32(treaty.RpcMsgId_RpcMsgChatTest), req.MsgData, bResp); err != nil {
 		resp.Code = treaty.CodeType_CodeFailed
 		resp.Msg = err.Error()
 		return s.Response(resp)
 	} else {
-		if bResp, err := u.RpcX.Request(backend, msg); err != nil {
-			resp.Code = treaty.CodeType_CodeFailed
-			resp.Msg = err.Error()
-			return s.Response(resp)
-		} else {
-			return s.Response(bResp)
-		}
+		return s.Response(bResp)
 	}
 }
 
-func (u *UserConnector) EventHandleSelf(req []byte) []byte {
-	fmt.Printf("MyConnector EventHandleSelf received: %+v \n", string(req))
+func (u *UserConnector) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+	fmt.Printf("MyConnector EventHandleSelf received: %+v \n", req)
 
-	rpcMsg, err := RpcMsgDecode(req)
-	if err != nil {
-		logger.Error(err)
-		return nil
-	}
-	switch rpcMsg.MsgId {
+	msgId, msgData := treaty.RpcMsgId(req.MsgId), req.MsgData.([]byte)
+	switch msgId {
 	case treaty.RpcMsgId_RpcMsgMultiLoginOut:
 		//多端登录退出，向客户端发消息
 		msg := &treaty.MultiLoginOut{}
-		if err := encoder.Unmarshal(rpcMsg.MsgData, msg); err != nil {
+		if err := server.DecodeMsg(msgData, msg); err != nil {
 			logger.Error(err)
 		} else {
 			logger.Println(msg)
@@ -139,8 +118,8 @@ func (u *UserConnector) EventHandleSelf(req []byte) []byte {
 	return nil
 }
 
-func (u *UserConnector) EventHandleBroadcast(req []byte) []byte {
-	fmt.Printf("MyConnector EventHandleBroadcast received: %+v \n", string(req))
+func (u *UserConnector) EventHandleBroadcast(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+	fmt.Printf("MyConnector EventHandleBroadcast received: %+v \n", req)
 	return nil
 }
 

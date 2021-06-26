@@ -2,23 +2,23 @@ package launch
 
 import (
 	"github.com/jqiris/kungfu/config"
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/rpcx"
 	"github.com/sirupsen/logrus"
 )
 
 //服务器集群管理
 var (
 	logger   = logrus.WithField("package", "launch")
-	servers  map[string]treaty.ServerEntity
-	launched map[string]treaty.ServerEntity
+	servers  map[string]rpcx.ServerEntity
+	launched map[string]rpcx.ServerEntity
 )
 
 func init() {
-	servers = make(map[string]treaty.ServerEntity)
-	launched = make(map[string]treaty.ServerEntity)
+	servers = make(map[string]rpcx.ServerEntity)
+	launched = make(map[string]rpcx.ServerEntity)
 }
 
-func RegisterServer(server treaty.ServerEntity) {
+func RegisterServer(server rpcx.ServerEntity) {
 	if _, ok := servers[server.GetServerId()]; !ok {
 		servers[server.GetServerId()] = server
 	} else {
@@ -26,7 +26,7 @@ func RegisterServer(server treaty.ServerEntity) {
 	}
 }
 
-func UnRegisterServer(server treaty.ServerEntity) {
+func UnRegisterServer(server rpcx.ServerEntity) {
 	delete(servers, server.GetServerId())
 }
 

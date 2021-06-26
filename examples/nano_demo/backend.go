@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/rpcx"
 	"time"
 
 	"github.com/jqiris/kungfu/channel"
@@ -16,23 +17,19 @@ type MyBackend struct {
 	conns map[int32]*treaty.Server
 }
 
-func (b *MyBackend) EventHandleSelf(req []byte) []byte {
-	fmt.Printf("MyBackend EventHandleSelf received: %+v \n", string(req))
-	rpcMsg, err := RpcMsgDecode(req)
-	if err != nil {
-		logger.Error(err)
-		return nil
-	}
-	switch rpcMsg.MsgId {
+func (b *MyBackend) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+	fmt.Printf("MyBackend EventHandleSelf received: %+v \n", req)
+	msgId, msgData := treaty.RpcMsgId(req.MsgId), req.MsgData.([]byte)
+	switch msgId {
 	case treaty.RpcMsgId_RpcMsgBackendLogin:
 		//服务端登录
 		resp := &treaty.LoginResponse{}
 		msg := &treaty.LoginRequest{}
-		if err := encoder.Unmarshal(rpcMsg.MsgData, msg); err != nil {
+		if err := server.DecodeMsg(msgData, msg); err != nil {
 			logger.Error(err)
 			resp.Code = treaty.CodeType_CodeFailed
 			resp.Msg = err.Error()
-			return RpcResponse(resp)
+			return server.Response(resp)
 		} else {
 			//检查游戏通道是否建立
 			ch := channel.GetChannel(b.Server, msg.Uid)
@@ -45,13 +42,13 @@ func (b *MyBackend) EventHandleSelf(req []byte) []byte {
 				resp.Code = treaty.CodeType_CodeSuccess
 				resp.Msg = "登录成功"
 				resp.Backend = b.Server
-				b.conns[msg.Uid] = rpcMsg.MsgServer
-				return RpcResponse(resp)
+				b.conns[msg.Uid] = msg.Connector
+				return server.Response(resp)
 			}
 			//游戏通道建立
 			ch = &treaty.GameChannel{
 				Uid:        msg.Uid,
-				Connector:  rpcMsg.MsgServer,
+				Connector:  msg.Connector,
 				Backend:    b.Server,
 				CreateTime: time.Now().Unix(),
 			}
@@ -61,18 +58,18 @@ func (b *MyBackend) EventHandleSelf(req []byte) []byte {
 			resp.Code = treaty.CodeType_CodeSuccess
 			resp.Msg = "登录成功"
 			resp.Backend = b.Server
-			b.conns[msg.Uid] = rpcMsg.MsgServer
-			return RpcResponse(resp)
+			b.conns[msg.Uid] = msg.Connector
+			return server.Response(resp)
 		}
 	case treaty.RpcMsgId_RpcMsgBackendLogout:
 		//服务端登出
 		resp := &treaty.LogoutResponse{}
 		msg := &treaty.LogoutRequest{}
-		if err := encoder.Unmarshal(rpcMsg.MsgData, msg); err != nil {
+		if err := server.DecodeMsg(msgData, msg); err != nil {
 			logger.Error(err)
 			resp.Code = treaty.CodeType_CodeFailed
 			resp.Msg = err.Error()
-			return RpcResponse(resp)
+			return server.Response(resp)
 		} else {
 			//游戏机制检查
 			//销毁通道
@@ -81,18 +78,25 @@ func (b *MyBackend) EventHandleSelf(req []byte) []byte {
 			}
 			resp.Code = treaty.CodeType_CodeSuccess
 			resp.Msg = "登出成功"
-			return RpcResponse(resp)
+			return server.Response(resp)
 		}
 	case treaty.RpcMsgId_RpcMsgChatTest:
-		logger.Infof("received chat msg:%+v", string(rpcMsg.MsgData))
-		return []byte("received the chat msg:" + string(rpcMsg.MsgData))
+		rMsg := fmt.Sprintf("received chat msg:%+v", string(msgData))
+		logger.Infof(rMsg)
+		resp := &treaty.ChannelMsgResponse{
+			Code:      0,
+			Msg:       "success",
+			MsgData:   rMsg,
+			Connector: nil,
+		}
+		return server.Response(resp)
 	}
-	logger.Errorf("undfined message:%+v", rpcMsg)
+	logger.Errorf("undfined message:%+v", req)
 	return nil
 }
 
-func (b *MyBackend) EventHandleBroadcast(req []byte) []byte {
-	fmt.Printf("MyBackend EventHandleBroadcast received: %+v \n", string(req))
+func (b *MyBackend) EventHandleBroadcast(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+	fmt.Printf("MyBackend EventHandleBroadcast received: %+v \n", req)
 	return nil
 }
 
