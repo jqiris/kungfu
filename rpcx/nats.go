@@ -3,20 +3,24 @@ package rpcx
 import (
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/nats-io/nats.go"
+	"path"
 	"strings"
 	"time"
 )
 
-func init() {
-	encoder := NewNatsEncoder("proto")
-	nats.RegisterEncoder(NATS_ENCODER, encoder)
-}
+const (
+	RpcPrefix = "rpcx"
+	Balancer  = "balancer"
+	Connector = "connector"
+	Server    = "server"
+)
 
 type RpcNats struct {
 	Endpoints   []string
 	Options     []nats.Option
 	Client      *nats.Conn
 	DialTimeout time.Duration
+	RpcCoder    *RpcEncoder
 }
 type RpcNatsOption func(r *RpcNats)
 
@@ -46,44 +50,24 @@ func NewRpcNats(opts ...RpcNatsOption) *RpcNats {
 		logger.Fatal(err)
 	}
 	r.Client = conn
+	r.RpcCoder = NewRpcEncoder()
 	return r
 }
 
 func (r *RpcNats) Subscribe(server *treaty.Server, callback CallbackFunc) error {
-	if _, err := r.Client.Subscribe("/rpcx/"+treaty.RegSeverItem(server), func(msg *nats.Msg) {
-		resp := callback(msg.Data)
-		if resp != nil {
-			if err := msg.Respond(resp); err != nil {
-				logger.Error(err)
-			}
-		}
+	sub := path.Join(RpcPrefix, treaty.RegSeverItem(server))
+	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
+		r.DealMsg(msg, callback)
 	}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *RpcNats) Publish(server *treaty.Server, data []byte) error {
-	return r.Client.Publish("/rpcx/"+treaty.RegSeverItem(server), data)
-}
-
-func (r *RpcNats) Request(server *treaty.Server, data []byte) ([]byte, error) {
-	var msg *nats.Msg
-	var err error
-	if msg, err = r.Client.Request("/rpcx/"+treaty.RegSeverItem(server), data, r.DialTimeout); err == nil {
-		return msg.Data, nil
-	}
-	return nil, err
-}
-
 func (r *RpcNats) SubscribeBalancer(callback CallbackFunc) error {
-	if _, err := r.Client.Subscribe("/rpcx/gate", func(msg *nats.Msg) {
-		resp := callback(msg.Data)
-		if resp != nil {
-			if err := msg.Respond(resp); err != nil {
-				logger.Error(err)
-			}
-		}
+	sub := path.Join(RpcPrefix, Balancer)
+	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
+		r.DealMsg(msg, callback)
 	}); err != nil {
 		return err
 	}
@@ -91,13 +75,9 @@ func (r *RpcNats) SubscribeBalancer(callback CallbackFunc) error {
 }
 
 func (r *RpcNats) SubscribeConnector(callback CallbackFunc) error {
-	if _, err := r.Client.Subscribe("/rpcx/connnector", func(msg *nats.Msg) {
-		resp := callback(msg.Data)
-		if resp != nil {
-			if err := msg.Respond(resp); err != nil {
-				logger.Error(err)
-			}
-		}
+	sub := path.Join(RpcPrefix, Connector)
+	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
+		r.DealMsg(msg, callback)
 	}); err != nil {
 		return err
 	}
@@ -105,27 +85,98 @@ func (r *RpcNats) SubscribeConnector(callback CallbackFunc) error {
 }
 
 func (r *RpcNats) SubscribeServer(callback CallbackFunc) error {
-	if _, err := r.Client.Subscribe("/rpcx/server", func(msg *nats.Msg) {
-		resp := callback(msg.Data)
-		if resp != nil {
-			if err := msg.Respond(resp); err != nil {
-				logger.Error(err)
-			}
-		}
+	sub := path.Join(RpcPrefix, Server)
+	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
+		r.DealMsg(msg, callback)
 	}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *RpcNats) PublishGate(data []byte) error {
-	return r.Client.Publish("/rpcx/gate", data)
+func (r *RpcNats) DealMsg(msg *nats.Msg, callback CallbackFunc) {
+	req := &RpcMsg{}
+	err := r.RpcCoder.Decode(msg.Data, req)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+	resp := callback(r.RpcCoder, req)
+	if resp != nil {
+		if err := msg.Respond(resp); err != nil {
+			logger.Error(err)
+		}
+	}
 }
 
-func (r *RpcNats) PublishConnector(data []byte) error {
-	return r.Client.Publish("/rpcx/connector", data)
+func (r *RpcNats) Request(server *treaty.Server, msgId int32, req, resp interface{}) error {
+	var msg *nats.Msg
+	var err error
+	data, err := r.EncodeMsg(Request, msgId, req)
+	if err != nil {
+		return err
+	}
+	sub := path.Join(RpcPrefix, treaty.RegSeverItem(server))
+	if msg, err = r.Client.Request(sub, data, r.DialTimeout); err == nil {
+		respMsg := &RpcMsg{MsgData: resp}
+		err = r.RpcCoder.Decode(msg.Data, respMsg)
+		if err != nil {
+			return err
+		}
+	} else {
+		return err
+	}
+	return nil
 }
 
-func (r *RpcNats) PublishServer(data []byte) error {
-	return r.Client.Publish("/rpcx/server", data)
+func (r *RpcNats) Publish(server *treaty.Server, msgId int32, req interface{}) error {
+	data, err := r.EncodeMsg(Publish, msgId, req)
+	if err != nil {
+		return err
+	}
+	sub := path.Join(RpcPrefix, treaty.RegSeverItem(server))
+	if err = r.Client.Publish(sub, data); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *RpcNats) PublishBalancer(msgId int32, req interface{}) error {
+	data, err := r.EncodeMsg(Publish, msgId, req)
+	if err != nil {
+		return err
+	}
+	sub := path.Join(RpcPrefix, Balancer)
+	return r.Client.Publish(sub, data)
+}
+
+func (r *RpcNats) PublishConnector(msgId int32, req interface{}) error {
+	data, err := r.EncodeMsg(Publish, msgId, req)
+	if err != nil {
+		return err
+	}
+	sub := path.Join(RpcPrefix, Connector)
+	return r.Client.Publish(sub, data)
+}
+
+func (r *RpcNats) PublishServer(msgId int32, req interface{}) error {
+	data, err := r.EncodeMsg(Publish, msgId, req)
+	if err != nil {
+		return err
+	}
+	sub := path.Join(RpcPrefix, Server)
+	return r.Client.Publish(sub, data)
+}
+
+func (r *RpcNats) EncodeMsg(msgType MessageType, msgId int32, req interface{}) ([]byte, error) {
+	rpcMsg := &RpcMsg{
+		MsgType: msgType,
+		MsgId:   msgId,
+		MsgData: req,
+	}
+	data, err := r.RpcCoder.Encode(rpcMsg)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }

@@ -14,8 +14,8 @@ type TcpConnector struct {
 	ServerId              string
 	Server                *treaty.Server
 	RpcX                  rpcx.RpcConnector
-	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
-	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
+	EventHandlerSelf      rpcx.CallbackFunc       //处理自己的事件
+	EventHandlerBroadcast rpcx.CallbackFunc       //处理广播事件
 	ClientServer          tcpface.IServer         //zinx server
 	RouteHandler          func(s tcpface.IServer) //注册路由
 }
@@ -39,15 +39,15 @@ func (b *TcpConnector) Init() {
 
 func (b *TcpConnector) AfterInit() {
 	//Subscribe event
-	if err := b.RpcX.Subscribe(b.Server, func(req []byte) []byte {
+	if err := b.RpcX.Subscribe(b.Server, func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
 		logger.Infof("NanoConnector Subscribe received: %+v", req)
-		return b.EventHandlerSelf(req)
+		return b.EventHandlerSelf(coder, req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := b.RpcX.SubscribeConnector(func(req []byte) []byte {
+	if err := b.RpcX.SubscribeConnector(func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
 		logger.Infof("NanoConnector SubscribeConnector received: %+v", req)
-		return b.EventHandlerBroadcast(req)
+		return b.EventHandlerBroadcast(coder, req)
 	}); err != nil {
 		logger.Error(err)
 	}
@@ -76,11 +76,11 @@ func (b *TcpConnector) GetServer() *treaty.Server {
 	return b.Server
 }
 
-func (b *TcpConnector) RegEventHandlerSelf(handler func(req []byte) []byte) { //注册自己事件处理器
+func (b *TcpConnector) RegEventHandlerSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
 	b.EventHandlerSelf = handler
 }
 
-func (b *TcpConnector) RegEventHandlerBroadcast(handler func(req []byte) []byte) { //注册广播事件处理器
+func (b *TcpConnector) RegEventHandlerBroadcast(handler rpcx.CallbackFunc) { //注册广播事件处理器
 	b.EventHandlerBroadcast = handler
 }
 func (b *TcpConnector) SetServerId(serverId string) {

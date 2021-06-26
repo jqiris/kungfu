@@ -23,8 +23,8 @@ type BaseBalancer struct {
 	RpcX                  rpcx.RpcBalancer
 	ClientServer          *http.Server
 	ClientCoder           serialize.Serializer
-	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
-	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
+	EventHandlerSelf      rpcx.CallbackFunc //处理自己的事件
+	EventHandlerBroadcast rpcx.CallbackFunc //处理广播事件
 }
 
 func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
@@ -100,15 +100,15 @@ func (b *BaseBalancer) Init() {
 
 func (b *BaseBalancer) AfterInit() {
 	//Subscribe event
-	if err := b.RpcX.Subscribe(b.Server, func(req []byte) []byte {
+	if err := b.RpcX.Subscribe(b.Server, func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
 		logger.Infof("BaseBalancer Subscribe received: %+v", req)
-		return b.EventHandlerSelf(req)
+		return b.EventHandlerSelf(coder, req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := b.RpcX.SubscribeBalancer(func(req []byte) []byte {
+	if err := b.RpcX.SubscribeBalancer(func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
 		logger.Infof("BaseBalancer SubscribeBalancer received: %+v", req)
-		return b.EventHandlerBroadcast(req)
+		return b.EventHandlerBroadcast(coder, req)
 	}); err != nil {
 		logger.Error(err)
 	}
@@ -146,11 +146,11 @@ func (b *BaseBalancer) GetServer() *treaty.Server {
 	return b.Server
 }
 
-func (b *BaseBalancer) RegEventHandlerSelf(handler func(req []byte) []byte) { //注册自己事件处理器
+func (b *BaseBalancer) RegEventHandlerSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
 	b.EventHandlerSelf = handler
 }
 
-func (b *BaseBalancer) RegEventHandlerBroadcast(handler func(req []byte) []byte) { //注册广播事件处理器
+func (b *BaseBalancer) RegEventHandlerBroadcast(handler rpcx.CallbackFunc) { //注册广播事件处理器
 	b.EventHandlerBroadcast = handler
 }
 func (b *BaseBalancer) SetServerId(serverId string) {

@@ -12,8 +12,8 @@ type HttpConnector struct {
 	ServerId              string
 	Server                *treaty.Server
 	RpcX                  rpcx.RpcConnector
-	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
-	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
+	EventHandlerSelf      rpcx.CallbackFunc //处理自己的事件
+	EventHandlerBroadcast rpcx.CallbackFunc //处理广播事件
 	ConnectorConf         config.ConnectorConf
 }
 
@@ -31,15 +31,15 @@ func (g *HttpConnector) Init() {
 
 func (g *HttpConnector) AfterInit() {
 	//Subscribe event
-	if err := g.RpcX.Subscribe(g.Server, func(req []byte) []byte {
+	if err := g.RpcX.Subscribe(g.Server, func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
 		logger.Infof("HttpConnector Subscribe received: %+v", req)
-		return g.EventHandlerSelf(req)
+		return g.EventHandlerSelf(coder, req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := g.RpcX.SubscribeConnector(func(req []byte) []byte {
+	if err := g.RpcX.SubscribeConnector(func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
 		logger.Infof("HttpConnector SubscribeConnector received: %+v", req)
-		return g.EventHandlerBroadcast(req)
+		return g.EventHandlerBroadcast(coder, req)
 	}); err != nil {
 		logger.Error(err)
 	}
@@ -64,11 +64,11 @@ func (g *HttpConnector) GetServer() *treaty.Server {
 	return g.Server
 }
 
-func (g *HttpConnector) RegEventHandlerSelf(handler func(req []byte) []byte) { //注册自己事件处理器
+func (g *HttpConnector) RegEventHandlerSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
 	g.EventHandlerSelf = handler
 }
 
-func (g *HttpConnector) RegEventHandlerBroadcast(handler func(req []byte) []byte) { //注册广播事件处理器
+func (g *HttpConnector) RegEventHandlerBroadcast(handler rpcx.CallbackFunc) { //注册广播事件处理器
 	g.EventHandlerBroadcast = handler
 }
 func (g *HttpConnector) SetServerId(serverId string) {

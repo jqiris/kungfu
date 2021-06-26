@@ -13,8 +13,8 @@ type BaseBackEnd struct {
 	ServerId              string
 	Server                *treaty.Server
 	RpcX                  rpcx.RpcServer
-	EventHandlerSelf      func(req []byte) []byte //处理自己的事件
-	EventHandlerBroadcast func(req []byte) []byte //处理广播事件
+	EventHandlerSelf      rpcx.CallbackFunc //处理自己的事件
+	EventHandlerBroadcast rpcx.CallbackFunc //处理广播事件
 }
 
 func (b *BaseBackEnd) Init() {
@@ -29,15 +29,15 @@ func (b *BaseBackEnd) Init() {
 
 func (b *BaseBackEnd) AfterInit() {
 	//Subscribe event
-	if err := b.RpcX.Subscribe(b.Server, func(req []byte) []byte {
+	if err := b.RpcX.Subscribe(b.Server, func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
 		//logger.Infof("BaseBackEnd Subscribe received: %+v", req)
-		return b.EventHandlerSelf(req)
+		return b.EventHandlerSelf(coder, req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := b.RpcX.SubscribeServer(func(req []byte) []byte {
+	if err := b.RpcX.SubscribeServer(func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
 		logger.Infof("BaseBackEnd SubscribeServer received: %+v", req)
-		return b.EventHandlerBroadcast(req)
+		return b.EventHandlerBroadcast(coder, req)
 	}); err != nil {
 		logger.Error(err)
 	}
@@ -63,11 +63,11 @@ func (b *BaseBackEnd) GetServer() *treaty.Server {
 	return b.Server
 }
 
-func (b *BaseBackEnd) RegEventHandlerSelf(handler func(req []byte) []byte) { //注册自己事件处理器
+func (b *BaseBackEnd) RegEventHandlerSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
 	b.EventHandlerSelf = handler
 }
 
-func (b *BaseBackEnd) RegEventHandlerBroadcast(handler func(req []byte) []byte) { //注册广播事件处理器
+func (b *BaseBackEnd) RegEventHandlerBroadcast(handler rpcx.CallbackFunc) { //注册广播事件处理器
 	b.EventHandlerBroadcast = handler
 }
 

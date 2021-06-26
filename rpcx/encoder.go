@@ -6,47 +6,12 @@ import (
 	"github.com/jqiris/kungfu/utils"
 )
 
-const (
-	NATS_ENCODER = "nats"
-)
-
-type NatsEncoder struct {
-	useType string
-	encoder serialize.Serializer
-}
-
-func NewNatsEncoder(useType string) *NatsEncoder {
-	var encoder serialize.Serializer
-	switch useType {
-	case "json":
-		encoder = serialize.NewJsonSerializer()
-	case "proto":
-		encoder = serialize.NewProtoSerializer()
-	default:
-		logger.Fatal("not support ")
-	}
-	return &NatsEncoder{
-		useType: useType,
-		encoder: encoder,
-	}
-}
-
-func (n *NatsEncoder) Encode(subject string, v interface{}) ([]byte, error) {
-	logger.Infof("nats encoder subject: %s", subject)
-	return n.encoder.Marshal(v)
-}
-
-func (n *NatsEncoder) Decode(subject string, data []byte, vPtr interface{}) error {
-	logger.Infof("nats decoder subject: %s", subject)
-	return n.encoder.Unmarshal(data, vPtr)
-}
-
 type MessageType byte
 
 // Message types
 const (
 	Request  MessageType = 0x00
-	Notify               = 0x01
+	Publish              = 0x01
 	Response             = 0x02
 )
 const (
@@ -102,7 +67,19 @@ func (r *RpcEncoder) Decode(data []byte, rpcMsg *RpcMsg) error {
 	msgData := data[msgHeadLength:msgLength]
 	rpcMsg.MsgType = MessageType(msgType)
 	rpcMsg.MsgId = int32(msgId)
-	err := r.encoder.Unmarshal(msgData, rpcMsg.MsgData)
+	if rpcMsg.MsgData == nil {
+		rpcMsg.MsgData = msgData
+	} else {
+		err := r.encoder.Unmarshal(msgData, rpcMsg.MsgData)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *RpcEncoder) DecodeMsg(data []byte, v interface{}) error {
+	err := r.encoder.Unmarshal(data, v)
 	if err != nil {
 		return err
 	}

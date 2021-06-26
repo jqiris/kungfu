@@ -12,34 +12,34 @@ var (
 	logger = logrus.WithField("package", "rpcx")
 )
 
-type CallbackFunc func(req []byte) []byte
+type CallbackFunc func(coder *RpcEncoder, req *RpcMsg) []byte
 
 //rpc interface
 type RpcBase interface {
-	Subscribe(server *treaty.Server, callback CallbackFunc) error //self Subscribe
-	Publish(server *treaty.Server, data []byte) error             //publish
-	Request(server *treaty.Server, data []byte) ([]byte, error)   //request
+	Subscribe(server *treaty.Server, callback CallbackFunc) error            //self Subscribe
+	Publish(server *treaty.Server, msgId int32, req interface{}) error       //publish
+	Request(server *treaty.Server, msgId int32, req, resp interface{}) error //request
 }
 
 type RpcBalancer interface {
 	RpcBase
-	SubscribeBalancer(callback CallbackFunc) error //gate subscribe
-	PublishConnector(data []byte) error            //connect publish
-	PublishServer(data []byte) error               //server publish
+	SubscribeBalancer(callback CallbackFunc) error       //gate subscribe
+	PublishConnector(msgId int32, req interface{}) error //connect publish
+	PublishServer(msgId int32, req interface{}) error    //server publish
 }
 
 type RpcConnector interface {
 	RpcBase
-	SubscribeConnector(callback CallbackFunc) error //connect subscribe
-	PublishGate(data []byte) error                  //gate publish
-	PublishServer(data []byte) error                //server publish
+	SubscribeConnector(callback CallbackFunc) error     //connect subscribe
+	PublishBalancer(msgId int32, req interface{}) error //gate publish
+	PublishServer(msgId int32, req interface{}) error   //server publish
 }
 
 type RpcServer interface {
 	RpcBase
-	SubscribeServer(callback CallbackFunc) error //server subscribe
-	PublishConnector(data []byte) error          //connect publish
-	PublishServer(data []byte) error             //server publish
+	SubscribeServer(callback CallbackFunc) error         //server subscribe
+	PublishConnector(msgId int32, req interface{}) error //connect publish
+	PublishServer(msgId int32, req interface{}) error    //server publish
 }
 
 //create rpc gate
