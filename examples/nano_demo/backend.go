@@ -17,6 +17,45 @@ type MyBackend struct {
 	conns map[int32]*treaty.Server
 }
 
+type RpcHandler struct {
+	In      interface{}
+	Out     interface{}
+	Handler interface{}
+}
+
+func (b *MyBackend) BackendLogin(server rpcx.RpcServer, req *treaty.LoginRequest) *treaty.LoginResponse {
+	resp := &treaty.LoginResponse{}
+	//检查游戏通道是否建立
+	ch := channel.GetChannel(b.Server, req.Uid)
+	if ch != nil {
+		ch.ReconnectNum++
+		ch.ReconnectTime = time.Now().Unix()
+		if err := channel.SaveChannel(ch); err != nil {
+			logger.Error(err)
+		}
+		resp.Code = treaty.CodeType_CodeSuccess
+		resp.Msg = "登录成功"
+		resp.Backend = b.Server
+		b.conns[req.Uid] = req.Connector
+		return resp
+	}
+	//游戏通道建立
+	ch = &treaty.GameChannel{
+		Uid:        req.Uid,
+		Connector:  req.Connector,
+		Backend:    b.Server,
+		CreateTime: time.Now().Unix(),
+	}
+	if err := channel.SaveChannel(ch); err != nil {
+		logger.Error(err)
+	}
+	resp.Code = treaty.CodeType_CodeSuccess
+	resp.Msg = "登录成功"
+	resp.Backend = b.Server
+	b.conns[req.Uid] = req.Connector
+	return resp
+}
+
 func (b *MyBackend) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
 	fmt.Printf("MyBackend EventHandleSelf received: %+v \n", req)
 	msgId, msgData := treaty.RpcMsgId(req.MsgId), req.MsgData.([]byte)

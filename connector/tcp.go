@@ -28,7 +28,7 @@ func (b *TcpConnector) Init() {
 		b.Server = serverConf
 	}
 	//init the rpcx
-	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf())
+	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf(), b.Server)
 	//run the front server
 	b.ClientServer = tcpserver.NewServer(b.Server)
 	b.RouteHandler(b.ClientServer)

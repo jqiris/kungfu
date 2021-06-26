@@ -26,7 +26,7 @@ func (g *HttpConnector) Init() {
 		g.ConnectorConf = config.GetConnectorConf()
 	}
 	//init the rpcx
-	g.RpcX = rpcx.NewRpcServer(config.GetRpcXConf())
+	g.RpcX = rpcx.NewRpcServer(config.GetRpcXConf(), g.Server)
 }
 
 func (g *HttpConnector) AfterInit() {

@@ -23,7 +23,7 @@ func (b *BaseBackEnd) Init() {
 		logger.Fatal("BaseBackEnd can find the server config")
 	}
 	//init the rpcx
-	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf())
+	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf(), b.Server)
 	logger.Infoln("init the backend:", b.ServerId)
 }
 

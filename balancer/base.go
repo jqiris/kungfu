@@ -81,7 +81,7 @@ func (b *BaseBalancer) Init() {
 		logger.Fatal("BaseBalancer can find the server config")
 	}
 	//init the rpcx
-	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf())
+	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf(), b.Server)
 	//init the coder
 	b.ClientCoder = serialize.NewProtoSerializer()
 	//set the server

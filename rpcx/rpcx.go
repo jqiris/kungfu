@@ -28,15 +28,21 @@ type RpcServer interface {
 	GetCoder() *RpcEncoder                                                   //get encoder
 	Response(v interface{}) []byte                                           //response the msg
 	DecodeMsg(data []byte, v interface{}) error                              //decode msg
+	GetServer() *treaty.Server                                               //get current server
 }
 
 //create rpc server
-func NewRpcServer(cfg config.RpcXConf) RpcServer {
+func NewRpcServer(cfg config.RpcXConf, server *treaty.Server) RpcServer {
 	timeout := time.Duration(cfg.DialTimeout) * time.Second
 	var r RpcServer
 	switch cfg.UseType {
 	case "nats":
-		r = NewRpcNats(WithNatsEndpoints(cfg.Endpoints), WithNatsDialTimeout(timeout), WithNatsOptions(nats.Timeout(timeout)))
+		r = NewRpcNats(
+			WithNatsEndpoints(cfg.Endpoints),
+			WithNatsDialTimeout(timeout),
+			WithNatsOptions(nats.Timeout(timeout)),
+			WithNatsServer(server),
+		)
 	default:
 		logger.Fatal("NewRpcConnector failed")
 	}

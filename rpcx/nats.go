@@ -22,6 +22,7 @@ type RpcNats struct {
 	Client      *nats.Conn
 	DialTimeout time.Duration
 	RpcCoder    *RpcEncoder
+	Server      *treaty.Server
 }
 type RpcNatsOption func(r *RpcNats)
 
@@ -35,11 +36,17 @@ func WithNatsDialTimeout(timeout time.Duration) RpcNatsOption {
 		r.DialTimeout = timeout
 	}
 }
+func WithNatsServer(server *treaty.Server) RpcNatsOption {
+	return func(r *RpcNats) {
+		r.Server = server
+	}
+}
 func WithNatsOptions(opts ...nats.Option) RpcNatsOption {
 	return func(r *RpcNats) {
 		r.Options = opts
 	}
 }
+
 func NewRpcNats(opts ...RpcNatsOption) *RpcNats {
 	r := &RpcNats{}
 	for _, opt := range opts {
@@ -201,4 +208,8 @@ func (r *RpcNats) GetCoder() *RpcEncoder {
 
 func (r *RpcNats) Response(v interface{}) []byte {
 	return r.RpcCoder.Response(v)
+}
+
+func (r *RpcNats) GetServer() *treaty.Server {
+	return r.Server
 }

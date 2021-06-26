@@ -2,6 +2,10 @@ package tests
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/config"
+	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/treaty"
+	"reflect"
 	"testing"
 )
 
@@ -80,4 +84,36 @@ func TestServerByte(t *testing.T) {
 	server_id := "backend_1001"
 	server_byte := []byte(server_id)
 	fmt.Println(len(server_byte))
+}
+
+func TestServerInterface(t *testing.T) {
+	var server rpcx.RpcServer
+	server = rpcx.NewRpcServer(config.GetRpcXConf(), &treaty.Server{})
+	value := reflect.TypeOf(server)
+	fmt.Println(value.Kind(), value)
+}
+
+type RpcHandler struct {
+	InType  reflect.Type
+	OutType reflect.Type
+	Handler reflect.Value
+}
+
+func BackendLogin(server rpcx.RpcServer, req *treaty.LoginRequest) *treaty.LoginResponse {
+	fmt.Printf("server is:%+v, req is %+v \n", server, req)
+	return &treaty.LoginResponse{
+		Msg: "login response",
+	}
+}
+
+func TestRpcHandler(t *testing.T) {
+	var server rpcx.RpcServer
+	server = rpcx.NewRpcServer(config.GetRpcXConf(), &treaty.Server{})
+	funcValue := reflect.ValueOf(BackendLogin)
+	ts := reflect.TypeOf(BackendLogin)
+	fmt.Println(funcValue, ts, ts.NumIn(), ts.NumOut(), ts.In(1), ts.Out(0))
+	in := reflect.New(ts.In(1).Elem()).Interface()
+	args := []reflect.Value{reflect.ValueOf(server), reflect.ValueOf(in)}
+	res := funcValue.Call(args)
+	fmt.Println("res is:", res[0].Interface().(*treaty.LoginResponse))
 }
