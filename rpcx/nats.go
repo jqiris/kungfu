@@ -1,6 +1,7 @@
 package rpcx
 
 import (
+	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/nats-io/nats.go"
 	"path"
@@ -57,7 +58,9 @@ func NewRpcNats(opts ...RpcNatsOption) *RpcNats {
 func (r *RpcNats) Subscribe(server *treaty.Server, callback CallbackFunc) error {
 	sub := path.Join(RpcPrefix, treaty.RegSeverItem(server))
 	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
-		r.DealMsg(msg, callback)
+		go helper.SafeRun(func() {
+			r.DealMsg(msg, callback)
+		})
 	}); err != nil {
 		return err
 	}
@@ -67,7 +70,9 @@ func (r *RpcNats) Subscribe(server *treaty.Server, callback CallbackFunc) error 
 func (r *RpcNats) SubscribeBalancer(callback CallbackFunc) error {
 	sub := path.Join(RpcPrefix, Balancer)
 	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
-		r.DealMsg(msg, callback)
+		go helper.SafeRun(func() {
+			r.DealMsg(msg, callback)
+		})
 	}); err != nil {
 		return err
 	}
@@ -77,7 +82,9 @@ func (r *RpcNats) SubscribeBalancer(callback CallbackFunc) error {
 func (r *RpcNats) SubscribeConnector(callback CallbackFunc) error {
 	sub := path.Join(RpcPrefix, Connector)
 	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
-		r.DealMsg(msg, callback)
+		go helper.SafeRun(func() {
+			r.DealMsg(msg, callback)
+		})
 	}); err != nil {
 		return err
 	}
@@ -87,7 +94,9 @@ func (r *RpcNats) SubscribeConnector(callback CallbackFunc) error {
 func (r *RpcNats) SubscribeServer(callback CallbackFunc) error {
 	sub := path.Join(RpcPrefix, Server)
 	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
-		r.DealMsg(msg, callback)
+		go helper.SafeRun(func() {
+			r.DealMsg(msg, callback)
+		})
 	}); err != nil {
 		return err
 	}
