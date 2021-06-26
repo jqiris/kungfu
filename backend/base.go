@@ -29,15 +29,15 @@ func (b *BaseBackEnd) Init() {
 
 func (b *BaseBackEnd) AfterInit() {
 	//Subscribe event
-	if err := b.RpcX.Subscribe(b.Server, func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
+	if err := b.RpcX.Subscribe(b.Server, func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
 		//logger.Infof("BaseBackEnd Subscribe received: %+v", req)
-		return b.EventHandlerSelf(coder, req)
+		return b.EventHandlerSelf(server, req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := b.RpcX.SubscribeServer(func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
+	if err := b.RpcX.SubscribeServer(func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
 		logger.Infof("BaseBackEnd SubscribeServer received: %+v", req)
-		return b.EventHandlerBroadcast(coder, req)
+		return b.EventHandlerBroadcast(server, req)
 	}); err != nil {
 		logger.Error(err)
 	}

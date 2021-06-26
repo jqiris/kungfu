@@ -13,7 +13,7 @@ import (
 type TcpConnector struct {
 	ServerId              string
 	Server                *treaty.Server
-	RpcX                  rpcx.RpcConnector
+	RpcX                  rpcx.RpcServer
 	EventHandlerSelf      rpcx.CallbackFunc       //处理自己的事件
 	EventHandlerBroadcast rpcx.CallbackFunc       //处理广播事件
 	ClientServer          tcpface.IServer         //zinx server
@@ -28,7 +28,7 @@ func (b *TcpConnector) Init() {
 		b.Server = serverConf
 	}
 	//init the rpcx
-	b.RpcX = rpcx.NewRpcConnector(config.GetRpcXConf())
+	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf())
 	//run the front server
 	b.ClientServer = tcpserver.NewServer(b.Server)
 	b.RouteHandler(b.ClientServer)
@@ -39,15 +39,15 @@ func (b *TcpConnector) Init() {
 
 func (b *TcpConnector) AfterInit() {
 	//Subscribe event
-	if err := b.RpcX.Subscribe(b.Server, func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
+	if err := b.RpcX.Subscribe(b.Server, func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
 		logger.Infof("NanoConnector Subscribe received: %+v", req)
-		return b.EventHandlerSelf(coder, req)
+		return b.EventHandlerSelf(server, req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := b.RpcX.SubscribeConnector(func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
+	if err := b.RpcX.SubscribeConnector(func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
 		logger.Infof("NanoConnector SubscribeConnector received: %+v", req)
-		return b.EventHandlerBroadcast(coder, req)
+		return b.EventHandlerBroadcast(server, req)
 	}); err != nil {
 		logger.Error(err)
 	}

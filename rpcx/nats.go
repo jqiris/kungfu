@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	RpcPrefix = "rpcx"
+	RpcPrefix = "RpcX"
 	Balancer  = "balancer"
 	Connector = "connector"
 	Server    = "server"
@@ -101,7 +101,7 @@ func (r *RpcNats) DealMsg(msg *nats.Msg, callback CallbackFunc) {
 		logger.Error(err)
 		return
 	}
-	resp := callback(r.RpcCoder, req)
+	resp := callback(r, req)
 	if resp != nil {
 		if err := msg.Respond(resp); err != nil {
 			logger.Error(err)
@@ -179,4 +179,8 @@ func (r *RpcNats) EncodeMsg(msgType MessageType, msgId int32, req interface{}) (
 		return nil, err
 	}
 	return data, nil
+}
+
+func (r *RpcNats) GetCoder() *RpcEncoder {
+	return r.RpcCoder
 }

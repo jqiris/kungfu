@@ -11,7 +11,7 @@ import (
 type HttpConnector struct {
 	ServerId              string
 	Server                *treaty.Server
-	RpcX                  rpcx.RpcConnector
+	RpcX                  rpcx.RpcServer
 	EventHandlerSelf      rpcx.CallbackFunc //处理自己的事件
 	EventHandlerBroadcast rpcx.CallbackFunc //处理广播事件
 	ConnectorConf         config.ConnectorConf
@@ -26,20 +26,20 @@ func (g *HttpConnector) Init() {
 		g.ConnectorConf = config.GetConnectorConf()
 	}
 	//init the rpcx
-	g.RpcX = rpcx.NewRpcConnector(config.GetRpcXConf())
+	g.RpcX = rpcx.NewRpcServer(config.GetRpcXConf())
 }
 
 func (g *HttpConnector) AfterInit() {
 	//Subscribe event
-	if err := g.RpcX.Subscribe(g.Server, func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
+	if err := g.RpcX.Subscribe(g.Server, func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
 		logger.Infof("HttpConnector Subscribe received: %+v", req)
-		return g.EventHandlerSelf(coder, req)
+		return g.EventHandlerSelf(server, req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := g.RpcX.SubscribeConnector(func(coder *rpcx.RpcEncoder, req *rpcx.RpcMsg) []byte {
+	if err := g.RpcX.SubscribeConnector(func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
 		logger.Infof("HttpConnector SubscribeConnector received: %+v", req)
-		return g.EventHandlerBroadcast(coder, req)
+		return g.EventHandlerBroadcast(server, req)
 	}); err != nil {
 		logger.Error(err)
 	}
