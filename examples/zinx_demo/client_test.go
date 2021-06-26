@@ -36,7 +36,7 @@ func TestClientLogin(t *testing.T) {
 	//根据balancer获得connector连接地址，并发送登录消息
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", res.Connector.ServerIp, res.Connector.ClientPort))
 	if err != nil {
-		logger.Fatal("client start err, exit!")
+		logger.Fatalf("client start err, exit:%v", err)
 	}
 	//发送登录信息
 	reqData, err := coder.Marshal(&treaty.LoginRequest{
@@ -71,12 +71,8 @@ func TestClientLogin(t *testing.T) {
 	logger.Infof("login result is:%+v", respData)
 	//登录成功后尝试发送一次聊天数据
 	send := &treaty.ChannelMsgRequest{
-		Uid: 1001,
-		RpcMsg: &treaty.RpcMsg{
-			MsgId:     treaty.RpcMsgId_RpcMsgChatTest,
-			MsgServer: res.Connector,
-			MsgData:   []byte("hello chat"),
-		},
+		Uid:     1001,
+		MsgData: "hello chat",
 	}
 
 	data1, err1 := coder.Marshal(send)
@@ -98,8 +94,7 @@ func TestClientLogin(t *testing.T) {
 		fmt.Println("server unpack err:", err)
 		return
 	}
-	logger.Infof("received chat resp:%v", string(recMsg.Data))
-
+	logger.Infof("received chat resp:%+v", recMsg.Data)
 }
 
 func TestTokenCreate(t *testing.T) {

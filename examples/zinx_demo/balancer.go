@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/rpcx"
 
 	"github.com/jqiris/kungfu/balancer"
 	"github.com/jqiris/kungfu/launch"
@@ -11,13 +12,13 @@ type MyBalancer struct {
 	balancer.BaseBalancer
 }
 
-func (b *MyBalancer) EventHandleSelf(req []byte) []byte {
-	fmt.Printf("MyBalancer EventHandleSelf received: %+v \n", string(req))
+func (b *MyBalancer) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+	fmt.Printf("MyBalancer EventHandleSelf received: %+v \n", req)
 	return nil
 }
 
-func (b *MyBalancer) EventHandleBroadcast(req []byte) []byte {
-	fmt.Printf("MyBalancer EventHandleBroadcast received: %+v \n", string(req))
+func (b *MyBalancer) EventHandleBroadcast(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+	fmt.Printf("MyBalancer EventHandleBroadcast received: %+v \n", req)
 	return nil
 }
 
