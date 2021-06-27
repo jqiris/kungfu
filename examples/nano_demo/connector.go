@@ -92,7 +92,7 @@ func (u *UserConnector) ChannelMsg(s *session.Session, req *treaty.ChannelMsgReq
 		return s.Response(resp)
 	}
 	bResp := &treaty.ChannelMsgResponse{}
-	if err := u.RpcX.Request(backend, int32(treaty.RpcMsgId_RpcMsgChatTest), req.MsgData, bResp); err != nil {
+	if err := u.RpcX.Request(backend, int32(treaty.RpcMsgId_RpcMsgChatTest), req, bResp); err != nil {
 		resp.Code = treaty.CodeType_CodeFailed
 		resp.Msg = err.Error()
 		return s.Response(resp)
