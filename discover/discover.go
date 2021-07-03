@@ -2,18 +2,16 @@ package discover
 
 import (
 	"github.com/jqiris/kungfu/config"
+	"github.com/jqiris/kungfu/logger"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"time"
 
 	"stathat.com/c/consistent"
 
 	"github.com/jqiris/kungfu/treaty"
-	"github.com/sirupsen/logrus"
 )
 
 var (
-	logger = logrus.WithField("package", "discover")
-
 	defDiscoverer Discoverer
 )
 

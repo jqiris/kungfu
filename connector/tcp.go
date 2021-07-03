@@ -4,6 +4,7 @@ import (
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/tcpface"
 	"github.com/jqiris/kungfu/tcpserver"
@@ -34,7 +35,7 @@ func (b *TcpConnector) Init() {
 	b.RouteHandler(b.ClientServer)
 	go b.ClientServer.Serve()
 
-	logger.Infoln("init the connector:", b.ServerId)
+	logger.Info("init the connector:", b.ServerId)
 }
 
 func (b *TcpConnector) AfterInit() {
@@ -69,7 +70,7 @@ func (b *TcpConnector) Shutdown() {
 	if b.ClientServer != nil {
 		b.ClientServer.Stop()
 	}
-	logger.Infoln("stop the connector:", b.ServerId)
+	logger.Info("stop the connector:", b.ServerId)
 }
 
 func (b *TcpConnector) GetServer() *treaty.Server {

@@ -8,6 +8,7 @@ import (
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/serialize"
 	"github.com/jqiris/kungfu/session"
@@ -95,7 +96,7 @@ func (b *BaseBalancer) Init() {
 			log.Error(err.Error())
 		}
 	}()
-	logger.Infoln("init the balancer:", b.ServerId)
+	logger.Info("init the balancer:", b.ServerId)
 }
 
 func (b *BaseBalancer) AfterInit() {
@@ -131,7 +132,7 @@ func (b *BaseBalancer) Shutdown() {
 			logger.Error(err)
 		}
 	}
-	logger.Infoln("stop the balancer:", b.ServerId)
+	logger.Info("stop the balancer:", b.ServerId)
 }
 
 func (b *BaseBalancer) Balance(remoteAddr string) (*treaty.Server, error) {

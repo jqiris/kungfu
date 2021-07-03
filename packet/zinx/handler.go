@@ -3,16 +3,12 @@ package zinx
 import (
 	"fmt"
 	"github.com/jqiris/kungfu/tcpface"
-	"github.com/sirupsen/logrus"
 	"strconv"
 	"time"
 
 	"github.com/jqiris/kungfu/config"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/packet"
-)
-
-var (
-	logger = logrus.WithField("package", "zinx")
 )
 
 type MsgHandle struct {
@@ -42,7 +38,7 @@ func (h *MsgHandle) SendMsgToTaskQueue(request *Request) {
 
 	//得到需要处理此条连接的workerID
 	workerID := request.GetConnID() % h.WorkerPoolSize
-	//fmt.Println("Add ConnID=", request.GetConnection().GetConnID()," request msgID=", request.GetMsgID(), "to workerID=", workerID)
+	//logger.Info("Add ConnID=", request.GetConnection().GetConnID()," request msgID=", request.GetMsgID(), "to workerID=", workerID)
 	//将请求消息发送给任务队列
 	h.TaskQueue[workerID] <- request
 }
@@ -51,7 +47,7 @@ func (h *MsgHandle) SendMsgToTaskQueue(request *Request) {
 func (h *MsgHandle) DoMsgHandler(request *Request) {
 	handler, ok := h.Apis[request.GetMsgID()]
 	if !ok {
-		fmt.Println("api msgId = ", request.GetMsgID(), " is not FOUND!")
+		logger.Error("api msgId = ", request.GetMsgID(), " is not FOUND!")
 		return
 	}
 
@@ -67,7 +63,7 @@ func (h *MsgHandle) AddRouter(msgId int32, router Router) {
 	}
 	//2 添加msg与api的绑定关系
 	h.Apis[msgId] = router
-	fmt.Println("Add api msgId = ", msgId)
+	logger.Info("Add api msgId = ", msgId)
 }
 
 // StartOneWorker 启动一个Worker工作流程
@@ -115,13 +111,13 @@ func (h *MsgHandle) Handle(iConn tcpface.IConnection) {
 	for {
 		n, err := conn.Read(buf)
 		if err != nil {
-			logger.Println(fmt.Sprintf("Read message error: %s, session will be closed immediately", err.Error()))
+			logger.Info(fmt.Sprintf("Read message error: %s, session will be closed immediately", err.Error()))
 			return
 		}
 
 		packets, err := agent.decoder.Decode(buf[:n])
 		if err != nil {
-			logger.Println(err.Error())
+			logger.Info(err.Error())
 			return
 		}
 
@@ -132,7 +128,7 @@ func (h *MsgHandle) Handle(iConn tcpface.IConnection) {
 		// process all packet
 		for i := range packets {
 			if err := h.processPacket(agent, packets[i]); err != nil {
-				logger.Println(err.Error())
+				logger.Info(err.Error())
 				return
 			}
 		}

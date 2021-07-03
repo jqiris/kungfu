@@ -1,13 +1,12 @@
 package channel
 
 import (
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/stores"
 	"github.com/jqiris/kungfu/treaty"
-	"github.com/sirupsen/logrus"
 )
 
 var (
-	logger     = logrus.WithField("package", "channel")
 	channelKey = "kungfu:channel"
 )
 

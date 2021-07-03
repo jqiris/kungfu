@@ -1,12 +1,8 @@
 package utils
 
 import (
-	"github.com/sirupsen/logrus"
+	"github.com/jqiris/kungfu/logger"
 	"strconv"
-)
-
-var (
-	logger = logrus.WithField("package", "utils")
 )
 
 func StringToInt(s string) int {

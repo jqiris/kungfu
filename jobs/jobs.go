@@ -1,17 +1,16 @@
 package jobs
 
 import (
+	"github.com/jqiris/kungfu/logger"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/jqiris/kungfu/helper"
-	"github.com/sirupsen/logrus"
 )
 
 var (
 	keeper *JobKeeper
-	logger = logrus.WithField("package", "jobs")
 )
 
 func InitJobs() {
@@ -64,7 +63,6 @@ func (s *JobItem) FinishJob() {
 	}
 	worker.JobFinish()
 	finishTime := time.Now()
-	//调用test请使用fmt.Printf
 	logger.Infof(
 		"job finished,name:%v,addtime:%v,starttime:%v,endtime:%v, total:%v秒, deal:%v秒",
 		worker.Name(),

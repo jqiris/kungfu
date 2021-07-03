@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/rpcx"
 	"time"
 

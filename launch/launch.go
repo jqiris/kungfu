@@ -2,13 +2,12 @@ package launch
 
 import (
 	"github.com/jqiris/kungfu/config"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/rpcx"
-	"github.com/sirupsen/logrus"
 )
 
 //服务器集群管理
 var (
-	logger   = logrus.WithField("package", "launch")
 	servers  map[string]rpcx.ServerEntity
 	launched map[string]rpcx.ServerEntity
 )

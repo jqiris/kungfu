@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/apex/log"
 	"github.com/jqiris/kungfu/config"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/packet"
 	"github.com/jqiris/kungfu/tcpface"
 	"net"
@@ -55,32 +56,32 @@ func (a *Agent) GetConn() net.Conn {
 	写消息Goroutine， 用户将数据发送给客户端
 */
 func (a *Agent) StartWriter() {
-	fmt.Println("[Writer Goroutine is running]")
+	logger.Info("[Writer Goroutine is running]")
 	defer func() {
 		err := a.Close()
 		if err != nil {
 			log.Error(err.Error())
 		}
-		fmt.Println(a.conn.RemoteAddr().String(), "[conn Writer exit!]")
+		logger.Info(a.conn.RemoteAddr().String(), "[conn Writer exit!]")
 	}()
 	for {
 		select {
 		case data := <-a.msgChan:
 			//有数据要写给客户端
 			if _, err := a.conn.Write(data); err != nil {
-				fmt.Println("Send Data error:, ", err, " Conn Writer exit")
+				logger.Info("Send Data error:, ", err, " Conn Writer exit")
 				return
 			}
-			//fmt.Printf("Send data succ! data = %+v\n", data)
+			//logger.Infof("Send data succ! data = %+v\n", data)
 		case data, ok := <-a.msgBuffChan:
 			if ok {
 				//有数据要写给客户端
 				if _, err := a.conn.Write(data); err != nil {
-					fmt.Println("Send Buff Data error:, ", err, " Conn Writer exit")
+					logger.Info("Send Buff Data error:, ", err, " Conn Writer exit")
 					return
 				}
 			} else {
-				fmt.Println("msgBuffChan is Closed")
+				logger.Info("msgBuffChan is Closed")
 				return
 			}
 		}

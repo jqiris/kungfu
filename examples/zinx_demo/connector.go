@@ -10,6 +10,7 @@ import (
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/launch"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/session"
 	"github.com/jqiris/kungfu/tcpface"
 	"github.com/jqiris/kungfu/treaty"
@@ -21,7 +22,7 @@ type MyConnector struct {
 }
 
 func (b *MyConnector) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
-	fmt.Printf("MyConnector EventHandleSelf received: %+v \n", req)
+	logger.Infof("MyConnector EventHandleSelf received: %+v \n", req)
 	msgId, msgData := treaty.RpcMsgId(req.MsgId), req.MsgData.([]byte)
 	switch msgId {
 	case treaty.RpcMsgId_RpcMsgMultiLoginOut:
@@ -40,7 +41,7 @@ func (b *MyConnector) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) [
 }
 
 func (b *MyConnector) EventHandleBroadcast(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
-	fmt.Printf("MyConnector EventHandleBroadcast received: %+v \n", req)
+	logger.Infof("MyConnector EventHandleBroadcast received: %+v \n", req)
 	return nil
 }
 
@@ -48,7 +49,7 @@ func (b *MyConnector) EventHandleBroadcast(server rpcx.RpcServer, req *rpcx.RpcM
 func (b *MyConnector) Login(request *zinx.Request) {
 
 	//先读取客户端的数据
-	logger.Println("Login recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetMsgData()))
+	logger.Info("Login recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetMsgData()))
 
 	//回复信息
 	resp := &treaty.LoginResponse{}
@@ -62,7 +63,7 @@ func (b *MyConnector) Login(request *zinx.Request) {
 		SendMsg(conn, treaty.MsgId_Msg_Login_Response, resp)
 		return
 	}
-	logger.Printf("login request is:%+v", req)
+	logger.Infof("login request is:%+v", req)
 	//判断登录信息的正确性
 	uid, nickname := req.Uid, req.Nickname
 	tokenkey := config.GetConnectorConf().TokenKey
@@ -150,7 +151,7 @@ func (b *MyConnector) Login(request *zinx.Request) {
 //Logout 登出操作
 func (b *MyConnector) Logout(request *zinx.Request) {
 	//先读取客户端的数据
-	logger.Println("Logout recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetMsgData()))
+	logger.Info("Logout recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetMsgData()))
 
 	//回复信息
 	resp := &treaty.LogoutResponse{}
@@ -170,7 +171,7 @@ func (b *MyConnector) Logout(request *zinx.Request) {
 		SendMsg(conn, treaty.MsgId_Msg_Logout_Response, resp)
 		return
 	}
-	logger.Printf("Logout request is:%+v", req)
+	logger.Infof("Logout request is:%+v", req)
 	respBack := &treaty.LogoutResponse{}
 	if err := b.RpcX.Request(req.Backend, int32(treaty.RpcMsgId_RpcMsgBackendLogout), req, respBack); err != nil {
 		resp.Code = treaty.CodeType_CodeFailed
@@ -194,7 +195,7 @@ func (b *MyConnector) Logout(request *zinx.Request) {
 //ChannelMsg 消息转发
 func (b *MyConnector) ChannelMsg(request *zinx.Request) {
 	//先读取客户端的数据
-	logger.Println("ChannelMsg recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetMsgData()))
+	logger.Info("ChannelMsg recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetMsgData()))
 
 	//回复信息
 	resp := &treaty.ChannelMsgResponse{}

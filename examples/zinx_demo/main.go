@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/jqiris/kungfu/logger"
 	"log"
 	"os"
 	"os/signal"
@@ -11,11 +12,6 @@ import (
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/launch"
 	"github.com/jqiris/kungfu/stores"
-	"github.com/sirupsen/logrus"
-)
-
-var (
-	logger = logrus.WithField("package", "main")
 )
 
 func main() {

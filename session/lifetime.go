@@ -1,7 +1,7 @@
 package session
 
 import (
-	"fmt"
+	"github.com/jqiris/kungfu/logger"
 	"runtime"
 	"strings"
 )
@@ -38,7 +38,7 @@ func (lt *lifetime) Close(s *Session) {
 func OnSessionClosed(s *Session) {
 	defer func() {
 		if err := recover(); err != nil {
-			logger.Println(fmt.Sprintf("onSessionClosed: %v", err))
+			logger.Infof("onSessionClosed: %v", err)
 			println(stack())
 		}
 	}()

@@ -6,20 +6,19 @@ import (
 	"github.com/jqiris/kungfu/component"
 	"github.com/jqiris/kungfu/serialize"
 	"github.com/jqiris/kungfu/tcpface"
-	"github.com/sirupsen/logrus"
 	"reflect"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/jqiris/kungfu/config"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/packet"
 )
 
 var (
-	logger = logrus.WithField("package", "nano")
-	err    error
-	hbd    []byte
+	err error
+	hbd []byte
 )
 
 func init() {
@@ -107,7 +106,7 @@ func (h *MsgHandle) SendMsgToTaskQueue(request unhandledMessage) {
 
 	//得到需要处理此条连接的workerID
 	workerID := request.agent.connId % h.WorkerPoolSize
-	//fmt.Println("Add ConnID=", request.GetConnection().GetConnID()," request msgID=", request.GetMsgID(), "to workerID=", workerID)
+	//fmt.Info("Add ConnID=", request.GetConnection().GetConnID()," request msgID=", request.GetMsgID(), "to workerID=", workerID)
 	//将请求消息发送给任务队列
 	h.TaskQueue[workerID] <- request
 }
@@ -136,7 +135,7 @@ func pCall(method reflect.Method, args []reflect.Value) {
 	defer func() {
 		if err := recover(); err != nil {
 			logger.Errorf("dispatch: %v", err)
-			println(stack())
+			logger.Info(stack())
 		}
 	}()
 
@@ -151,8 +150,8 @@ func pCall(method reflect.Method, args []reflect.Value) {
 func pinvoke(fn func()) {
 	defer func() {
 		if err := recover(); err != nil {
-			logger.Println(fmt.Sprintf("nano/invoke: %v", err))
-			println(stack())
+			logger.Infof("invoke: %v", err)
+			logger.Info(stack())
 		}
 	}()
 
@@ -230,13 +229,13 @@ func (h *MsgHandle) Handle(iConn tcpface.IConnection) {
 	for {
 		n, err := conn.Read(buf)
 		if err != nil {
-			logger.Println(fmt.Sprintf("Read message error: %s, session will be closed immediately", err.Error()))
+			logger.Info(fmt.Sprintf("Read message error: %s, session will be closed immediately", err.Error()))
 			return
 		}
 
 		packets, err := agent.decoder.Decode(buf[:n])
 		if err != nil {
-			logger.Println(err.Error())
+			logger.Info(err.Error())
 			return
 		}
 
@@ -247,7 +246,7 @@ func (h *MsgHandle) Handle(iConn tcpface.IConnection) {
 		// process all packet
 		for i := range packets {
 			if err := h.processPacket(agent, packets[i]); err != nil {
-				logger.Println(err.Error())
+				logger.Info(err.Error())
 				return
 			}
 		}
@@ -264,13 +263,13 @@ func (h *MsgHandle) processPacket(agent *Agent, p *Packet) error {
 
 		agent.setStatus(packet.StatusHandshake)
 		//if env.debug {
-		//	logger.Println(fmt.Sprintf("Session handshake Id=%d, Remote=%s", agent.session.ID(), agent.conn.RemoteAddr()))
+		//	logger.Info(fmt.Sprintf("Session handshake Id=%d, Remote=%s", agent.session.ID(), agent.conn.RemoteAddr()))
 		//}
 
 	case HandshakeAck:
 		agent.setStatus(packet.StatusWorking)
 		//if env.debug {
-		//	logger.Println(fmt.Sprintf("Receive handshake ACK Id=%d, Remote=%s", agent.session.ID(), agent.conn.RemoteAddr()))
+		//	logger.Info(fmt.Sprintf("Receive handshake ACK Id=%d, Remote=%s", agent.session.ID(), agent.conn.RemoteAddr()))
 		//}
 
 	case Data:
@@ -304,7 +303,7 @@ func (h *MsgHandle) processMessage(agent *Agent, msg *Message) {
 
 	handler, ok := h.handlers[msg.Route]
 	if !ok {
-		logger.Println(fmt.Sprintf("handler: %s not found(forgot registered?)", msg.Route))
+		logger.Info(fmt.Sprintf("handler: %s not found(forgot registered?)", msg.Route))
 		return
 	}
 	var payload = msg.Data
@@ -315,7 +314,7 @@ func (h *MsgHandle) processMessage(agent *Agent, msg *Message) {
 		data = reflect.New(handler.Type.Elem()).Interface()
 		err := h.Serializer.Unmarshal(payload, data)
 		if err != nil {
-			logger.Println("deserialize error", err.Error())
+			logger.Info("deserialize error", err.Error())
 			return
 		}
 	}
@@ -332,8 +331,8 @@ func (h *MsgHandle) processMessage(agent *Agent, msg *Message) {
 
 // DumpServices outputs all registered services
 func (h *MsgHandle) DumpServices() {
-	logger.Println("DumpServices:")
+	logger.Info("DumpServices:")
 	for name := range h.handlers {
-		logger.Println("registered service：", name)
+		logger.Info("registered service：", name)
 	}
 }

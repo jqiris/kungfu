@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"github.com/jqiris/kungfu/logger"
 	"testing"
 	"time"
 

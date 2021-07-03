@@ -4,6 +4,7 @@ import (
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/treaty"
 )
@@ -57,7 +58,7 @@ func (g *HttpConnector) BeforeShutdown() {
 }
 
 func (g *HttpConnector) Shutdown() {
-	logger.Infoln("stop the connector:", g.ServerId)
+	logger.Info("stop the connector:", g.ServerId)
 }
 
 func (g *HttpConnector) GetServer() *treaty.Server {

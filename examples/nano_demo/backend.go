@@ -10,6 +10,7 @@ import (
 
 	"github.com/jqiris/kungfu/backend"
 	"github.com/jqiris/kungfu/launch"
+	"github.com/jqiris/kungfu/logger"
 )
 
 type MyBackend struct {
@@ -74,7 +75,7 @@ func ChannelTest(server rpcx.RpcServer, req *treaty.ChannelMsgRequest) *treaty.C
 }
 
 func (b *MyBackend) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
-	fmt.Printf("MyBackend EventHandleSelf received: %+v \n", req)
+	logger.Infof("MyBackend EventHandleSelf received: %+v", req)
 	resp, err := b.handler.DealMsg(server, req)
 	if err != nil {
 		logger.Error(err)

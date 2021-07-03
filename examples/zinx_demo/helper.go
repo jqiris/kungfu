@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/packet/zinx"
 	"github.com/jqiris/kungfu/serialize"
 	"github.com/jqiris/kungfu/tcpface"

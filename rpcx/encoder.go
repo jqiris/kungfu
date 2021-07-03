@@ -2,6 +2,7 @@ package rpcx
 
 import (
 	"errors"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/serialize"
 	"github.com/jqiris/kungfu/utils"
 )

@@ -4,6 +4,7 @@ import (
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/treaty"
 )
@@ -24,7 +25,7 @@ func (b *BaseBackEnd) Init() {
 	}
 	//init the rpcx
 	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf(), b.Server)
-	logger.Infoln("init the backend:", b.ServerId)
+	logger.Info("init the backend:", b.ServerId)
 }
 
 func (b *BaseBackEnd) AfterInit() {
@@ -56,7 +57,7 @@ func (b *BaseBackEnd) BeforeShutdown() {
 
 func (b *BaseBackEnd) Shutdown() {
 	//shutdown server
-	logger.Infoln("stop the backend:", b.ServerId)
+	logger.Info("stop the backend:", b.ServerId)
 }
 
 func (b *BaseBackEnd) GetServer() *treaty.Server {

@@ -7,6 +7,7 @@ import (
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/launch"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/packet/nano"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/session"
@@ -112,7 +113,7 @@ func (u *UserConnector) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg)
 		if err := server.DecodeMsg(msgData, msg); err != nil {
 			logger.Error(err)
 		} else {
-			logger.Println(msg)
+			logger.Info(msg)
 		}
 	}
 	return nil

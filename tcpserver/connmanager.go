@@ -2,7 +2,7 @@ package tcpserver
 
 import (
 	"errors"
-	"fmt"
+	"github.com/jqiris/kungfu/logger"
 	"sync"
 
 	tcpface "github.com/jqiris/kungfu/tcpface"
@@ -28,7 +28,7 @@ func (connMgr *ConnManager) Add(conn tcpface.IConnection) {
 	//将conn连接添加到ConnMananger中
 	connMgr.connections[conn.GetConnID()] = conn
 
-	fmt.Println("connection add to ConnManager successfully: conn num = ", connMgr.Len())
+	logger.Info("connection add to ConnManager successfully: conn num = ", connMgr.Len())
 }
 
 // Remove 删除连接
@@ -40,7 +40,7 @@ func (connMgr *ConnManager) Remove(conn tcpface.IConnection) {
 	//删除连接信息
 	delete(connMgr.connections, conn.GetConnID())
 
-	fmt.Println("connection Remove ConnID=", conn.GetConnID(), " successfully: conn num = ", connMgr.Len())
+	logger.Info("connection Remove ConnID=", conn.GetConnID(), " successfully: conn num = ", connMgr.Len())
 }
 
 // Get 利用ConnID获取链接
@@ -78,5 +78,5 @@ func (connMgr *ConnManager) ClearConn() {
 		delete(connMgr.connections, connID)
 	}
 
-	fmt.Println("Clear All Connections successfully: conn num = ", connMgr.Len())
+	logger.Info("Clear All Connections successfully: conn num = ", connMgr.Len())
 }

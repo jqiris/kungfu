@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/apex/log"
 	"github.com/gorilla/websocket"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/packet/nano"
 	"github.com/jqiris/kungfu/packet/zinx"
-	"github.com/sirupsen/logrus"
 	"net"
 	"net/http"
 	"strings"
@@ -14,10 +14,6 @@ import (
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/tcpface"
 	"github.com/jqiris/kungfu/treaty"
-)
-
-var (
-	logger = logrus.WithField("package", "tcpserver")
 )
 
 // Server 接口实现，定义一个Server服务类
@@ -84,7 +80,7 @@ func NewServer(server *treaty.Server) tcpface.IServer {
 
 // Start 开启网络服务
 func (s *Server) Start() {
-	fmt.Printf("[START] Server name: %s,listenner at IP: %s, Port %d is starting\n", s.Name, s.IP, s.Port)
+	logger.Infof("[START] Server name: %s,listenner at IP: %s, Port %d is starting\n", s.Name, s.IP, s.Port)
 	go func() {
 		if s.Config.UseWebsocket {
 			s.ListenAndServeWs(s.MsgHandler, s.ConnHandler)
@@ -101,19 +97,19 @@ func (s *Server) ListenAndServe(msgHandler tcpface.IMsgHandle, connHandler tcpfa
 	//1 获取一个TCP的Addr
 	addr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
 	if err != nil {
-		fmt.Println("resolve tcp addr err: ", err)
+		logger.Info("resolve tcp addr err: ", err)
 		return
 	}
 
 	//2 监听服务器地址
 	listener, err := net.ListenTCP(s.IPVersion, addr)
 	if err != nil {
-		fmt.Println("listen", s.IPVersion, "err", err)
+		logger.Info("listen", s.IPVersion, "err", err)
 		return
 	}
 
 	//已经监听成功
-	fmt.Println("start tcpserver server  ", s.Name, " succ, now listenning...")
+	logger.Info("start tcpserver server  ", s.Name, " succ, now listenning...")
 
 	cid := 0
 
@@ -122,10 +118,10 @@ func (s *Server) ListenAndServe(msgHandler tcpface.IMsgHandle, connHandler tcpfa
 		//3.1 阻塞等待客户端建立连接请求
 		conn, err := listener.AcceptTCP()
 		if err != nil {
-			fmt.Println("Accept err ", err)
+			logger.Info("Accept err ", err)
 			continue
 		}
-		fmt.Println("Get conn remote addr = ", conn.RemoteAddr().String())
+		logger.Info("Get conn remote addr = ", conn.RemoteAddr().String())
 
 		//3.2 设置服务器最大连接控制,如果超过最大连接，那么则关闭此新的连接
 		if s.Config.MaxConn > 0 && s.ConnMgr.Len() >= s.Config.MaxConn {
@@ -158,7 +154,7 @@ func (s *Server) ListenAndServeWs(msgHandler tcpface.IMsgHandle, connHandler tcp
 	http.HandleFunc("/"+strings.TrimPrefix(s.Config.WebsocketPath, "/"), func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			logger.Println(fmt.Sprintf("Upgrade failure, URI=%s, Error=%s", r.RequestURI, err.Error()))
+			logger.Infof("Upgrade failure, URI=%s, Error=%s", r.RequestURI, err.Error())
 			return
 		}
 
@@ -186,7 +182,7 @@ func (s *Server) ListenAndServeWs(msgHandler tcpface.IMsgHandle, connHandler tcp
 
 // Stop 停止服务
 func (s *Server) Stop() {
-	fmt.Println("[STOP] tcpserver server , name ", s.Name)
+	logger.Info("[STOP] tcpserver server , name ", s.Name)
 
 	//将其他需要清理的连接信息或者其他信息 也要一并停止或者清理
 	s.ConnMgr.ClearConn()
@@ -217,7 +213,7 @@ func (s *Server) SetOnConnStop(hookFunc func(tcpface.IConnection)) {
 // CallOnConnStart 调用连接OnConnStart Hook函数
 func (s *Server) CallOnConnStart(conn tcpface.IConnection) {
 	if s.OnConnStart != nil {
-		fmt.Println("---> CallOnConnStart....")
+		logger.Info("---> CallOnConnStart....")
 		s.OnConnStart(conn)
 	}
 }
@@ -225,7 +221,7 @@ func (s *Server) CallOnConnStart(conn tcpface.IConnection) {
 // CallOnConnStop 调用连接OnConnStop Hook函数
 func (s *Server) CallOnConnStop(conn tcpface.IConnection) {
 	if s.OnConnStop != nil {
-		fmt.Println("---> CallOnConnStop....")
+		logger.Info("---> CallOnConnStop....")
 		s.OnConnStop(conn)
 	}
 }

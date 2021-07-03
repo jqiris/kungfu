@@ -2,6 +2,7 @@ package tests
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/nats-io/nats.go"
 	"testing"
 	"time"

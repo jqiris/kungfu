@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/jqiris/kungfu/helper"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/treaty"
 )
 
@@ -54,29 +55,25 @@ func TestClientLogin(t *testing.T) {
 	})
 	_, err = conn.Write(msg)
 	if err != nil {
-		logger.Println("write error err ", err)
+		logger.Info("write error err ", err)
 		return
 	}
 	recMsg, err := zinx.ReadMsg(conn)
 	if err != nil {
-		fmt.Println("server unpack err:", err)
+		logger.Info("server unpack err:", err)
 		return
 	}
 
 	//解析data数据
 	respData := &treaty.LoginResponse{}
 	if err = coder.Unmarshal(recMsg.Data, respData); err != nil {
-		logger.Printf("login received err:%v", err)
+		logger.Infof("login received err:%v", err)
 	}
 	logger.Infof("login result is:%+v", respData)
 	//登录成功后尝试发送一次聊天数据
 	send := &treaty.ChannelMsgRequest{
-		Uid: 1001,
-		RpcMsg: &treaty.RpcMsg{
-			MsgId:     treaty.RpcMsgId_RpcMsgChatTest,
-			MsgServer: res.Connector,
-			MsgData:   []byte("hello chat"),
-		},
+		Uid:     1001,
+		MsgData: "hello chat",
 	}
 
 	data1, err1 := coder.Marshal(send)
@@ -90,12 +87,12 @@ func TestClientLogin(t *testing.T) {
 	})
 	_, err = conn.Write(msg)
 	if err != nil {
-		logger.Println("write error err ", err)
+		logger.Info("write error err ", err)
 		return
 	}
 	recMsg, err = zinx.ReadMsg(conn)
 	if err != nil {
-		fmt.Println("server unpack err:", err)
+		logger.Info("server unpack err:", err)
 		return
 	}
 	logger.Infof("received chat resp:%v", string(recMsg.Data))
@@ -106,5 +103,5 @@ func TestTokenCreate(t *testing.T) {
 	uid, nickname := 1001, "jason"
 	tokenkey := config.GetConnectorConf().TokenKey
 	token := helper.Md5(fmt.Sprintf("%d|%s|%s", uid, nickname, tokenkey))
-	fmt.Println(token)
+	logger.Info(token)
 }

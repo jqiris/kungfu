@@ -2,13 +2,11 @@ package stores
 
 import (
 	"github.com/jqiris/kungfu/config"
+	"github.com/jqiris/kungfu/logger"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
 var (
-	logger         = logrus.WithField("package", "stores")
 	defStoreKeeper StoreKeeper
 )
 

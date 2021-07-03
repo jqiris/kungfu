@@ -2,6 +2,7 @@ package rpcx
 
 import (
 	"github.com/jqiris/kungfu/helper"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/nats-io/nats.go"
 	"path"

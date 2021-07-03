@@ -2,13 +2,12 @@ package session
 
 import (
 	"github.com/jqiris/kungfu/helper"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/stores"
 	"github.com/jqiris/kungfu/treaty"
-	"github.com/sirupsen/logrus"
 )
 
 var (
-	logger     = logrus.WithField("package", "session")
 	sessionKey = "kungfu:session"
 )
 

@@ -2,14 +2,10 @@ package rpcx
 
 import (
 	"github.com/jqiris/kungfu/config"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/nats-io/nats.go"
-	"github.com/sirupsen/logrus"
 	"time"
-)
-
-var (
-	logger = logrus.WithField("package", "rpcx")
 )
 
 type CallbackFunc func(server RpcServer, req *RpcMsg) []byte

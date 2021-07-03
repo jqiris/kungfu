@@ -2,15 +2,14 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/jqiris/kungfu/logger"
 	"io/ioutil"
 
 	"github.com/jqiris/kungfu/treaty"
-	"github.com/sirupsen/logrus"
 )
 
 var (
 	config = new(Config)
-	logger = logrus.WithField("package", "conf")
 )
 
 func InitConf(filename string) error {

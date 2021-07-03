@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/apex/log"
 	"github.com/jqiris/kungfu/config"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/packet"
 	"github.com/jqiris/kungfu/serialize"
 	"github.com/jqiris/kungfu/session"

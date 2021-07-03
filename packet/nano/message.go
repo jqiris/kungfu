@@ -24,7 +24,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
+	"github.com/jqiris/kungfu/logger"
 	"strings"
 )
 
@@ -177,7 +177,7 @@ func MsgDecode(data []byte) (*Message, error) {
 	if m.Type == Request || m.Type == Response {
 		id := uint(0)
 		// little end byte order
-		// WARNING: must can be stored in 64 bits integer
+		// WARN: must can be stored in 64 bits integer
 		// variant length encode
 		for i := offset; i < len(data); i++ {
 			b := data[i]
@@ -221,11 +221,11 @@ func SetDictionary(dict map[string]uint16) {
 
 		// duplication check
 		if _, ok := routes[r]; ok {
-			log.Printf("duplicated route(route: %s, code: %d)\n", r, code)
+			logger.Infof("duplicated route(route: %s, code: %d)\n", r, code)
 		}
 
 		if _, ok := codes[code]; ok {
-			log.Printf("duplicated route(route: %s, code: %d)\n", r, code)
+			logger.Infof("duplicated route(route: %s, code: %d)\n", r, code)
 		}
 
 		// update map, using last value when key duplicated

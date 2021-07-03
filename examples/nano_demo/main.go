@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/jqiris/kungfu/logger"
 	"log"
 	"os"
 	"os/signal"
@@ -11,11 +12,6 @@ import (
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/launch"
 	"github.com/jqiris/kungfu/stores"
-	"github.com/sirupsen/logrus"
-)
-
-var (
-	logger = logrus.WithField("package", "main")
 )
 
 func main() {
@@ -30,6 +26,17 @@ func main() {
 
 	//init stores
 	stores.InitStoreKeeper(config.GetStoresConf())
+
+	//init logger
+	lg := logger.NewLogger(
+		logger.WithOutType("out_all"),
+		logger.WithLogDir("./logs"),
+		logger.WithLogName("nano_demo"),
+		logger.WithLogRuntime(true),
+		logger.WithLogDump(true),
+		logger.WithStdColor(true),
+	)
+	logger.SetLogger(lg)
 
 	//launch servers
 	launch.Startup()
