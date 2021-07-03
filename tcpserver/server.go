@@ -80,7 +80,7 @@ func NewServer(server *treaty.Server) tcpface.IServer {
 
 // Start 开启网络服务
 func (s *Server) Start() {
-	logger.Infof("[START] Server name: %s,listenner at IP: %s, Port %d is starting\n", s.Name, s.IP, s.Port)
+	logger.Infof("[START] Server name: %s,listenner at IP: %s, Port %d is starting", s.Name, s.IP, s.Port)
 	go func() {
 		if s.Config.UseWebsocket {
 			s.ListenAndServeWs(s.MsgHandler, s.ConnHandler)
