@@ -25,6 +25,8 @@ func NewFinder() *Finder {
 func (f *Finder) ServerEventHandler(ev *clientv3.Event, server *treaty.Server) {
 	logger.Infof("server event ev:%+v, server:%+v", ev, server)
 	switch ev.Type {
+	case clientv3.EventTypePut:
+		fallthrough
 	case clientv3.EventTypeDelete:
 		f.serverLock.Lock()
 		delete(f.servers, server.ServerType)
