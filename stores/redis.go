@@ -177,6 +177,18 @@ func (s *StoreRedis) HDel(key string, fields ...string) error {
 	return nil
 }
 
+func (s *StoreRedis) HDelAll(key string) {
+	if fields, err := s.HKeys(key); err == nil {
+		for _, field := range fields {
+			if err = s.HDel(key, field); err != nil {
+				logger.Error(err)
+			}
+		}
+	} else {
+		logger.Error(err)
+	}
+}
+
 func (s *StoreRedis) HExists(key, field string) bool {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
@@ -186,4 +198,27 @@ func (s *StoreRedis) HExists(key, field string) bool {
 	} else {
 		return val
 	}
+}
+
+func (s *StoreRedis) Expire(key string, expiration time.Duration) bool {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	if val, err := s.Client.Expire(ctx, key, expiration).Result(); err != nil {
+		logger.Error(err)
+		return false
+	} else {
+		return val
+	}
+}
+
+func (s *StoreRedis) HGetAll(key string) (map[string]string, error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.HGetAll(ctx, key).Result()
+}
+
+func (s *StoreRedis) HKeys(key string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.HKeys(ctx, key).Result()
 }

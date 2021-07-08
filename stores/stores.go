@@ -24,7 +24,7 @@ func InitStoreKeeper(cfg config.StoresConf) {
 	}
 }
 
-//stores interface
+// StoreKeeper stores interface
 type StoreKeeper interface {
 	Set(key string, value interface{}, expire time.Duration) error
 	SetNx(key string, value interface{}, expire time.Duration) error //set if not exist
@@ -35,8 +35,12 @@ type StoreKeeper interface {
 	Exists(keys ...string) bool
 	HSet(key, field string, val interface{}) error
 	HGet(key, field string, val interface{}) error
+	HGetAll(key string) (map[string]string, error)
 	HDel(key string, fields ...string) error
+	HDelAll(key string)
 	HExists(key, field string) bool
+	Expire(key string, expiration time.Duration) bool
+	HKeys(key string) ([]string, error)
 }
 
 func Set(key string, value interface{}, expire time.Duration) error {
@@ -71,10 +75,26 @@ func HGet(key, field string, val interface{}) error {
 	return defStoreKeeper.HGet(key, field, val)
 }
 
+func HGetAll(key string) (map[string]string, error) {
+	return defStoreKeeper.HGetAll(key)
+}
+
 func HDel(key string, fields ...string) error {
 	return defStoreKeeper.HDel(key, fields...)
 }
 
+func HDelAll(key string) {
+	defStoreKeeper.HDelAll(key)
+}
+
 func HExists(key, field string) bool {
 	return defStoreKeeper.HExists(key, field)
+}
+
+func Expire(key string, expiration time.Duration) bool {
+	return defStoreKeeper.Expire(key, expiration)
+}
+
+func HKeys(key string) ([]string, error) {
+	return defStoreKeeper.HKeys(key)
 }

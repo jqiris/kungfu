@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	"github.com/jqiris/kungfu/logger"
+	"github.com/jqiris/kungfu/stores"
 	"testing"
+	"time"
 )
 
 var ctx = context.Background()
@@ -13,6 +16,37 @@ var rdb = redis.NewClient(&redis.Options{
 	Password: "", // no password set
 	DB:       0,  // use default DB
 })
+
+func TestRedisHash(t *testing.T) {
+	stores.HSet("a", "11", "111")
+	stores.HSet("a", "22", "222")
+	stores.HSet("a", "33", "333")
+	res, err := stores.HGetAll("a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Infof("res is: %+v", res)
+	stores.HDel("a", "11")
+	res, err = stores.HGetAll("a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Infof("res is: %+v", res)
+
+	//stores.HDelAll("a")
+	if !stores.Expire("a", 2*time.Second) {
+		t.Fatal("expire err")
+	}
+	select {
+	case <-time.After(3 * time.Second):
+		res, err = stores.HGetAll("a")
+		if err != nil {
+			t.Fatal(err)
+		}
+		logger.Infof("res is: %+v", res)
+	}
+
+}
 
 func TestRedis(t *testing.T) {
 
