@@ -153,7 +153,7 @@ func (l *Logger) checkDump() {
 				if file, err := l.getLogFileByTime(s); err == nil {
 					zipFiles = append(zipFiles, file)
 				} else {
-					l.Error(err)
+					l.Debug(err)
 				}
 			}
 			if len(zipFiles) > 0 {
