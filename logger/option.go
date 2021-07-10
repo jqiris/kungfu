@@ -1,5 +1,7 @@
 package logger
 
+import "time"
+
 type Option func(l *Logger)
 
 func WithLogLevel(level string) Option {
@@ -50,5 +52,22 @@ func WithTimeFormat(format string) Option {
 func WithStdColor(show bool) Option {
 	return func(l *Logger) {
 		l.stdColor = show
+	}
+}
+
+func WithZipDuration(d time.Duration) Option {
+	return func(l *Logger) {
+		if d < defDayDuration {
+			d = defDayDuration
+		}
+		l.zipDuration = d
+		l.zipEnd = time.Now()
+		l.zipStart = l.zipEnd.Add(-d)
+	}
+}
+
+func WithTickTime(t time.Duration) Option {
+	return func(l *Logger) {
+		l.tickTime = t
 	}
 }

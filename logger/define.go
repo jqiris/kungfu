@@ -1,6 +1,9 @@
 package logger
 
-import "github.com/fatih/color"
+import (
+	"github.com/fatih/color"
+	"time"
+)
 
 type LogLevel int
 
@@ -21,7 +24,10 @@ const (
 )
 
 const (
-	logSuffix = ".log"
+	logSuffix      = ".log"
+	defZipDuration = 744 * time.Hour //31天
+	defDayDuration = 24 * time.Hour  //1天
+
 )
 
 var (

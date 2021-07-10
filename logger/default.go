@@ -1,11 +1,15 @@
 package logger
 
+import "context"
+
 var (
-	defLogger = NewLogger()
+	defLogger, defCancel = NewLogger()
 )
 
-func SetLogger(l *Logger) {
+func SetLogger(l *Logger, cancel context.CancelFunc) {
 	defLogger = l
+	defCancel()
+	defCancel = cancel
 }
 
 func Fatal(txt ...interface{}) {

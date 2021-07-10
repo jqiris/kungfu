@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jqiris/kungfu/config"
 
@@ -28,15 +29,18 @@ func main() {
 	stores.InitStoreKeeper(config.GetStoresConf())
 
 	//init logger
-	lg := logger.NewLogger(
+	lg, cancel := logger.NewLogger(
 		logger.WithOutType("out_all"),
 		logger.WithLogDir("./logs"),
+		logger.WithLogLevel("debug"),
 		logger.WithLogName("nano_demo"),
 		logger.WithLogRuntime(true),
 		logger.WithLogDump(true),
 		logger.WithStdColor(true),
+		logger.WithZipDuration(5*time.Second),
+		logger.WithTickTime(5*time.Second),
 	)
-	logger.SetLogger(lg)
+	logger.SetLogger(lg, cancel)
 
 	//launch servers
 	launch.Startup()
