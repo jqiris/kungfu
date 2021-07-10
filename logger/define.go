@@ -25,6 +25,7 @@ const (
 
 const (
 	logSuffix      = ".log"
+	zipSuffix      = ".zip"
 	defZipDuration = 744 * time.Hour //31天
 	defDayDuration = 24 * time.Hour  //1天
 

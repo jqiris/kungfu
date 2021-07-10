@@ -3,12 +3,12 @@ package helper
 import (
 	"crypto/md5"
 	"fmt"
+	"os"
 	"runtime"
 	"strconv"
 
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/sirupsen/logrus"
-	"reflect"
 )
 
 var (
@@ -54,10 +54,13 @@ func SafeRun(f func()) {
 	}
 }
 
-func IsNil(i interface{}) bool {
-	defer func() {
-		recover()
-	}()
-	vi := reflect.ValueOf(i)
-	return vi.IsNil()
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }

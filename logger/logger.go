@@ -3,6 +3,7 @@ package logger
 import (
 	"context"
 	"fmt"
+	"github.com/jqiris/kungfu/helper"
 	"log"
 	"os"
 	"path"
@@ -109,7 +110,7 @@ func (l *Logger) getZipFileName(start, end time.Time) string {
 	if strings.HasSuffix(logName, logSuffix) {
 		logName = strings.TrimSuffix(logName, logSuffix)
 	}
-	file := fmt.Sprintf("%s_%s_%s.zip", logName, s, e)
+	file := fmt.Sprintf("%s_%s_%s%s", logName, s, e, zipSuffix)
 	return path.Join(l.logDir, file)
 }
 
@@ -157,6 +158,9 @@ func (l *Logger) checkDump() {
 			}
 			if len(zipFiles) > 0 {
 				dest := l.getZipFileName(start, end)
+				if exist, _ := helper.PathExists(dest); exist {
+					dest = strings.TrimSuffix(dest, zipSuffix) + "_" + nowTime.Format("20060102150405") + zipSuffix
+				}
 				if err := Compress(zipFiles, dest); err != nil {
 					l.Error(err)
 				} else {
