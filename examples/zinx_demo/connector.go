@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"github.com/jqiris/kungfu/packet/zinx"
 	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/utils"
 
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/connector"
 	"github.com/jqiris/kungfu/discover"
-	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/launch"
 	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/session"
@@ -67,7 +67,7 @@ func (b *MyConnector) Login(request *zinx.Request) {
 	//判断登录信息的正确性
 	uid, nickname := req.Uid, req.Nickname
 	tokenkey := config.GetConnectorConf().TokenKey
-	token := helper.Md5(fmt.Sprintf("%d|%s|%s", uid, nickname, tokenkey))
+	token := utils.Md5(fmt.Sprintf("%d|%s|%s", uid, nickname, tokenkey))
 	if req.Token != token {
 		resp.Code = treaty.CodeType_CodeFailed
 		resp.Msg = "token不正确"

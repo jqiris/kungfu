@@ -3,10 +3,10 @@ package connector
 import (
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
-	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/utils"
 )
 
 type HttpConnector struct {
@@ -20,7 +20,7 @@ type HttpConnector struct {
 
 func (g *HttpConnector) Init() {
 	//find the  server config
-	if serverConf := helper.FindServerConfig(config.GetServersConf(), g.GetServerId()); serverConf == nil {
+	if serverConf := utils.FindServerConfig(config.GetServersConf(), g.GetServerId()); serverConf == nil {
 		logger.Fatal("HttpConnector can't find the server config")
 	} else {
 		g.Server = serverConf

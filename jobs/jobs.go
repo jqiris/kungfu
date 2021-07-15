@@ -2,11 +2,10 @@ package jobs
 
 import (
 	"github.com/jqiris/kungfu/logger"
+	"github.com/jqiris/kungfu/utils"
 	"sort"
 	"sync"
 	"time"
-
-	"github.com/jqiris/kungfu/helper"
 )
 
 var (
@@ -108,7 +107,7 @@ func (s *JobQueue) ExeJob() {
 	s.JobItems.RangePop(func(item interface{}) bool {
 		if job, ok := item.(*JobItem); ok {
 			if job != nil {
-				go helper.SafeRun(func() {
+				go utils.SafeRun(func() {
 					if job.Worker != nil {
 						job.Worker.BeforeExec()
 					}

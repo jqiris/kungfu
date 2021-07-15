@@ -5,12 +5,12 @@ import (
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/packet/zinx"
 	"github.com/jqiris/kungfu/serialize"
+	"github.com/jqiris/kungfu/utils"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"testing"
 
-	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/treaty"
 )
@@ -102,6 +102,6 @@ func TestClientLogin(t *testing.T) {
 func TestTokenCreate(t *testing.T) {
 	uid, nickname := 1001, "jason"
 	tokenkey := config.GetConnectorConf().TokenKey
-	token := helper.Md5(fmt.Sprintf("%d|%s|%s", uid, nickname, tokenkey))
+	token := utils.Md5(fmt.Sprintf("%d|%s|%s", uid, nickname, tokenkey))
 	logger.Info(token)
 }

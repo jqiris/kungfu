@@ -37,8 +37,11 @@ func TestRedisHash(t *testing.T) {
 	if !stores.Expire("a", 2*time.Second) {
 		t.Fatal("expire err")
 	}
+	logger.Info(stores.HExists("a", "11"))
+	logger.Info(stores.HExists("a", "22"))
 	select {
 	case <-time.After(3 * time.Second):
+		logger.Info(stores.Exists("a"))
 		res, err = stores.HGetAll("a")
 		if err != nil {
 			t.Fatal(err)

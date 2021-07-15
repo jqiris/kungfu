@@ -5,7 +5,6 @@ import (
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/connector"
 	"github.com/jqiris/kungfu/discover"
-	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/launch"
 	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/packet/nano"
@@ -13,6 +12,7 @@ import (
 	"github.com/jqiris/kungfu/session"
 	"github.com/jqiris/kungfu/tcpface"
 	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/utils"
 )
 
 type UserConnector struct {
@@ -29,7 +29,7 @@ func (u *UserConnector) Login(s *session.Session, req *treaty.LoginRequest) erro
 	resp := &treaty.LoginResponse{}
 	uid, nickname := req.Uid, req.Nickname
 	tokenKey := config.GetConnectorConf().TokenKey
-	token := helper.Md5(fmt.Sprintf("%d|%s|%s", uid, nickname, tokenKey))
+	token := utils.Md5(fmt.Sprintf("%d|%s|%s", uid, nickname, tokenKey))
 	if req.Token != token {
 		resp.Code = treaty.CodeType_CodeFailed
 		resp.Msg = "token不正确"

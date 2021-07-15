@@ -7,7 +7,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
-	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/serialize"
@@ -78,7 +77,7 @@ func (b *BaseBalancer) WriteResponse(w http.ResponseWriter, msg proto.Message) {
 }
 func (b *BaseBalancer) Init() {
 	//find the  server config
-	if b.Server = helper.FindServerConfig(config.GetServersConf(), b.GetServerId()); b.Server == nil {
+	if b.Server = utils.FindServerConfig(config.GetServersConf(), b.GetServerId()); b.Server == nil {
 		logger.Fatal("BaseBalancer can find the server config")
 	}
 	//init the rpcx

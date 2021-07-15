@@ -3,12 +3,12 @@ package connector
 import (
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
-	"github.com/jqiris/kungfu/helper"
 	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/tcpface"
 	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/utils"
 )
 
 type TcpConnector struct {
@@ -23,7 +23,7 @@ type TcpConnector struct {
 
 func (b *TcpConnector) Init() {
 	//find the  server config
-	if serverConf := helper.FindServerConfig(config.GetServersConf(), b.GetServerId()); serverConf == nil {
+	if serverConf := utils.FindServerConfig(config.GetServersConf(), b.GetServerId()); serverConf == nil {
 		logger.Fatal("NanoConnector can't find the server config")
 	} else {
 		b.Server = serverConf
