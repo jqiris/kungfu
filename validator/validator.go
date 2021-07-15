@@ -29,10 +29,10 @@ func (v *Validate) Condition(con bool, msg string, args ...int) *Validate {
 }
 func (v *Validate) PrintError(fmt string, args ...interface{}) {
 	if len(v.list) > 0 {
-		item := v.list[len(v.list)-1]
-		item.PrintError = true
-		item.PrintFmt = fmt
-		item.PrintArgs = args
+		k := len(v.list) - 1
+		v.list[k].PrintError = true
+		v.list[k].PrintFmt = fmt
+		v.list[k].PrintArgs = args
 	}
 }
 func (v *Validate) Verify() (bool, string, int) {
