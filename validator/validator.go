@@ -54,6 +54,17 @@ func (v *Validate) Verify() (bool, string, int) {
 	return hasError, errMsg, errCode
 }
 
+func (v *Validate) IsPass() bool {
+	isPass := true
+	for _, item := range v.list {
+		if item.Con {
+			isPass = false
+			break
+		}
+	}
+	return isPass
+}
+
 func NewValidator(stdOk, stdError int) *Validate {
 	return &Validate{
 		StdOk:    stdOk,
