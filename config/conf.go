@@ -27,6 +27,20 @@ func InitConf(filename string) error {
 	return nil
 }
 
+func InitFrameConf(content interface{}) error {
+	bys, err := json.Marshal(content)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(bys, config)
+	if err != nil {
+		logger.Error("decode json error: %v", err)
+		return err
+	}
+	logger.Warnf("the conf is:%+v", config)
+	return nil
+}
+
 func GetDiscoverConf() DiscoverConf {
 	return config.Discover
 }
