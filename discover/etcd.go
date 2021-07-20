@@ -148,15 +148,15 @@ func (e *EtcdDiscoverer) Watcher() {
 }
 
 func (e *EtcdDiscoverer) DumpServers() {
-	logger.Info("#####################DUMP SERVERS BEGIN######################")
+	logger.Info("#####################################DUMP SERVERS BEGIN#################################")
 	logger.Info("the sever list is as follows:")
 	for typ, list := range e.ServerTypeMap {
-		logger.Info("----------------------------------------")
+		logger.Info("------------------------------------------------------------------------------------")
 		for _, server := range list.List {
 			logger.Infof("type:%v, server:%+v", typ, server)
 		}
 	}
-	logger.Info("#####################DUMP SERVERS END######################")
+	logger.Info("#####################################DUMP SERVERS END###################################")
 }
 
 // Register register
