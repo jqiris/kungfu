@@ -53,6 +53,7 @@ func (f *Finder) GetServerDiscover(serverType string, userId int) *treaty.Server
 			f.servers[serverType] = make(map[int]*treaty.Server)
 		}
 		f.servers[serverType][userId] = server
+		logger.Infof("user server cache,  user_id: %v, server_type: %v,server_id:%v", userId, serverType, server.ServerId)
 		return server
 	}
 	return nil
