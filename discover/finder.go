@@ -71,3 +71,13 @@ func (f *Finder) GetUserServer(serverType string, userId int) *treaty.Server {
 	logger.Errorf("找不到服务器：%v", serverType)
 	return &treaty.Server{ServerType: "none"}
 }
+
+func (f *Finder) RemoveUserCache(userId int) {
+	f.serverLock.Lock()
+	defer f.serverLock.Unlock()
+	for typ, v := range f.servers {
+		if _, ok := v[userId]; ok {
+			delete(f.servers[typ], userId)
+		}
+	}
+}
