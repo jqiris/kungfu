@@ -131,7 +131,7 @@ func (r *RpcNats) DealMsg(msg *nats.Msg, callback CallbackFunc) {
 		}
 	}
 	if r.DebugMsg {
-		logger.Infof("DealMsg,req:%+v,resp:%+v", req, resp)
+		logger.Infof("DealMsg,msgType: %v, msgId: %v", req.MsgType, req.MsgId)
 	}
 }
 
