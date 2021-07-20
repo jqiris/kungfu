@@ -23,6 +23,7 @@ type RpcXConf struct {
 	UseType     string   `json:"use_type"`
 	DialTimeout int      `json:"dial_timeout"`
 	Endpoints   []string `json:"endpoints"`
+	DebugMsg    bool     `json:"debug_msg"`
 }
 
 type StoresConf struct {

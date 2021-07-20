@@ -10,7 +10,7 @@ import (
 
 type CallbackFunc func(server RpcServer, req *RpcMsg) []byte
 
-//rpc interface
+// RpcServer rpc interface
 type RpcServer interface {
 	Subscribe(server *treaty.Server, callback CallbackFunc) error            //self Subscribe
 	Publish(server *treaty.Server, msgId int32, req interface{}) error       //publish
@@ -27,7 +27,7 @@ type RpcServer interface {
 	GetServer() *treaty.Server                                               //get current server
 }
 
-//create rpc server
+// NewRpcServer create rpc server
 func NewRpcServer(cfg config.RpcXConf, server *treaty.Server) RpcServer {
 	timeout := time.Duration(cfg.DialTimeout) * time.Second
 	var r RpcServer
@@ -38,6 +38,7 @@ func NewRpcServer(cfg config.RpcXConf, server *treaty.Server) RpcServer {
 			WithNatsDialTimeout(timeout),
 			WithNatsOptions(nats.Timeout(timeout)),
 			WithNatsServer(server),
+			WithNatsDebugMsg(cfg.DebugMsg),
 		)
 	default:
 		logger.Fatal("NewRpcConnector failed")

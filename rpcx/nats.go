@@ -24,9 +24,15 @@ type RpcNats struct {
 	DialTimeout time.Duration
 	RpcCoder    *RpcEncoder
 	Server      *treaty.Server
+	DebugMsg    bool
 }
 type RpcNatsOption func(r *RpcNats)
 
+func WithNatsDebugMsg(debug bool) RpcNatsOption {
+	return func(r *RpcNats) {
+		r.DebugMsg = debug
+	}
+}
 func WithNatsEndpoints(endpoints []string) RpcNatsOption {
 	return func(r *RpcNats) {
 		r.Endpoints = endpoints
@@ -123,6 +129,9 @@ func (r *RpcNats) DealMsg(msg *nats.Msg, callback CallbackFunc) {
 		if err := msg.Respond(resp); err != nil {
 			logger.Error(err)
 		}
+	}
+	if r.DebugMsg {
+		logger.Infof("DealMsg,req:%+v,resp:%+v", req, resp)
 	}
 }
 
