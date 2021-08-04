@@ -19,6 +19,7 @@ type EtcdDiscoverer struct {
 	ServerTypeMap    map[string]*ServerTypeItem //serverType=>serverTypeItem
 	ServerLock       *sync.RWMutex
 	EventHandlerList []EventHandler
+	Prefix           string
 }
 type EtcdOption func(e *EtcdDiscoverer)
 
@@ -33,6 +34,12 @@ func WithEtcdDialTimeOut(d time.Duration) EtcdOption {
 		e.Config.DialTimeout = d
 	}
 }
+func WithEtcdPrefix(prefix string) EtcdOption {
+	return func(e *EtcdDiscoverer) {
+		prefix = "/" + prefix + "/"
+		e.Prefix = prefix
+	}
+}
 
 // NewEtcdDiscoverer init EtcdDiscoverer
 func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
@@ -41,6 +48,7 @@ func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 		ServerTypeMap:    make(map[string]*ServerTypeItem),
 		ServerLock:       new(sync.RWMutex),
 		EventHandlerList: make([]EventHandler, 0),
+		Prefix:           "/server/",
 	}
 	for _, opt := range opts {
 		opt(e)
@@ -93,7 +101,7 @@ func (e *EtcdDiscoverer) Init() {
 
 func (e *EtcdDiscoverer) Watcher() {
 	for {
-		rch := e.Client.Watch(context.Background(), PrefixDiscover, clientv3.WithPrefix())
+		rch := e.Client.Watch(context.Background(), e.Prefix, clientv3.WithPrefix())
 		var err error
 		for wResp := range rch {
 			err = wResp.Err()
@@ -164,7 +172,7 @@ func (e *EtcdDiscoverer) Register(server *treaty.Server) error {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
-	key, val := PrefixDiscover+treaty.RegSeverItem(server), treaty.RegSerialize(server)
+	key, val := e.Prefix+treaty.RegSeverItem(server), treaty.RegSerialize(server)
 	logger.Infof("discover Register server,k=>v,%s=>%s", key, val)
 	if resp, err := kv.Put(ctx, key, val); err != nil {
 		return err
@@ -178,7 +186,7 @@ func (e *EtcdDiscoverer) UnRegister(server *treaty.Server) error {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
-	if resp, err := kv.Delete(ctx, PrefixDiscover+treaty.RegSeverItem(server), clientv3.WithPrevKV()); err != nil {
+	if resp, err := kv.Delete(ctx, e.Prefix+treaty.RegSeverItem(server), clientv3.WithPrevKV()); err != nil {
 		return err
 	} else {
 		logger.Infof("EtcdDiscoverer unregister resp:%+v", resp)
@@ -190,7 +198,7 @@ func (e *EtcdDiscoverer) FindServer(serverType string) []*treaty.Server {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
-	if resp, err := kv.Get(ctx, PrefixDiscover+serverType+"/", clientv3.WithPrefix()); err != nil {
+	if resp, err := kv.Get(ctx, e.Prefix+serverType+"/", clientv3.WithPrefix()); err != nil {
 		logger.Errorf("EtcdDiscoverer FindServer err:%v", err)
 		return nil
 	} else {
@@ -213,7 +221,7 @@ func (e *EtcdDiscoverer) FindServerList() map[string][]*treaty.Server {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
-	if resp, err := kv.Get(ctx, PrefixDiscover, clientv3.WithPrefix()); err != nil {
+	if resp, err := kv.Get(ctx, e.Prefix, clientv3.WithPrefix()); err != nil {
 		logger.Errorf("EtcdDiscoverer FindServerList err:%v", err)
 		return nil
 	} else {

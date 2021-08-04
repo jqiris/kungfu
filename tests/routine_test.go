@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/jqiris/kungfu/logger"
 	"testing"
 	"time"
 )
@@ -38,6 +39,21 @@ func (r *RouteClient) RoutePrint(ctx context.Context) {
 			fmt.Println(time.Now(), "--", r.Name, ":ticked")
 		}
 	}
+}
+
+type RouteManager struct {
+	routes map[string]*RouteClient
+}
+
+func TestRouteManager(t *testing.T) {
+	manager := &RouteManager{routes: make(map[string]*RouteClient)}
+	manager.routes["c1"], _ = NewRouteClient("c1")
+	manager.routes["c2"], _ = NewRouteClient("c2")
+	time.AfterFunc(5*time.Second, func() {
+		delete(manager.routes, "c1")
+		logger.Info("delete routers c1")
+	})
+	select {}
 }
 
 func TestRoutineRun(t *testing.T) {

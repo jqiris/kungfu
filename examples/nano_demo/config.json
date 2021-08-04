@@ -1,6 +1,7 @@
 {
   "discover": {
     "use_type": "etcd",
+    "prefix": "good",
     "dial_timeout": 5,
     "endpoints": [
       "127.0.0.1:23791",
@@ -10,6 +11,7 @@
   },
   "rpcx": {
     "use_type": "nats",
+    "prefix": "welcome",
     "dial_timeout": 5,
     "endpoints": [
       "nats:@kungfu2021@localhost:4222",
@@ -77,7 +79,6 @@
   "launch": [
     "balancer_1001",
     "connector_2001",
-    "connector_2002",
     "backend_3001"
   ]
 }

@@ -17,6 +17,7 @@ type DiscoverConf struct {
 	UseType     string   `json:"use_type"`
 	DialTimeout int      `json:"dial_timeout"`
 	Endpoints   []string `json:"endpoints"`
+	Prefix      string   `json:"prefix"`
 }
 
 type RpcXConf struct {
@@ -24,6 +25,7 @@ type RpcXConf struct {
 	DialTimeout int      `json:"dial_timeout"`
 	Endpoints   []string `json:"endpoints"`
 	DebugMsg    bool     `json:"debug_msg"`
+	Prefix      string   `json:"prefix"`
 }
 
 type StoresConf struct {

@@ -11,7 +11,6 @@ import (
 )
 
 const (
-	RpcPrefix = "RpcX"
 	Balancer  = "balancer"
 	Connector = "connector"
 	Server    = "server"
@@ -25,6 +24,7 @@ type RpcNats struct {
 	RpcCoder    *RpcEncoder
 	Server      *treaty.Server
 	DebugMsg    bool
+	Prefix      string
 }
 type RpcNatsOption func(r *RpcNats)
 
@@ -53,9 +53,16 @@ func WithNatsOptions(opts ...nats.Option) RpcNatsOption {
 		r.Options = opts
 	}
 }
+func WithNatsPrefix(prefix string) RpcNatsOption {
+	return func(r *RpcNats) {
+		r.Prefix = prefix
+	}
+}
 
 func NewRpcNats(opts ...RpcNatsOption) *RpcNats {
-	r := &RpcNats{}
+	r := &RpcNats{
+		Prefix: "RpcX",
+	}
 	for _, opt := range opts {
 		opt(r)
 	}
@@ -70,7 +77,7 @@ func NewRpcNats(opts ...RpcNatsOption) *RpcNats {
 }
 
 func (r *RpcNats) Subscribe(server *treaty.Server, callback CallbackFunc) error {
-	sub := path.Join(RpcPrefix, treaty.RegSeverItem(server))
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(server))
 	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
 		go utils.SafeRun(func() {
 			r.DealMsg(msg, callback)
@@ -82,7 +89,7 @@ func (r *RpcNats) Subscribe(server *treaty.Server, callback CallbackFunc) error 
 }
 
 func (r *RpcNats) SubscribeBalancer(callback CallbackFunc) error {
-	sub := path.Join(RpcPrefix, Balancer)
+	sub := path.Join(r.Prefix, Balancer)
 	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
 		go utils.SafeRun(func() {
 			r.DealMsg(msg, callback)
@@ -94,7 +101,7 @@ func (r *RpcNats) SubscribeBalancer(callback CallbackFunc) error {
 }
 
 func (r *RpcNats) SubscribeConnector(callback CallbackFunc) error {
-	sub := path.Join(RpcPrefix, Connector)
+	sub := path.Join(r.Prefix, Connector)
 	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
 		go utils.SafeRun(func() {
 			r.DealMsg(msg, callback)
@@ -106,7 +113,7 @@ func (r *RpcNats) SubscribeConnector(callback CallbackFunc) error {
 }
 
 func (r *RpcNats) SubscribeServer(callback CallbackFunc) error {
-	sub := path.Join(RpcPrefix, Server)
+	sub := path.Join(r.Prefix, Server)
 	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
 		go utils.SafeRun(func() {
 			r.DealMsg(msg, callback)
@@ -143,7 +150,7 @@ func (r *RpcNats) Request(server *treaty.Server, msgId int32, req, resp interfac
 	if err != nil {
 		return err
 	}
-	sub := path.Join(RpcPrefix, treaty.RegSeverItem(server))
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(server))
 	if msg, err = r.Client.Request(sub, data, r.DialTimeout); err == nil {
 		respMsg := &RpcMsg{MsgData: resp}
 		err = r.RpcCoder.Decode(msg.Data, respMsg)
@@ -161,7 +168,7 @@ func (r *RpcNats) Publish(server *treaty.Server, msgId int32, req interface{}) e
 	if err != nil {
 		return err
 	}
-	sub := path.Join(RpcPrefix, treaty.RegSeverItem(server))
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(server))
 	if err = r.Client.Publish(sub, data); err != nil {
 		return err
 	}
@@ -173,7 +180,7 @@ func (r *RpcNats) PublishBalancer(msgId int32, req interface{}) error {
 	if err != nil {
 		return err
 	}
-	sub := path.Join(RpcPrefix, Balancer)
+	sub := path.Join(r.Prefix, Balancer)
 	return r.Client.Publish(sub, data)
 }
 
@@ -182,7 +189,7 @@ func (r *RpcNats) PublishConnector(msgId int32, req interface{}) error {
 	if err != nil {
 		return err
 	}
-	sub := path.Join(RpcPrefix, Connector)
+	sub := path.Join(r.Prefix, Connector)
 	return r.Client.Publish(sub, data)
 }
 
@@ -191,7 +198,7 @@ func (r *RpcNats) PublishServer(msgId int32, req interface{}) error {
 	if err != nil {
 		return err
 	}
-	sub := path.Join(RpcPrefix, Server)
+	sub := path.Join(r.Prefix, Server)
 	return r.Client.Publish(sub, data)
 }
 

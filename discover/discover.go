@@ -15,16 +15,13 @@ var (
 	defDiscoverer Discoverer
 )
 
-const (
-	PrefixDiscover = "/server/"
-)
-
 func InitDiscoverer(cfg config.DiscoverConf) {
 	switch cfg.UseType {
 	case "etcd":
 		defDiscoverer = NewEtcdDiscoverer(
 			WithEtcdDialTimeOut(time.Duration(cfg.DialTimeout)*time.Second),
 			WithEtcdEndpoints(cfg.Endpoints),
+			WithEtcdPrefix(cfg.Prefix),
 		)
 	default:
 		logger.Fatal("InitDiscoverer failed")

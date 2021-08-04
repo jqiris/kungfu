@@ -36,6 +36,7 @@ func (h *Human) SetCall(handle func()) {
 
 //Employee的method重写Human的method
 func (e *Employee) SayHi() {
+	//e.Human.SayHi()
 	fmt.Printf("Hi, I am %s, I work at %s. Call me on %s\n", e.name,
 		e.company, e.phone) //Yes you can split into 2 lines here.
 }
@@ -47,5 +48,6 @@ func TestCover(t *testing.T) {
 	study.SetCall(func() { fmt.Println("Employee call") })
 	human.Call()
 	study.Call()
+	study.SayHi()
 
 }
