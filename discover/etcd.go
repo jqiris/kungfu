@@ -99,6 +99,15 @@ func (e *EtcdDiscoverer) Init() {
 	e.DumpServers()
 }
 
+func (e *EtcdDiscoverer) IsCurEvent(key string) bool {
+	prefix := ""
+	keyArr := strings.Split(key, "/")
+	if len(keyArr) > 1 {
+		prefix = "/" + keyArr[1] + "/"
+	}
+	return e.Prefix == prefix
+}
+
 func (e *EtcdDiscoverer) Watcher() {
 	for {
 		rch := e.Client.Watch(context.Background(), e.Prefix, clientv3.WithPrefix())
@@ -110,18 +119,21 @@ func (e *EtcdDiscoverer) Watcher() {
 			}
 			for _, ev := range wResp.Events {
 				logger.Infof("%s %q %q", ev.Type, ev.Kv.Key, ev.Kv.Value)
+				if !e.IsCurEvent(string(ev.Kv.Key)) {
+					continue
+				}
 				switch ev.Type {
 				case clientv3.EventTypePut:
 					if server, err := treaty.RegUnSerialize(ev.Kv.Value); err == nil {
 						e.ServerLock.Lock()
 						e.ServerList[server.ServerId] = server
 						if item, ok := e.ServerTypeMap[server.ServerType]; ok {
-							if _, ok := item.List[server.ServerId]; !ok {
+							if _, okv := item.List[server.ServerId]; !okv {
 								item.hash.Add(server.ServerId)
 							}
 							item.List[server.ServerId] = server
 						} else {
-							item := NewServerTypeItem()
+							item = NewServerTypeItem()
 							item.hash.Add(server.ServerId)
 							item.List[server.ServerId] = server
 							e.ServerTypeMap[server.ServerType] = item
@@ -136,7 +148,7 @@ func (e *EtcdDiscoverer) Watcher() {
 						e.ServerLock.Lock()
 						delete(e.ServerList, sid)
 						if item, ok := e.ServerTypeMap[sType]; ok {
-							if server, ok := item.List[sid]; ok {
+							if server, okv := item.List[sid]; okv {
 								item.hash.Remove(sid)
 								delete(item.List, sid)
 								e.EventHandlerExec(ev, server)
