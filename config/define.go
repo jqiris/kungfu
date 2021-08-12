@@ -34,6 +34,7 @@ type StoresConf struct {
 	Endpoints   []string `json:"endpoints"`
 	Password    string   `json:"password"`
 	DB          int      `json:"db"`
+	Prefix      string   `json:"prefix"`
 }
 
 type ConnectorConf struct {

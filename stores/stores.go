@@ -18,6 +18,7 @@ func InitStoreKeeper(cfg config.StoresConf) {
 			WithRedisDialTimeout(time.Duration(cfg.DialTimeout)*time.Second),
 			WithRedisPassword(cfg.Password),
 			WithRedisDB(cfg.DB),
+			WithRedisPrefix(cfg.Prefix),
 		)
 	default:
 		logger.Fatal("InitStoreKeeper failed")
