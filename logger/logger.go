@@ -228,6 +228,15 @@ func (l *Logger) logWriting(ctx context.Context) {
 	}
 }
 
+func (l *Logger) GetCallerPath(file string) string {
+	fileArr := strings.Split(file, "/")
+	fileLen := len(fileArr)
+	if fileLen > 2 {
+		return fileArr[fileLen-2] + "/" + fileArr[fileLen-1]
+	}
+	return file
+}
+
 func (l *Logger) NewLogItem(level LogLevel, txt ...interface{}) *LogItem {
 	item := &LogItem{
 		logLevel: level,
@@ -237,7 +246,7 @@ func (l *Logger) NewLogItem(level LogLevel, txt ...interface{}) *LogItem {
 	if l.logRuntime {
 		_, file, line, ok := runtime.Caller(4)
 		if ok {
-			item.logFile = path.Base(file)
+			item.logFile = l.GetCallerPath(file)
 			item.logLine = line
 		}
 	}

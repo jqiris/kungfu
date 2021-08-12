@@ -24,3 +24,4 @@ deploy/nats/streaming2/log/
 deploy/nats/streaming3/data/
 deploy/nats/streaming3/log/
 /logs/
+examples/nano_demo/logs/
