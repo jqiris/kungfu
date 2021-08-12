@@ -43,6 +43,12 @@ func WithLogRuntime(record bool) Option {
 	}
 }
 
+func WithLogFullPath(fullPath bool) Option {
+	return func(l *Logger) {
+		l.logFullPath = fullPath
+	}
+}
+
 func WithTimeFormat(format string) Option {
 	return func(l *Logger) {
 		l.timeFormat = format

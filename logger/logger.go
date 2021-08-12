@@ -34,6 +34,7 @@ type Logger struct {
 	logChan     chan *LogItem
 	fileLock    *sync.Mutex
 	logRuntime  bool          //是否记录运行时信息
+	logFullPath bool          //是否显示全部路径
 	timeFormat  string        //日期显示格式
 	stdColor    bool          //是否标准输出显示彩色
 	zipDuration time.Duration //zip压缩时长
@@ -49,6 +50,7 @@ func NewLogger(options ...Option) (*Logger, context.CancelFunc) {
 		outType:     OutStd,
 		logDump:     false,
 		logRuntime:  false,
+		logFullPath: false,
 		fileLock:    new(sync.Mutex),
 		logChan:     make(chan *LogItem, 1024),
 		timeFormat:  "2006-01-02 15:04:05",
@@ -117,7 +119,7 @@ func (l *Logger) OpenFile() {
 	//进行文件转储
 	l.fileLock.Lock()
 	defer l.fileLock.Unlock()
-	if _, err := os.Stat(l.logDir); err != nil {
+	if _, err = os.Stat(l.logDir); err != nil {
 		if os.IsNotExist(err) {
 			if err = os.MkdirAll(l.logDir, 0766); err != nil {
 				log.Fatal(err)
@@ -179,7 +181,7 @@ func (l *Logger) checkDump() {
 func (l *Logger) OutStd(level LogLevel, txt string) {
 	if l.stdColor {
 		printer := LevelColorMap[level]
-		if _, err := printer.Println(txt); err != nil {
+		if _, err = printer.Println(txt); err != nil {
 			fmt.Println(err)
 		}
 	} else {
@@ -187,7 +189,7 @@ func (l *Logger) OutStd(level LogLevel, txt string) {
 	}
 }
 func (l *Logger) OutFile(txt string) {
-	_, err := l.logFile.Write([]byte(txt + "\n"))
+	_, err = l.logFile.Write([]byte(txt + "\n"))
 	if err != nil {
 		l.OutStd(ERROR, err.Error())
 	}
@@ -237,7 +239,11 @@ func (l *Logger) NewLogItem(level LogLevel, txt ...interface{}) *LogItem {
 	if l.logRuntime {
 		_, file, line, ok := runtime.Caller(4)
 		if ok {
-			item.logFile = path.Base(file)
+			if l.logFullPath {
+				item.logFile = file
+			} else {
+				item.logFile = path.Base(file)
+			}
 			item.logLine = line
 		}
 	}
