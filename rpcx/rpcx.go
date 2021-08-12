@@ -38,6 +38,7 @@ func NewRpcServer(cfg config.RpcXConf, server *treaty.Server) RpcServer {
 			WithNatsDialTimeout(timeout),
 			WithNatsOptions(nats.Timeout(timeout)),
 			WithNatsServer(server),
+			WithNatsPrefix(cfg.Prefix),
 			WithNatsDebugMsg(cfg.DebugMsg),
 		)
 	default:
