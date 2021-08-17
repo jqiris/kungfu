@@ -31,8 +31,8 @@ type JobWorker interface {
 }
 
 type JobItem struct {
-	AddTime   time.Time //添加时间
-	StartTime time.Time //开始时间
+	AddTime   int64     //添加时间
+	StartTime int64     //开始时间
 	Worker    JobWorker //任务对象
 }
 
@@ -61,15 +61,15 @@ func (s *JobItem) FinishJob() {
 		return
 	}
 	worker.JobFinish()
-	finishTime := time.Now()
+	finishTime := time.Now().Unix()
 	logger.Infof(
 		"job finished,name:%v,addtime:%v,starttime:%v,endtime:%v, total:%v秒, deal:%v秒",
 		worker.Name(),
-		s.AddTime.Format("2006-01-02 15:04:05"),
-		s.StartTime.Format("2006-01-02 15:04:05"),
-		finishTime.Format("2006-01-02 15:04:05"),
-		finishTime.Sub(s.AddTime).Seconds(),
-		finishTime.Sub(s.StartTime).Seconds(),
+		s.AddTime,
+		s.StartTime,
+		finishTime,
+		finishTime-s.AddTime,
+		finishTime-s.StartTime,
 	)
 }
 
@@ -77,19 +77,19 @@ func NewJobItem(delay time.Duration, worker JobWorker) *JobItem {
 	nowTime := time.Now()
 	startTime := nowTime.Add(delay)
 	return &JobItem{
-		AddTime:   nowTime,
-		StartTime: startTime,
+		AddTime:   nowTime.Unix(),
+		StartTime: startTime.Unix(),
 		Worker:    worker,
 	}
 }
 
 type JobQueue struct {
-	StartTime time.Time     //开始时间
+	StartTime int64         //开始时间
 	JobItems  *Queue        //任务队列
 	mutex     *sync.RWMutex //锁
 }
 
-func NewJobQueue(sTime time.Time) *JobQueue {
+func NewJobQueue(sTime int64) *JobQueue {
 	return &JobQueue{
 		StartTime: sTime,
 		JobItems:  NewQueue(),
@@ -124,7 +124,7 @@ func (s *JobQueue) ExeJob() {
 type JobQueues []*JobQueue
 
 func (q JobQueues) Len() int           { return len(q) }
-func (q JobQueues) Less(i, j int) bool { return q[i].StartTime.Unix() < q[j].StartTime.Unix() }
+func (q JobQueues) Less(i, j int) bool { return q[i].StartTime < q[j].StartTime }
 func (q JobQueues) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
 
 type JobKeeper struct {
@@ -151,20 +151,31 @@ func (k *JobKeeper) ExecJob() {
 		for {
 			select {
 			case <-time.After(1 * time.Second):
-				if k.List.Len() > 0 && k.List[0].StartTime.Before(time.Now()) {
-					jobQueue := k.List[0]
-					k.List = k.List[1:]
-					delete(k.Index, jobQueue.StartTime.Unix())
+				nowUnix := time.Now().Unix()
+				var jobQueue *JobQueue
+				index, left := -1, false
+				for index, jobQueue = range k.List {
+					if jobQueue.StartTime > nowUnix {
+						left = true
+						break
+					}
 					go jobQueue.ExeJob()
+					delete(k.Index, jobQueue.StartTime)
 				}
+				if left {
+					k.List = k.List[index:]
+				} else {
+					k.List = []*JobQueue{}
+				}
+
 			case jobItem := <-k.AddChan:
 				sTime := jobItem.StartTime
-				if q, ok := k.Index[sTime.Unix()]; ok {
+				if q, ok := k.Index[sTime]; ok {
 					q.AddJob(jobItem)
 				} else {
 					qs := NewJobQueue(sTime)
 					qs.AddJob(jobItem)
-					k.Index[sTime.Unix()] = qs
+					k.Index[sTime] = qs
 					k.List = append(k.List, qs)
 					sort.Sort(k.List)
 				}
