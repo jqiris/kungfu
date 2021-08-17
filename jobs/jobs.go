@@ -129,14 +129,14 @@ func (q JobQueues) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
 
 type JobKeeper struct {
 	List    JobQueues
-	Index   map[time.Time]*JobQueue
+	Index   map[int64]*JobQueue
 	AddChan chan *JobItem
 }
 
 func NewJobKeeper() *JobKeeper {
 	return &JobKeeper{
 		List:    make(JobQueues, 0),
-		Index:   make(map[time.Time]*JobQueue),
+		Index:   make(map[int64]*JobQueue),
 		AddChan: make(chan *JobItem, 20),
 	}
 }
@@ -154,17 +154,17 @@ func (k *JobKeeper) ExecJob() {
 				if k.List.Len() > 0 && k.List[0].StartTime.Before(time.Now()) {
 					jobQueue := k.List[0]
 					k.List = k.List[1:]
-					delete(k.Index, jobQueue.StartTime)
+					delete(k.Index, jobQueue.StartTime.Unix())
 					go jobQueue.ExeJob()
 				}
 			case jobItem := <-k.AddChan:
 				sTime := jobItem.StartTime
-				if q, ok := k.Index[sTime]; ok {
+				if q, ok := k.Index[sTime.Unix()]; ok {
 					q.AddJob(jobItem)
 				} else {
 					qs := NewJobQueue(sTime)
 					qs.AddJob(jobItem)
-					k.Index[sTime] = qs
+					k.Index[sTime.Unix()] = qs
 					k.List = append(k.List, qs)
 					sort.Sort(k.List)
 				}
