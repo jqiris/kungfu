@@ -73,10 +73,12 @@ func (s *JobItem) FinishJob() {
 	)
 }
 
-func NewJobItem(sTime time.Time, worker JobWorker) *JobItem {
+func NewJobItem(delay time.Duration, worker JobWorker) *JobItem {
+	nowTime := time.Now()
+	startTime := nowTime.Add(delay)
 	return &JobItem{
-		AddTime:   time.Now(),
-		StartTime: sTime,
+		AddTime:   nowTime,
+		StartTime: startTime,
 		Worker:    worker,
 	}
 }
@@ -126,33 +128,23 @@ func (q JobQueues) Less(i, j int) bool { return q[i].StartTime.Unix() < q[j].Sta
 func (q JobQueues) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
 
 type JobKeeper struct {
-	List  JobQueues
-	Index map[time.Time]*JobQueue
-	mutex *sync.RWMutex
+	List     JobQueues
+	Index    map[time.Time]*JobQueue
+	AddChan  chan *JobItem
+	ExecChan chan *JobQueue
 }
 
 func NewJobKeeper() *JobKeeper {
 	return &JobKeeper{
-		List:  make(JobQueues, 0),
-		Index: make(map[time.Time]*JobQueue),
-		mutex: new(sync.RWMutex),
+		List:    make(JobQueues, 0),
+		Index:   make(map[time.Time]*JobQueue),
+		AddChan: make(chan *JobItem, 20),
 	}
 }
 
 func (k *JobKeeper) AddJob(delay time.Duration, job JobWorker) {
-	k.mutex.Lock()
-	defer k.mutex.Unlock()
-	sTime := time.Now().Add(delay)
-	jobItem := NewJobItem(sTime, job)
-	if q, ok := k.Index[sTime]; ok {
-		q.AddJob(jobItem)
-	} else {
-		qs := NewJobQueue(sTime)
-		qs.AddJob(jobItem)
-		k.Index[sTime] = qs
-		k.List = append(k.List, qs)
-		sort.Sort(k.List)
-	}
+	jobItem := NewJobItem(delay, job)
+	k.AddChan <- jobItem
 }
 
 func (k *JobKeeper) ExecJob() {
@@ -160,14 +152,23 @@ func (k *JobKeeper) ExecJob() {
 		for {
 			select {
 			case <-time.After(1 * time.Second):
-				k.mutex.RLock()
 				if k.List.Len() > 0 && k.List[0].StartTime.Before(time.Now()) {
-					tmp := k.List[0]
+					jobQueue := k.List[0]
 					k.List = k.List[1:]
-					delete(k.Index, tmp.StartTime)
-					tmp.ExeJob()
+					delete(k.Index, jobQueue.StartTime)
+					go jobQueue.ExeJob()
 				}
-				k.mutex.RUnlock()
+			case jobItem := <-k.AddChan:
+				sTime := jobItem.StartTime
+				if q, ok := k.Index[sTime]; ok {
+					q.AddJob(jobItem)
+				} else {
+					qs := NewJobQueue(sTime)
+					qs.AddJob(jobItem)
+					k.Index[sTime] = qs
+					k.List = append(k.List, qs)
+					sort.Sort(k.List)
+				}
 			}
 		}
 	}()

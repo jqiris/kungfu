@@ -8,6 +8,7 @@ import (
 )
 
 var rule = regexp.MustCompile(`.*\/(.+\/.+\.go)`)
+var pathMaps = make(map[string]string)
 
 func TestEventType(t *testing.T) {
 	a := "//gate/gate_2001"
@@ -24,6 +25,8 @@ func TestPathLocation(t *testing.T) {
 	fmt.Println(b)
 	c := pathB(a)
 	fmt.Println(c)
+	d := pathC(a)
+	fmt.Println(d)
 }
 func pathA(a string) string {
 	b := strings.Split(a, "/")
@@ -38,6 +41,16 @@ func pathB(a string) string {
 	}
 	return ""
 }
+func pathC(a string) string {
+	if v, ok := pathMaps[a]; ok {
+		return v
+	}
+	b := strings.Split(a, "/")
+	lb := len(b)
+	r := b[lb-2] + "/" + b[lb-1]
+	pathMaps[a] = r
+	return r
+}
 
 func BenchmarkPatha(b *testing.B) {
 	a := "H:/go/pkg/mod/github.com/jqiris/kungfu@v0.0.0-20210812091450-7f736d7f026f/rpcx/nats.go"
@@ -50,5 +63,11 @@ func BenchmarkPathb(b *testing.B) {
 	a := "H:/go/pkg/mod/github.com/jqiris/kungfu@v0.0.0-20210812091450-7f736d7f026f/rpcx/nats.go"
 	for i := 0; i < b.N; i++ {
 		pathB(a)
+	}
+}
+func BenchmarkPathc(b *testing.B) {
+	a := "H:/go/pkg/mod/github.com/jqiris/kungfu@v0.0.0-20210812091450-7f736d7f026f/rpcx/nats.go"
+	for i := 0; i < b.N; i++ {
+		pathC(a)
 	}
 }
