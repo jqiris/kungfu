@@ -47,6 +47,7 @@ func (j *JobTest) JobFinish() {
 func TestJobs(t *testing.T) {
 	logger.Infof("now begin:")
 	keeper := NewJobKeeper()
+	keeper.ExecJob()
 	go func() {
 		for i := 1; i < 20; i++ {
 			jobn := &JobTest{name: fmt.Sprintf("子任务：%v", i)}
@@ -66,6 +67,5 @@ func TestJobs(t *testing.T) {
 
 	job5 := &JobTest{name: "任务5"}
 	keeper.AddJob(0, job5)
-	keeper.ExecJob()
 	select {}
 }
