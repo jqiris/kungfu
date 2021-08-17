@@ -12,7 +12,7 @@ var (
 	keeper *JobKeeper
 )
 
-func InitJobs() {
+func init() {
 	keeper = NewJobKeeper()
 	keeper.ExecJob()
 }
