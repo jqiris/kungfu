@@ -128,10 +128,9 @@ func (q JobQueues) Less(i, j int) bool { return q[i].StartTime.Unix() < q[j].Sta
 func (q JobQueues) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
 
 type JobKeeper struct {
-	List     JobQueues
-	Index    map[time.Time]*JobQueue
-	AddChan  chan *JobItem
-	ExecChan chan *JobQueue
+	List    JobQueues
+	Index   map[time.Time]*JobQueue
+	AddChan chan *JobItem
 }
 
 func NewJobKeeper() *JobKeeper {

@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/logger"
 	"testing"
 	"time"
 )
@@ -44,12 +45,12 @@ func (j *JobTest) JobFinish() {
 }
 
 func TestJobs(t *testing.T) {
+	logger.Infof("now begin:")
 	keeper := NewJobKeeper()
 	go func() {
 		for i := 1; i < 20; i++ {
 			jobn := &JobTest{name: fmt.Sprintf("子任务：%v", i)}
 			keeper.AddJob(time.Duration(i)*time.Second, jobn)
-			keeper.ExecJob()
 		}
 	}()
 	job3 := &JobTest{name: "任务3"}
