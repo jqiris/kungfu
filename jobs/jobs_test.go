@@ -3,6 +3,7 @@ package jobs
 import (
 	"fmt"
 	"github.com/jqiris/kungfu/logger"
+	"math/rand"
 	"testing"
 	"time"
 )
@@ -46,10 +47,12 @@ func (j *JobTest) JobFinish() {
 
 func TestJobs(t *testing.T) {
 	logger.Infof("now begin:")
+	rand.Seed(time.Now().UnixNano())
 	go func() {
 		for i := 1; i < 20; i++ {
 			jobn := &JobTest{name: fmt.Sprintf("子任务：%v", i)}
 			keeper.AddJob(time.Duration(i)*time.Second, jobn)
+			time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
 		}
 	}()
 	job3 := &JobTest{name: "任务3"}
