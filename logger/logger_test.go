@@ -1,8 +1,6 @@
 package logger
 
 import (
-	"fmt"
-	"github.com/mattn/go-colorable"
 	"testing"
 )
 
@@ -14,9 +12,7 @@ func TestLoggerColor(t *testing.T) {
 	//	t.Fatal(err)
 	//}
 
-	var out = colorable.NewColorableStdout()
-	fmt.Fprintf(out, "\x1b[%dm", 31)
-	fmt.Fprintf(out, "%*s | ", 10, "adbd")
-	fmt.Fprintf(out, "\x1b[m")
+	Fatal("hello world")
+	select {}
 
 }
