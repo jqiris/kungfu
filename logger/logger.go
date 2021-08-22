@@ -220,6 +220,9 @@ func (l *Logger) logWriting(ctx context.Context) {
 			if l.outType == OutFile || l.outType == OutAll {
 				l.OutFile(txt)
 			}
+			if item.logLevel == FATAL {
+				os.Exit(1)
+			}
 		case <-tick.C:
 			l.checkDump() //每隔10分钟检查下转储
 		case <-ctx.Done():
@@ -255,7 +258,6 @@ func (l *Logger) NewLogItem(level LogLevel, txt ...interface{}) *LogItem {
 func (l *Logger) Fatal(txt ...interface{}) {
 	item := l.NewLogItem(FATAL, txt...)
 	l.logChan <- item
-	os.Exit(1)
 }
 
 func (l *Logger) Fatalf(tmp string, args ...interface{}) {
