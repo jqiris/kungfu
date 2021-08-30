@@ -1,4 +1,4 @@
-package jobs
+package ds
 
 type (
 	//Queue 队列
@@ -15,22 +15,22 @@ type (
 	}
 )
 
-// Create a new queue
+// NewQueue Create a new queue
 func NewQueue() *Queue {
 	return &Queue{nil, nil, 0}
 }
 
-//获取队列长度
+// Len 获取队列长度
 func (q *Queue) Len() int {
 	return q.length
 }
 
-//返回true队列不为空
+// Any 返回true队列不为空
 func (q *Queue) Any() bool {
 	return q.length > 0
 }
 
-//返回队列顶端元素
+// Peek 返回队列顶端元素
 func (q *Queue) Peek() interface{} {
 	if q.top == nil {
 		return nil
@@ -38,7 +38,7 @@ func (q *Queue) Peek() interface{} {
 	return q.top.value
 }
 
-//返回队列尾端元素
+// Rear 返回队列尾端元素
 func (q *Queue) Rear() interface{} {
 	if q.rear == nil {
 		return nil
@@ -46,7 +46,7 @@ func (q *Queue) Rear() interface{} {
 	return q.rear.value
 }
 
-//入队操作
+// Push 入队操作
 func (q *Queue) Push(v interface{}) {
 	n := &node{nil, nil, v}
 	if q.length == 0 {
@@ -62,7 +62,7 @@ func (q *Queue) Push(v interface{}) {
 	q.length++
 }
 
-//出队操作
+// Pop 出队操作
 func (q *Queue) Pop() interface{} {
 	if q.length == 0 {
 		return nil
@@ -79,7 +79,7 @@ func (q *Queue) Pop() interface{} {
 	return n.value
 }
 
-//末尾遍历操作
+// RearRange 末尾遍历操作
 func (q *Queue) RearRange(max int, handler func(item interface{})) {
 	if q.length == 0 {
 		return
@@ -96,7 +96,7 @@ func (q *Queue) RearRange(max int, handler func(item interface{})) {
 	}
 }
 
-//从头开始遍历
+// Range 从头开始遍历
 func (q *Queue) Range(handler func(item interface{})) {
 	if q.length == 0 {
 		return
@@ -108,7 +108,7 @@ func (q *Queue) Range(handler func(item interface{})) {
 	}
 }
 
-//从头开始遍历
+// RangePop 从头开始遍历
 func (q *Queue) RangePop(handler func(item interface{}) bool) {
 	if q.length == 0 {
 		return
@@ -140,7 +140,7 @@ func (q *Queue) RangePop(handler func(item interface{}) bool) {
 	}
 }
 
-//从头开始遍历,限制最大数量
+// RangePopMax 从头开始遍历,限制最大数量
 func (q *Queue) RangePopMax(max int, handler func(item interface{}) bool) {
 	if q.length == 0 {
 		return

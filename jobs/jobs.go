@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"github.com/jqiris/kungfu/ds"
 	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/utils"
 	"sort"
@@ -85,14 +86,14 @@ func NewJobItem(delay time.Duration, worker JobWorker) *JobItem {
 
 type JobQueue struct {
 	StartTime int64         //开始时间
-	JobItems  *Queue        //任务队列
+	JobItems  *ds.Queue     //任务队列
 	mutex     *sync.RWMutex //锁
 }
 
 func NewJobQueue(sTime int64) *JobQueue {
 	return &JobQueue{
 		StartTime: sTime,
-		JobItems:  NewQueue(),
+		JobItems:  ds.NewQueue(),
 		mutex:     new(sync.RWMutex),
 	}
 }
