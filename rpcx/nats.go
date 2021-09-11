@@ -1,19 +1,21 @@
 package rpcx
 
 import (
+	"path"
+	"strings"
+	"time"
+
 	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/treaty"
 	"github.com/jqiris/kungfu/utils"
 	"github.com/nats-io/nats.go"
-	"path"
-	"strings"
-	"time"
 )
 
 const (
 	Balancer  = "balancer"
 	Connector = "connector"
 	Server    = "server"
+	Database  = "database"
 )
 
 type RpcNats struct {
@@ -88,6 +90,18 @@ func (r *RpcNats) Subscribe(server *treaty.Server, callback CallbackFunc) error 
 	return nil
 }
 
+func (r *RpcNats) QueueSubscribe(queue string, server *treaty.Server, callback CallbackFunc) error {
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(server))
+	if _, err := r.Client.QueueSubscribe(sub, queue, func(msg *nats.Msg) {
+		go utils.SafeRun(func() {
+			r.DealMsg(msg, callback)
+		})
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *RpcNats) SubscribeBalancer(callback CallbackFunc) error {
 	sub := path.Join(r.Prefix, Balancer)
 	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
@@ -115,6 +129,18 @@ func (r *RpcNats) SubscribeConnector(callback CallbackFunc) error {
 func (r *RpcNats) SubscribeServer(callback CallbackFunc) error {
 	sub := path.Join(r.Prefix, Server)
 	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
+		go utils.SafeRun(func() {
+			r.DealMsg(msg, callback)
+		})
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *RpcNats) SubscribeDatabase(queue string, callback CallbackFunc) error {
+	sub := path.Join(r.Prefix, Database)
+	if _, err := r.Client.QueueSubscribe(sub, queue, func(msg *nats.Msg) {
 		go utils.SafeRun(func() {
 			r.DealMsg(msg, callback)
 		})
@@ -199,6 +225,15 @@ func (r *RpcNats) PublishServer(msgId int32, req interface{}) error {
 		return err
 	}
 	sub := path.Join(r.Prefix, Server)
+	return r.Client.Publish(sub, data)
+}
+
+func (r *RpcNats) PublishDatabase(msgId int32, req interface{}) error {
+	data, err := r.EncodeMsg(Publish, msgId, req)
+	if err != nil {
+		return err
+	}
+	sub := path.Join(r.Prefix, Database)
 	return r.Client.Publish(sub, data)
 }
 
