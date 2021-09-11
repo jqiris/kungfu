@@ -36,8 +36,8 @@ func (b *DatabaseEnd) AfterInit() {
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := b.RpcX.SubscribeDatabase(b.Server.ServerQueue, func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
-		logger.Infof("DatabaseEnd SubscribeServer received: %+v", req)
+	if err := b.RpcX.SubscribeDatabase(func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+		logger.Infof("DatabaseEnd SubscribeDatabase received: %+v", req)
 		return b.EventHandlerBroadcast(server, req)
 	}); err != nil {
 		logger.Error(err)

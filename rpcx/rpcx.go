@@ -20,7 +20,7 @@ type RpcServer interface {
 	SubscribeBalancer(callback CallbackFunc) error                                   //balancer subscribe
 	SubscribeConnector(callback CallbackFunc) error                                  //connect subscribe
 	SubscribeServer(callback CallbackFunc) error                                     //server subscribe
-	SubscribeDatabase(queue string, callback CallbackFunc) error                     //database subscribe
+	SubscribeDatabase(callback CallbackFunc) error                                   //database subscribe
 	PublishBalancer(msgId int32, req interface{}) error                              //balancer publish
 	PublishConnector(msgId int32, req interface{}) error                             //connect publish
 	PublishServer(msgId int32, req interface{}) error                                //server publish

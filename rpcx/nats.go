@@ -138,9 +138,9 @@ func (r *RpcNats) SubscribeServer(callback CallbackFunc) error {
 	return nil
 }
 
-func (r *RpcNats) SubscribeDatabase(queue string, callback CallbackFunc) error {
+func (r *RpcNats) SubscribeDatabase(callback CallbackFunc) error {
 	sub := path.Join(r.Prefix, Database)
-	if _, err := r.Client.QueueSubscribe(sub, queue, func(msg *nats.Msg) {
+	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
 		go utils.SafeRun(func() {
 			r.DealMsg(msg, callback)
 		})
