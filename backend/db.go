@@ -30,7 +30,7 @@ func (b *DatabaseEnd) Init() {
 
 func (b *DatabaseEnd) AfterInit() {
 	//Subscribe event
-	if err := b.RpcX.Subscribe(b.Server, func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+	if err := b.RpcX.SubscribeJson(b.Server, func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
 		//logger.Infof("DatabaseEnd Subscribe received: %+v", req)
 		return b.EventHandlerSelf(server, req)
 	}); err != nil {

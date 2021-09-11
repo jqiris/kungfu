@@ -33,8 +33,8 @@ type RpcEncoder struct {
 	encoder serialize.Serializer
 }
 
-func NewRpcEncoder() *RpcEncoder {
-	return &RpcEncoder{encoder: serialize.NewProtoSerializer()}
+func NewRpcEncoder(encoder serialize.Serializer) *RpcEncoder {
+	return &RpcEncoder{encoder: encoder}
 }
 
 // Encode Protocol
