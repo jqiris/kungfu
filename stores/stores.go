@@ -42,6 +42,11 @@ type StoreKeeper interface {
 	HExists(key, field string) bool
 	Expire(key string, expiration time.Duration) bool
 	HKeys(key string) ([]string, error)
+	LPush(key string, values ...interface{}) error
+	RPush(key string, values ...interface{}) error
+	LPop(key string, val interface{}) error
+	RPop(key string, val interface{}) error
+	LLen(key string) int64
 }
 
 func Set(key string, value interface{}, expire time.Duration) error {
@@ -98,4 +103,24 @@ func Expire(key string, expiration time.Duration) bool {
 
 func HKeys(key string) ([]string, error) {
 	return defStoreKeeper.HKeys(key)
+}
+
+func LPush(key string, values ...interface{}) error {
+	return defStoreKeeper.LPush(key, values...)
+}
+
+func RPush(key string, values ...interface{}) error {
+	return defStoreKeeper.RPush(key, values...)
+}
+
+func LPop(key string, val interface{}) error {
+	return defStoreKeeper.LPop(key, val)
+}
+
+func RPop(key string, val interface{}) error {
+	return defStoreKeeper.LPop(key, val)
+}
+
+func LLen(key string) int64 {
+	return defStoreKeeper.LLen(key)
 }

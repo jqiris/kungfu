@@ -86,6 +86,16 @@ func (s *StoreRedis) GetKeys(keys []string) []string {
 	return list
 }
 
+func (s *StoreRedis) GetValues(values []interface{}) []interface{} {
+	res := make([]interface{}, 0)
+	for _, v := range values {
+		if bs, err := json.Marshal(v); err == nil {
+			res = append(res, bs)
+		}
+	}
+	return res
+}
+
 func (s *StoreRedis) Set(key string, value interface{}, expire time.Duration) error {
 	bs, err := json.Marshal(value)
 	if err != nil {
@@ -249,4 +259,49 @@ func (s *StoreRedis) HKeys(key string) ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
 	return s.Client.HKeys(ctx, s.GetKey(key)).Result()
+}
+
+func (s *StoreRedis) LPush(key string, values ...interface{}) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	if _, err := s.Client.LPush(ctx, s.GetKey(key), s.GetValues(values)...).Result(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *StoreRedis) RPush(key string, values ...interface{}) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	if _, err := s.Client.RPush(ctx, s.GetKey(key), s.GetValues(values)...).Result(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *StoreRedis) LPop(key string, val interface{}) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	var bs []byte
+	err := s.Client.LPop(ctx, s.GetKey(key)).Scan(&bs)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(bs, val)
+}
+func (s *StoreRedis) RPop(key string, val interface{}) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	var bs []byte
+	err := s.Client.RPop(ctx, s.GetKey(key)).Scan(&bs)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(bs, val)
+}
+
+func (s *StoreRedis) LLen(key string) int64 {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.LLen(ctx, s.GetKey(key)).Val()
 }
