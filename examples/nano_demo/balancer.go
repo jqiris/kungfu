@@ -12,12 +12,12 @@ type MyBalancer struct {
 	balancer.BaseBalancer
 }
 
-func (b *MyBalancer) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+func (b *MyBalancer) EventHandleSelf(req *rpcx.RpcMsg) []byte {
 	fmt.Printf("MyBalancer EventHandleSelf received: %+v \n", req)
 	return nil
 }
 
-func (b *MyBalancer) EventHandleBroadcast(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+func (b *MyBalancer) EventHandleBroadcast(req *rpcx.RpcMsg) []byte {
 	fmt.Printf("MyBalancer EventHandleBroadcast received: %+v \n", req)
 	return nil
 }

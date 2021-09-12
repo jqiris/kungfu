@@ -234,7 +234,7 @@ func (r *RpcNats) DealMsg(msg *nats.Msg, callback CallbackFunc) {
 		logger.Error(err)
 		return
 	}
-	resp := callback(r, req)
+	resp := callback(req)
 	if resp != nil {
 		if err = msg.Respond(resp); err != nil {
 			logger.Error(err)
@@ -252,7 +252,7 @@ func (r *RpcNats) DealJsonMsg(msg *nats.Msg, callback CallbackFunc) {
 		logger.Error(err)
 		return
 	}
-	resp := callback(r, req)
+	resp := callback(req)
 	if resp != nil {
 		if err = msg.Respond(resp); err != nil {
 			logger.Error(err)

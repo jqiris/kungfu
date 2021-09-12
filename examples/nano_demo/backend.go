@@ -19,11 +19,11 @@ type MyBackend struct {
 	conns   map[int32]*treaty.Server
 }
 
-func BackendLogin(server rpcx.RpcServer, req *treaty.LoginRequest) *treaty.LoginResponse {
-	logger.Info("BackendLogin:", server, req)
+func (g *MyBackend) BackendLogin(req *treaty.LoginRequest) *treaty.LoginResponse {
+	logger.Info("BackendLogin:", req)
 	resp := &treaty.LoginResponse{}
 	//检查游戏通道是否建立
-	ch := channel.GetChannel(server.GetServer(), req.Uid)
+	ch := channel.GetChannel(g.GetServer(), req.Uid)
 	if ch != nil {
 		ch.ReconnectNum++
 		ch.ReconnectTime = time.Now().Unix()
@@ -32,14 +32,14 @@ func BackendLogin(server rpcx.RpcServer, req *treaty.LoginRequest) *treaty.Login
 		}
 		resp.Code = treaty.CodeType_CodeSuccess
 		resp.Msg = "登录成功"
-		resp.Backend = server.GetServer()
+		resp.Backend = g.GetServer()
 		return resp
 	}
 	//游戏通道建立
 	ch = &treaty.GameChannel{
 		Uid:        req.Uid,
 		Connector:  req.Connector,
-		Backend:    server.GetServer(),
+		Backend:    g.GetServer(),
 		CreateTime: time.Now().Unix(),
 	}
 	if err := channel.SaveChannel(ch); err != nil {
@@ -47,11 +47,11 @@ func BackendLogin(server rpcx.RpcServer, req *treaty.LoginRequest) *treaty.Login
 	}
 	resp.Code = treaty.CodeType_CodeSuccess
 	resp.Msg = "登录成功"
-	resp.Backend = server.GetServer()
+	resp.Backend = g.GetServer()
 	return resp
 }
 
-func BackendOut(server rpcx.RpcServer, msg *treaty.LogoutRequest) *treaty.LogoutResponse {
+func (g *MyBackend) BackendOut(server rpcx.RpcServer, msg *treaty.LogoutRequest) *treaty.LogoutResponse {
 	//服务端登出
 	resp := &treaty.LogoutResponse{}
 	//销毁通道
@@ -63,7 +63,7 @@ func BackendOut(server rpcx.RpcServer, msg *treaty.LogoutRequest) *treaty.Logout
 	return resp
 }
 
-func ChannelTest(server rpcx.RpcServer, req *treaty.ChannelMsgRequest) *treaty.ChannelMsgResponse {
+func (g *MyBackend) ChannelTest(req *treaty.ChannelMsgRequest) *treaty.ChannelMsgResponse {
 	rMsg := fmt.Sprintf("received chat msg:%+v", string(req.MsgData))
 	resp := &treaty.ChannelMsgResponse{
 		Code:      0,
@@ -74,9 +74,9 @@ func ChannelTest(server rpcx.RpcServer, req *treaty.ChannelMsgRequest) *treaty.C
 	return resp
 }
 
-func (b *MyBackend) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+func (b *MyBackend) EventHandleSelf(req *rpcx.RpcMsg) []byte {
 	logger.Infof("MyBackend EventHandleSelf received: %+v", req)
-	resp, err := b.handler.DealMsg(server, req)
+	resp, err := b.handler.DealMsg(b.RpcX, req)
 	if err != nil {
 		logger.Error(err)
 		return nil
@@ -84,7 +84,7 @@ func (b *MyBackend) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) []b
 	return resp
 }
 
-func (b *MyBackend) EventHandleBroadcast(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+func (b *MyBackend) EventHandleBroadcast(req *rpcx.RpcMsg) []byte {
 	fmt.Printf("MyBackend EventHandleBroadcast received: %+v \n", req)
 	return nil
 }
@@ -98,7 +98,7 @@ func init() {
 	srv.RegEventHandlerSelf(srv.EventHandleSelf)
 	srv.RegEventHandlerBroadcast(srv.EventHandleBroadcast)
 	launch.RegisterServer(srv)
-	srv.handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogin), BackendLogin)
-	srv.handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogout), BackendOut)
-	srv.handler.Register(int32(treaty.RpcMsgId_RpcMsgChatTest), ChannelTest)
+	srv.handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogin), srv.BackendLogin)
+	srv.handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogout), srv.BackendOut)
+	srv.handler.Register(int32(treaty.RpcMsgId_RpcMsgChatTest), srv.ChannelTest)
 }

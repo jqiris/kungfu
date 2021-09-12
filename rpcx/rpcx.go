@@ -9,7 +9,7 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-type CallbackFunc func(server RpcServer, req *RpcMsg) []byte
+type CallbackFunc func(req *RpcMsg) []byte
 
 // RpcServer rpc interface
 type RpcServer interface {

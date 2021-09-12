@@ -32,15 +32,15 @@ func (g *HttpConnector) Init() {
 
 func (g *HttpConnector) AfterInit() {
 	//Subscribe event
-	if err := g.RpcX.Subscribe(g.Server, func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+	if err := g.RpcX.Subscribe(g.Server, func(req *rpcx.RpcMsg) []byte {
 		logger.Infof("HttpConnector Subscribe received: %+v", req)
-		return g.EventHandlerSelf(server, req)
+		return g.EventHandlerSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := g.RpcX.SubscribeConnector(func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+	if err := g.RpcX.SubscribeConnector(func(req *rpcx.RpcMsg) []byte {
 		logger.Infof("HttpConnector SubscribeConnector received: %+v", req)
-		return g.EventHandlerBroadcast(server, req)
+		return g.EventHandlerBroadcast(req)
 	}); err != nil {
 		logger.Error(err)
 	}

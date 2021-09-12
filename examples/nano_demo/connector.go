@@ -102,7 +102,7 @@ func (u *UserConnector) ChannelMsg(s *session.Session, req *treaty.ChannelMsgReq
 	}
 }
 
-func (u *UserConnector) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+func (u *UserConnector) EventHandleSelf(req *rpcx.RpcMsg) []byte {
 	fmt.Printf("MyConnector EventHandleSelf received: %+v \n", req)
 
 	msgId, msgData := treaty.RpcMsgId(req.MsgId), req.MsgData.([]byte)
@@ -110,7 +110,7 @@ func (u *UserConnector) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg)
 	case treaty.RpcMsgId_RpcMsgMultiLoginOut:
 		//多端登录退出，向客户端发消息
 		msg := &treaty.MultiLoginOut{}
-		if err := server.DecodeMsg(msgData, msg); err != nil {
+		if err := u.RpcX.DecodeMsg(msgData, msg); err != nil {
 			logger.Error(err)
 		} else {
 			logger.Info(msg)
@@ -119,7 +119,7 @@ func (u *UserConnector) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg)
 	return nil
 }
 
-func (u *UserConnector) EventHandleBroadcast(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+func (u *UserConnector) EventHandleBroadcast(req *rpcx.RpcMsg) []byte {
 	fmt.Printf("MyConnector EventHandleBroadcast received: %+v \n", req)
 	return nil
 }

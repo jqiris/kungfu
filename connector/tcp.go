@@ -40,15 +40,15 @@ func (b *TcpConnector) Init() {
 
 func (b *TcpConnector) AfterInit() {
 	//Subscribe event
-	if err := b.RpcX.Subscribe(b.Server, func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+	if err := b.RpcX.Subscribe(b.Server, func(req *rpcx.RpcMsg) []byte {
 		logger.Infof("NanoConnector Subscribe received: %+v", req)
-		return b.EventHandlerSelf(server, req)
+		return b.EventHandlerSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := b.RpcX.SubscribeConnector(func(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
+	if err := b.RpcX.SubscribeConnector(func(req *rpcx.RpcMsg) []byte {
 		logger.Infof("NanoConnector SubscribeConnector received: %+v", req)
-		return b.EventHandlerBroadcast(server, req)
+		return b.EventHandlerBroadcast(req)
 	}); err != nil {
 		logger.Error(err)
 	}

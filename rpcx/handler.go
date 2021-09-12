@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/jqiris/kungfu/logger"
 	"reflect"
-	"strings"
 )
 
 type HandlerItem struct {
@@ -23,13 +22,10 @@ func NewHandler() *Handler {
 }
 
 func (h *Handler) isSuitHandler(tf reflect.Type) bool {
-	if tf.NumIn() != 2 {
+	if tf.NumIn() != 1 {
 		return false
 	}
-	if !strings.Contains(tf.In(0).String(), "RpcServer") {
-		return false
-	}
-	if tf.In(1).Kind() != reflect.Ptr {
+	if tf.In(0).Kind() != reflect.Ptr {
 		return false
 	}
 	if tf.NumOut() > 1 || (tf.NumOut() == 1 && tf.Out(0).Kind() != reflect.Ptr) {
