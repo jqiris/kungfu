@@ -88,7 +88,7 @@ func (h *Handler) DealJsonMsg(server RpcServer, req *RpcMsg) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		args := []reflect.Value{reflect.ValueOf(server), reflect.ValueOf(inElem)}
+		args := []reflect.Value{reflect.ValueOf(inElem)}
 		resp := handler.Func.Call(args)
 		if handler.MsgType == Request && len(resp) > 0 {
 			outItem := resp[0].Interface()
