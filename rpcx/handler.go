@@ -50,7 +50,7 @@ func (h *Handler) Register(msgId int32, v interface{}) {
 	}
 	h.handlers[msgId] = HandlerItem{
 		MsgType: msgType,
-		InType:  tf.In(1),
+		InType:  tf.In(0),
 		Func:    vf,
 	}
 }
