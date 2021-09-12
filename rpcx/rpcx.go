@@ -38,7 +38,6 @@ type RpcServer interface {
 	GetServer() *treaty.Server                                                                         //get current server
 	Find(serverType string, userId int) *treaty.Server                                                 //find server
 	RemoveFindCache(userId int)                                                                        //clear find cache
-	GetHandler() *Handler                                                                              //get deal handler
 }
 
 // NewRpcServer create rpc server

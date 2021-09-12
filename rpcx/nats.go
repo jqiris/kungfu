@@ -31,7 +31,6 @@ type RpcNats struct {
 	DebugMsg     bool
 	Prefix       string
 	Finder       *discover.Finder
-	Handler      *Handler
 }
 type RpcNatsOption func(r *RpcNats)
 
@@ -82,7 +81,6 @@ func NewRpcNats(opts ...RpcNatsOption) *RpcNats {
 	r.RpcCoder = NewRpcEncoder(serialize.NewProtoSerializer())
 	r.RpcJsonCoder = NewRpcEncoder(serialize.NewJsonSerializer())
 	r.Finder = discover.NewFinder()
-	r.Handler = NewHandler()
 	return r
 }
 
@@ -91,9 +89,6 @@ func (r *RpcNats) Find(serverType string, userId int) *treaty.Server {
 }
 func (r *RpcNats) RemoveFindCache(userId int) {
 	r.Finder.RemoveUserCache(userId)
-}
-func (r *RpcNats) GetHandler() *Handler {
-	return r.Handler
 }
 
 func (r *RpcNats) Subscribe(server *treaty.Server, callback CallbackFunc, args ...bool) error {
