@@ -92,7 +92,7 @@ func (b *MyBackend) EventHandleBroadcast(req *rpcx.RpcMsg) []byte {
 func init() {
 	srv := &MyBackend{
 		conns:   make(map[int32]*treaty.Server),
-		handler: rpcx.NewHandler(0, 0),
+		handler: rpcx.NewHandler(),
 	}
 	srv.SetServerId("backend_3001")
 	srv.RegEventHandlerSelf(srv.EventHandleSelf)

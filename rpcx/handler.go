@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/jqiris/kungfu/logger"
 	"reflect"
-	"time"
 )
 
 type HandlerItem struct {
@@ -13,29 +12,12 @@ type HandlerItem struct {
 	Func    reflect.Value
 }
 type Handler struct {
-	handlers     map[int32]HandlerItem
-	maxPoolSize  int
-	cSemaphore   chan struct{}
-	reqPerSecond int
-	rateLimiter  <-chan time.Time
+	handlers map[int32]HandlerItem
 }
 
-func NewHandler(maxPoolSize int, reqPerSec int) *Handler {
-	var semaphore chan struct{} = nil
-	if maxPoolSize > 0 {
-		semaphore = make(chan struct{}, maxPoolSize) // Buffered channel to act as a semaphore
-	}
-
-	var emitter <-chan time.Time = nil
-	if reqPerSec > 0 {
-		emitter = time.NewTicker(time.Second / time.Duration(reqPerSec)).C // x req/s == 1s/x req (inverse)
-	}
+func NewHandler() *Handler {
 	return &Handler{
-		handlers:     make(map[int32]HandlerItem),
-		maxPoolSize:  maxPoolSize,
-		cSemaphore:   semaphore,
-		reqPerSecond: reqPerSec,
-		rateLimiter:  emitter,
+		handlers: make(map[int32]HandlerItem),
 	}
 }
 
@@ -74,16 +56,6 @@ func (h *Handler) Register(msgId int32, v interface{}) {
 }
 
 func (h *Handler) DealMsg(server RpcServer, req *RpcMsg) ([]byte, error) {
-	if h.maxPoolSize > 0 {
-		h.cSemaphore <- struct{}{} // Grab a connection from our pool
-		defer func() {
-			<-h.cSemaphore // Defer release our connection back to the pool
-		}()
-	}
-
-	if h.reqPerSecond > 0 {
-		<-h.rateLimiter // Block until a signal is emitted from the rateLimiter
-	}
 	msgId, msgData := req.MsgId, req.MsgData.([]byte)
 	if handler, ok := h.handlers[msgId]; ok {
 		if handler.MsgType != req.MsgType {
@@ -106,16 +78,6 @@ func (h *Handler) DealMsg(server RpcServer, req *RpcMsg) ([]byte, error) {
 }
 
 func (h *Handler) DealJsonMsg(server RpcServer, req *RpcMsg) ([]byte, error) {
-	if h.maxPoolSize > 0 {
-		h.cSemaphore <- struct{}{} // Grab a connection from our pool
-		defer func() {
-			<-h.cSemaphore // Defer release our connection back to the pool
-		}()
-	}
-
-	if h.reqPerSecond > 0 {
-		<-h.rateLimiter // Block until a signal is emitted from the rateLimiter
-	}
 	msgId, msgData := req.MsgId, req.MsgData.([]byte)
 	if handler, ok := h.handlers[msgId]; ok {
 		if handler.MsgType != req.MsgType {
