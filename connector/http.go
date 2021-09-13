@@ -13,6 +13,7 @@ type HttpConnector struct {
 	ServerId              string
 	Server                *treaty.Server
 	RpcX                  rpcx.RpcServer
+	EventJsonSelf         rpcx.CallbackFunc //处理自己的json事件
 	EventHandlerSelf      rpcx.CallbackFunc //处理自己的事件
 	EventHandlerBroadcast rpcx.CallbackFunc //处理广播事件
 	ConnectorConf         config.ConnectorConf
@@ -41,7 +42,7 @@ func (g *HttpConnector) AfterInit() {
 	//Subscribe event
 	if err := g.RpcX.SubscribeJson(g.Server, func(req *rpcx.RpcMsg) []byte {
 		//logger.Infof("BaseBackEnd Subscribe received: %+v", req)
-		return g.EventHandlerSelf(req)
+		return g.EventJsonSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}

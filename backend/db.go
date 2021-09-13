@@ -14,6 +14,7 @@ type DatabaseEnd struct {
 	ServerId              string
 	Server                *treaty.Server
 	RpcX                  rpcx.RpcServer
+	EventJsonSelf         rpcx.CallbackFunc //处理自己的json事件
 	EventHandlerSelf      rpcx.CallbackFunc //处理自己的事件
 	EventHandlerBroadcast rpcx.CallbackFunc //处理广播事件
 }
@@ -39,7 +40,7 @@ func (b *DatabaseEnd) AfterInit() {
 	//Subscribe event
 	if err := b.RpcX.SubscribeJson(b.Server, func(req *rpcx.RpcMsg) []byte {
 		//logger.Infof("DatabaseEnd Subscribe received: %+v", req)
-		return b.EventHandlerSelf(req)
+		return b.EventJsonSelf(req)
 	}, false); err != nil {
 		logger.Error(err)
 	}
