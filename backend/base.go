@@ -72,6 +72,10 @@ func (b *BaseBackEnd) GetServer() *treaty.Server {
 	return b.Server
 }
 
+func (b *BaseBackEnd) RegEventJsonSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
+	b.EventJsonSelf = handler
+}
+
 func (b *BaseBackEnd) RegEventHandlerSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
 	b.EventHandlerSelf = handler
 }

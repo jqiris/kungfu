@@ -153,7 +153,9 @@ func (b *BaseBalancer) Balance(remoteAddr string) (*treaty.Server, error) {
 func (b *BaseBalancer) GetServer() *treaty.Server {
 	return b.Server
 }
-
+func (b *BaseBalancer) RegEventJsonSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
+	b.EventJsonSelf = handler
+}
 func (b *BaseBalancer) RegEventHandlerSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
 	b.EventHandlerSelf = handler
 }

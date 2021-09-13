@@ -71,7 +71,9 @@ func (b *DatabaseEnd) Shutdown() {
 func (b *DatabaseEnd) GetServer() *treaty.Server {
 	return b.Server
 }
-
+func (b *DatabaseEnd) RegEventJsonSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
+	b.EventJsonSelf = handler
+}
 func (b *DatabaseEnd) RegEventHandlerSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
 	b.EventHandlerSelf = handler
 }

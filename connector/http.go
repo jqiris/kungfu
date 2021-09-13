@@ -19,71 +19,73 @@ type HttpConnector struct {
 	ConnectorConf         config.ConnectorConf
 }
 
-func (g *HttpConnector) Init() {
+func (b *HttpConnector) Init() {
 	//find the  server config
-	if serverConf := utils.FindServerConfig(config.GetServersConf(), g.GetServerId()); serverConf == nil {
+	if serverConf := utils.FindServerConfig(config.GetServersConf(), b.GetServerId()); serverConf == nil {
 		logger.Fatal("HttpConnector can't find the server config")
 	} else {
-		g.Server = serverConf
-		g.ConnectorConf = config.GetConnectorConf()
+		b.Server = serverConf
+		b.ConnectorConf = config.GetConnectorConf()
 	}
 	//init the rpcx
-	g.RpcX = rpcx.NewRpcServer(config.GetRpcXConf(), g.Server)
+	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf(), b.Server)
 }
 
-func (g *HttpConnector) AfterInit() {
+func (b *HttpConnector) AfterInit() {
 	//Subscribe event
-	if err := g.RpcX.Subscribe(g.Server, func(req *rpcx.RpcMsg) []byte {
+	if err := b.RpcX.Subscribe(b.Server, func(req *rpcx.RpcMsg) []byte {
 		logger.Infof("HttpConnector Subscribe received: %+v", req)
-		return g.EventHandlerSelf(req)
+		return b.EventHandlerSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
 	//Subscribe event
-	if err := g.RpcX.SubscribeJson(g.Server, func(req *rpcx.RpcMsg) []byte {
+	if err := b.RpcX.SubscribeJson(b.Server, func(req *rpcx.RpcMsg) []byte {
 		//logger.Infof("BaseBackEnd Subscribe received: %+v", req)
-		return g.EventJsonSelf(req)
+		return b.EventJsonSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
-	if err := g.RpcX.SubscribeConnector(func(req *rpcx.RpcMsg) []byte {
+	if err := b.RpcX.SubscribeConnector(func(req *rpcx.RpcMsg) []byte {
 		logger.Infof("HttpConnector SubscribeConnector received: %+v", req)
-		return g.EventHandlerBroadcast(req)
+		return b.EventHandlerBroadcast(req)
 	}); err != nil {
 		logger.Error(err)
 	}
 	//register the service
-	if err := discover.Register(g.Server); err != nil {
+	if err := discover.Register(b.Server); err != nil {
 		logger.Error(err)
 	}
 }
 
-func (g *HttpConnector) BeforeShutdown() {
+func (b *HttpConnector) BeforeShutdown() {
 	//unregister the service
-	if err := discover.UnRegister(g.Server); err != nil {
+	if err := discover.UnRegister(b.Server); err != nil {
 		logger.Error(err)
 	}
 }
 
-func (g *HttpConnector) Shutdown() {
-	logger.Info("stop the connector:", g.ServerId)
+func (b *HttpConnector) Shutdown() {
+	logger.Info("stop the connector:", b.ServerId)
 }
 
-func (g *HttpConnector) GetServer() *treaty.Server {
-	return g.Server
+func (b *HttpConnector) GetServer() *treaty.Server {
+	return b.Server
+}
+func (b *HttpConnector) RegEventJsonSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
+	b.EventJsonSelf = handler
+}
+func (b *HttpConnector) RegEventHandlerSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
+	b.EventHandlerSelf = handler
 }
 
-func (g *HttpConnector) RegEventHandlerSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
-	g.EventHandlerSelf = handler
+func (b *HttpConnector) RegEventHandlerBroadcast(handler rpcx.CallbackFunc) { //注册广播事件处理器
+	b.EventHandlerBroadcast = handler
+}
+func (b *HttpConnector) SetServerId(serverId string) {
+	b.ServerId = serverId
 }
 
-func (g *HttpConnector) RegEventHandlerBroadcast(handler rpcx.CallbackFunc) { //注册广播事件处理器
-	g.EventHandlerBroadcast = handler
-}
-func (g *HttpConnector) SetServerId(serverId string) {
-	g.ServerId = serverId
-}
-
-func (g *HttpConnector) GetServerId() string {
-	return g.ServerId
+func (b *HttpConnector) GetServerId() string {
+	return b.ServerId
 }

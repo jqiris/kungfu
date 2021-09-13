@@ -84,7 +84,9 @@ func (b *TcpConnector) Shutdown() {
 func (b *TcpConnector) GetServer() *treaty.Server {
 	return b.Server
 }
-
+func (b *TcpConnector) RegEventJsonSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
+	b.EventJsonSelf = handler
+}
 func (b *TcpConnector) RegEventHandlerSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
 	b.EventHandlerSelf = handler
 }
