@@ -20,6 +20,10 @@ const (
 	Database  = "database"
 )
 
+const (
+	JsonSuffix = "json"
+)
+
 type RpcNats struct {
 	Endpoints    []string
 	Options      []nats.Option
@@ -118,7 +122,7 @@ func (r *RpcNats) SubscribeJson(server *treaty.Server, callback CallbackFunc, ar
 	if len(args) > 0 {
 		isConCurrent = args[0]
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server))
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(server), JsonSuffix)
 	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
 		if isConCurrent {
 			go utils.SafeRun(func() {
@@ -162,7 +166,7 @@ func (r *RpcNats) QueueSubscribeJson(queue string, server *treaty.Server, callba
 	if len(args) > 0 {
 		isConCurrent = args[0]
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server))
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(server), JsonSuffix)
 	if _, err := r.Client.QueueSubscribe(sub, queue, func(msg *nats.Msg) {
 		if isConCurrent {
 			go utils.SafeRun(func() {
@@ -216,7 +220,7 @@ func (r *RpcNats) SubscribeServer(callback CallbackFunc) error {
 }
 
 func (r *RpcNats) SubscribeDatabase(callback CallbackFunc) error {
-	sub := path.Join(r.Prefix, Database)
+	sub := path.Join(r.Prefix, Database, JsonSuffix)
 	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
 		utils.SafeRun(func() {
 			r.DealJsonMsg(msg, callback)
@@ -292,7 +296,7 @@ func (r *RpcNats) RequestJson(server *treaty.Server, msgId int32, req, resp inte
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server))
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(server), JsonSuffix)
 	if msg, err = r.Client.Request(sub, data, r.DialTimeout); err == nil {
 		respMsg := &RpcMsg{MsgData: resp}
 		err = r.RpcJsonCoder.Decode(msg.Data, respMsg)
@@ -322,7 +326,7 @@ func (r *RpcNats) PublishJson(server *treaty.Server, msgId int32, req interface{
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server))
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(server), JsonSuffix)
 	if err = r.Client.Publish(sub, data); err != nil {
 		return err
 	}
@@ -361,7 +365,7 @@ func (r *RpcNats) PublishDatabase(msgId int32, req interface{}) error {
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, Database)
+	sub := path.Join(r.Prefix, Database, JsonSuffix)
 	return r.Client.Publish(sub, data)
 }
 

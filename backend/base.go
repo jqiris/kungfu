@@ -36,6 +36,13 @@ func (b *BaseBackEnd) AfterInit() {
 	}); err != nil {
 		logger.Error(err)
 	}
+	//Subscribe event
+	if err := b.RpcX.SubscribeJson(b.Server, func(req *rpcx.RpcMsg) []byte {
+		//logger.Infof("BaseBackEnd Subscribe received: %+v", req)
+		return b.EventHandlerSelf(req)
+	}); err != nil {
+		logger.Error(err)
+	}
 	if err := b.RpcX.SubscribeServer(func(req *rpcx.RpcMsg) []byte {
 		logger.Infof("BaseBackEnd SubscribeServer received: %+v", req)
 		return b.EventHandlerBroadcast(req)

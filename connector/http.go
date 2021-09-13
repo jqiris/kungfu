@@ -38,6 +38,13 @@ func (g *HttpConnector) AfterInit() {
 	}); err != nil {
 		logger.Error(err)
 	}
+	//Subscribe event
+	if err := g.RpcX.SubscribeJson(g.Server, func(req *rpcx.RpcMsg) []byte {
+		//logger.Infof("BaseBackEnd Subscribe received: %+v", req)
+		return g.EventHandlerSelf(req)
+	}); err != nil {
+		logger.Error(err)
+	}
 	if err := g.RpcX.SubscribeConnector(func(req *rpcx.RpcMsg) []byte {
 		logger.Infof("HttpConnector SubscribeConnector received: %+v", req)
 		return g.EventHandlerBroadcast(req)
