@@ -123,6 +123,14 @@ func RPop(key string, val interface{}) error {
 	return defStoreKeeper.LPop(key, val)
 }
 
+func BLPop(key string, val interface{}) error {
+	return defStoreKeeper.BLPop(key, val)
+}
+
+func BRPop(key string, val interface{}) error {
+	return defStoreKeeper.BRPop(key, val)
+}
+
 func LLen(key string) int64 {
 	return defStoreKeeper.LLen(key)
 }
