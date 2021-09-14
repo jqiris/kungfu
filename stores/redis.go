@@ -323,6 +323,28 @@ func (s *StoreRedis) BRPop(key string, val interface{}) error {
 	return json.Unmarshal([]byte(bss[1]), val)
 }
 
+func (s *StoreRedis) BLPopString(key string) (string, error) {
+	bss, err := s.Client.BLPop(context.Background(), s.DialTimeout, s.GetKey(key)).Result()
+	if err != nil {
+		return "", err
+	}
+	if len(bss) < 2 {
+		return "", errors.New("wait timeout")
+	}
+	return bss[1], nil
+}
+
+func (s *StoreRedis) BRPopString(key string) (string, error) {
+	bss, err := s.Client.BRPop(context.Background(), s.DialTimeout, s.GetKey(key)).Result()
+	if err != nil {
+		return "", err
+	}
+	if len(bss) < 2 {
+		return "", errors.New("wait timeout")
+	}
+	return bss[1], nil
+}
+
 func (s *StoreRedis) LLen(key string) int64 {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()

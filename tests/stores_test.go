@@ -32,14 +32,14 @@ func TestStores(t *testing.T) {
 func TestStoreList(t *testing.T) {
 	key := "myList"
 	var err error
-	//err = stores.LPush(key, 1, 2, 3, 4, 5)
-	//if err != nil {
-	//	logger.Error(err)
-	//	return
-	//}
+	err = stores.LPush(key, 1, 2, 3, 4, 5)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
 	fmt.Println("length:", stores.LLen(key))
-	var a int
-	if err = stores.BRPop(key, &a); err != nil {
+	var a string
+	if a, err = stores.BRPopString(key); err != nil {
 		logger.Error(err)
 		return
 	}

@@ -48,6 +48,8 @@ type StoreKeeper interface {
 	RPop(key string, val interface{}) error
 	BLPop(key string, val interface{}) error
 	BRPop(key string, val interface{}) error
+	BLPopString(key string) (string, error)
+	BRPopString(key string) (string, error)
 	LLen(key string) int64
 	IsRedisNull(err error) bool
 }
@@ -130,6 +132,14 @@ func BLPop(key string, val interface{}) error {
 
 func BRPop(key string, val interface{}) error {
 	return defStoreKeeper.BRPop(key, val)
+}
+
+func BLPopString(key string) (string, error) {
+	return defStoreKeeper.BLPopString(key)
+}
+
+func BRPopString(key string) (string, error) {
+	return defStoreKeeper.BRPopString(key)
 }
 
 func LLen(key string) int64 {
