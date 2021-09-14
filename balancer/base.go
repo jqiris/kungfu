@@ -102,20 +102,17 @@ func (b *BaseBalancer) Init() {
 func (b *BaseBalancer) AfterInit() {
 	//Subscribe event
 	if err := b.RpcX.Subscribe(b.Server, func(req *rpcx.RpcMsg) []byte {
-		logger.Infof("BaseBalancer Subscribe received: %+v", req)
 		return b.EventHandlerSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
 	//Subscribe event
 	if err := b.RpcX.SubscribeJson(b.Server, func(req *rpcx.RpcMsg) []byte {
-		//logger.Infof("BaseBackEnd Subscribe received: %+v", req)
 		return b.EventJsonSelf(req)
 	}); err != nil {
 		logger.Error(err)
 	}
 	if err := b.RpcX.SubscribeBalancer(func(req *rpcx.RpcMsg) []byte {
-		logger.Infof("BaseBalancer SubscribeBalancer received: %+v", req)
 		return b.EventHandlerBroadcast(req)
 	}); err != nil {
 		logger.Error(err)
