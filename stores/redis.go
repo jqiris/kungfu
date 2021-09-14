@@ -3,6 +3,7 @@ package stores
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/jqiris/kungfu/logger"
 	"strconv"
 	"strings"
@@ -298,6 +299,30 @@ func (s *StoreRedis) RPop(key string, val interface{}) error {
 		return err
 	}
 	return json.Unmarshal(bs, val)
+}
+
+func (s *StoreRedis) BLPop(key string, val interface{}) error {
+	var bss [][]byte
+	err := s.Client.BLPop(context.Background(), s.DialTimeout, key).ScanSlice(&bss)
+	if err != nil {
+		return err
+	}
+	if len(bss) == 0 {
+		return errors.New("no new val")
+	}
+	return json.Unmarshal(bss[0], val)
+}
+
+func (s *StoreRedis) BRPop(key string, val interface{}) error {
+	var bss [][]byte
+	err := s.Client.BRPop(context.Background(), s.DialTimeout, key).ScanSlice(&bss)
+	if err != nil {
+		return err
+	}
+	if len(bss) == 0 {
+		return errors.New("no new val")
+	}
+	return json.Unmarshal(bss[0], val)
 }
 
 func (s *StoreRedis) LLen(key string) int64 {

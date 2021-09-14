@@ -2,9 +2,11 @@ package tests
 
 import (
 	"fmt"
+	"math/rand"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 )
 
 var rule = regexp.MustCompile(`.*\/(.+\/.+\.go)`)
@@ -70,4 +72,10 @@ func BenchmarkPathc(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		pathC(a)
 	}
+}
+
+func TestRand(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+	a := int(rand.Float64() * 500)
+	fmt.Println(a)
 }

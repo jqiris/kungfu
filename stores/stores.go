@@ -46,6 +46,8 @@ type StoreKeeper interface {
 	RPush(key string, values ...interface{}) error
 	LPop(key string, val interface{}) error
 	RPop(key string, val interface{}) error
+	BLPop(key string, val interface{}) error
+	BRPop(key string, val interface{}) error
 	LLen(key string) int64
 }
 
