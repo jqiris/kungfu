@@ -49,6 +49,7 @@ type StoreKeeper interface {
 	BLPop(key string, val interface{}) error
 	BRPop(key string, val interface{}) error
 	LLen(key string) int64
+	IsRedisNull(err error) bool
 }
 
 func Set(key string, value interface{}, expire time.Duration) error {
@@ -133,4 +134,8 @@ func BRPop(key string, val interface{}) error {
 
 func LLen(key string) int64 {
 	return defStoreKeeper.LLen(key)
+}
+
+func IsRedisNull(err error) bool {
+	return defStoreKeeper.IsRedisNull(err)
 }

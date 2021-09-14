@@ -328,3 +328,7 @@ func (s *StoreRedis) LLen(key string) int64 {
 	defer cancel()
 	return s.Client.LLen(ctx, s.GetKey(key)).Val()
 }
+
+func (s *StoreRedis) IsRedisNull(err error) bool {
+	return err == redis.Nil
+}
