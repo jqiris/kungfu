@@ -54,6 +54,8 @@ type StoreKeeper interface {
 	IsRedisNull(err error) bool
 	FlushDB() error
 	FlushDBAsync() error
+	FlushAll() error
+	FlushAllAsync() error
 }
 
 func Set(key string, value interface{}, expire time.Duration) error {
@@ -156,4 +158,11 @@ func FlushDBAsync() error {
 }
 func FlushDB() error {
 	return defStoreKeeper.FlushDB()
+}
+
+func FlushAllAsync() error {
+	return defStoreKeeper.FlushAllAsync()
+}
+func FlushAll() error {
+	return defStoreKeeper.FlushAll()
 }

@@ -365,3 +365,15 @@ func (s *StoreRedis) FlushDBAsync() error {
 	defer cancel()
 	return s.Client.FlushDBAsync(ctx).Err()
 }
+
+func (s *StoreRedis) FlushAll() error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.FlushAll(ctx).Err()
+}
+
+func (s *StoreRedis) FlushAllAsync() error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.FlushAllAsync(ctx).Err()
+}
