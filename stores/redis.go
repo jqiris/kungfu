@@ -354,3 +354,14 @@ func (s *StoreRedis) LLen(key string) int64 {
 func (s *StoreRedis) IsRedisNull(err error) bool {
 	return err == redis.Nil
 }
+func (s *StoreRedis) FlushDB() error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.FlushDB(ctx).Err()
+}
+
+func (s *StoreRedis) FlushDBAsync() error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.FlushDBAsync(ctx).Err()
+}

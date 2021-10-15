@@ -52,6 +52,8 @@ type StoreKeeper interface {
 	BRPopString(key string) (string, error)
 	LLen(key string) int64
 	IsRedisNull(err error) bool
+	FlushDB() error
+	FlushDBAsync() error
 }
 
 func Set(key string, value interface{}, expire time.Duration) error {
@@ -148,4 +150,10 @@ func LLen(key string) int64 {
 
 func IsRedisNull(err error) bool {
 	return defStoreKeeper.IsRedisNull(err)
+}
+func FlushDBAsync() error {
+	return defStoreKeeper.FlushDBAsync()
+}
+func FlushDB() error {
+	return defStoreKeeper.FlushDB()
 }
