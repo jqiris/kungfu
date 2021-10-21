@@ -95,6 +95,10 @@ func (r *RpcNats) RemoveFindCache(userId int) {
 	r.Finder.RemoveUserCache(userId)
 }
 
+func (r *RpcNats) RemoveFindCache2(arg string) {
+	r.Finder.RemoveUserCache2(arg)
+}
+
 func (r *RpcNats) Subscribe(server *treaty.Server, callback CallbackFunc, args ...bool) error {
 	isConCurrent := true
 	if len(args) > 0 {
