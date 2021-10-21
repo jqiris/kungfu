@@ -91,6 +91,9 @@ func NewRpcNats(opts ...RpcNatsOption) *RpcNats {
 func (r *RpcNats) Find(serverType string, userId int) *treaty.Server {
 	return r.Finder.GetUserServer(serverType, userId)
 }
+func (r *RpcNats) Find2(serverType string, arg string) *treaty.Server {
+	return r.Finder.GetUserServer2(serverType, arg)
+}
 func (r *RpcNats) RemoveFindCache(userId int) {
 	r.Finder.RemoveUserCache(userId)
 }

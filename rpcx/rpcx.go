@@ -37,7 +37,9 @@ type RpcServer interface {
 	DecodeJsonMsg(data []byte, v interface{}) error                                                    //decode the  json msg
 	GetServer() *treaty.Server                                                                         //get current server
 	Find(serverType string, userId int) *treaty.Server                                                 //find server
+	Find2(serverType string, arg string) *treaty.Server                                                //find server2
 	RemoveFindCache(userId int)                                                                        //clear find cache
+	RemoveFindCache2(arg string)                                                                       //clear find cache2
 }
 
 // NewRpcServer create rpc server
