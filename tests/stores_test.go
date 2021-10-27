@@ -79,14 +79,16 @@ func TestZAdd(t *testing.T) {
 	//}
 	//fmt.Println(list)
 	//fmt.Println(len(list))
-	if err := stores.ZRem("list_rank", utils.IntToString(6113)); err != nil {
+	if err := stores.ZRem("list_rank", utils.IntToString(6112)); err != nil {
 		fmt.Println("111", err)
 	}
-	if rank, err := stores.ZRevRank("list_rank", utils.IntToString(6113)); err != nil {
-		fmt.Println("222", err)
-	} else {
-		fmt.Println(rank)
-	}
+	//if rank, err := stores.ZRevRank("list_rank", utils.IntToString(6113)); err != nil {
+	//	fmt.Println("222", err)
+	//} else {
+	//	fmt.Println(rank)
+	//}
+	total := stores.ZCard("list_rank")
+	fmt.Println(total)
 	//if s, err := stores.ZIncrBy("list_rank", 3, utils.IntToString(6113)); err != nil {
 	//	fmt.Println(err)
 	//} else {

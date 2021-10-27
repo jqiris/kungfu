@@ -413,3 +413,9 @@ func (s *StoreRedis) ZRem(key string, members ...interface{}) error {
 	defer cancel()
 	return s.Client.ZRem(ctx, key, members...).Err()
 }
+
+func (s *StoreRedis) ZCard(key string) int64 {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.ZCard(ctx, key).Val()
+}

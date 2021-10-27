@@ -49,6 +49,7 @@ type StoreKeeper interface {
 	ZScore(key, member string) float64
 	ZIncrBy(key string, increment float64, member string) (float64, error)
 	ZRem(key string, members ...interface{}) error
+	ZCard(key string) int64
 	LPush(key string, values ...interface{}) error
 	RPush(key string, values ...interface{}) error
 	LPop(key string, val interface{}) error
@@ -195,4 +196,8 @@ func ZIncrBy(key string, increment float64, member string) (float64, error) {
 
 func ZRem(key string, members ...interface{}) error {
 	return defStoreKeeper.ZRem(key, members...)
+}
+
+func ZCard(key string) int64 {
+	return defStoreKeeper.ZCard(key)
 }
