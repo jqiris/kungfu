@@ -44,6 +44,7 @@ type StoreKeeper interface {
 	Expire(key string, expiration time.Duration) bool
 	HKeys(key string) ([]string, error)
 	ZAdd(key string, members ...*redis.Z) error
+	ZRangeWithScores(key string, start, stop int64) ([]redis.Z, error)
 	ZRevRangeWithScores(key string, start, stop int64) ([]redis.Z, error)
 	ZRevRank(key, member string) (int64, error)
 	ZScore(key, member string) float64
@@ -177,6 +178,9 @@ func FlushAll() error {
 
 func ZAdd(key string, members ...*redis.Z) error {
 	return defStoreKeeper.ZAdd(key, members...)
+}
+func ZRangeWithScores(key string, start, stop int64) ([]redis.Z, error) {
+	return defStoreKeeper.ZRangeWithScores(key, start, stop)
 }
 func ZRevRangeWithScores(key string, start, stop int64) ([]redis.Z, error) {
 	return defStoreKeeper.ZRevRangeWithScores(key, start, stop)

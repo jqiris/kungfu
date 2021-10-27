@@ -384,6 +384,12 @@ func (s *StoreRedis) ZAdd(key string, members ...*redis.Z) error {
 	return s.Client.ZAdd(ctx, key, members...).Err()
 }
 
+func (s *StoreRedis) ZRangeWithScores(key string, start, stop int64) ([]redis.Z, error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.ZRangeWithScores(ctx, key, start, stop).Result()
+}
+
 func (s *StoreRedis) ZRevRangeWithScores(key string, start, stop int64) ([]redis.Z, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()

@@ -3,7 +3,6 @@ package tests
 import (
 	"fmt"
 	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/utils"
 	"testing"
 	"time"
 
@@ -79,16 +78,16 @@ func TestZAdd(t *testing.T) {
 	//}
 	//fmt.Println(list)
 	//fmt.Println(len(list))
-	if err := stores.ZRem("list_rank", utils.IntToString(6112)); err != nil {
-		fmt.Println("111", err)
-	}
+	//if err := stores.ZRem("list_rank", utils.IntToString(6112)); err != nil {
+	//	fmt.Println("111", err)
+	//}
 	//if rank, err := stores.ZRevRank("list_rank", utils.IntToString(6113)); err != nil {
 	//	fmt.Println("222", err)
 	//} else {
 	//	fmt.Println(rank)
 	//}
-	total := stores.ZCard("list_rank")
-	fmt.Println(total)
+	//total := stores.ZCard("list_rank")
+	//fmt.Println(total)
 	//if s, err := stores.ZIncrBy("list_rank", 3, utils.IntToString(6113)); err != nil {
 	//	fmt.Println(err)
 	//} else {
@@ -96,4 +95,11 @@ func TestZAdd(t *testing.T) {
 	//}
 	//score := stores.ZScore("list_rank", utils.IntToString(6113))
 	//fmt.Println(score)
+	if v, err := stores.ZRangeWithScores("list_rank", 0, 0); err != nil {
+		logger.Error(err)
+	} else {
+		for _, item := range v {
+			fmt.Println(item.Member, item.Score)
+		}
+	}
 }
