@@ -9,13 +9,13 @@ import (
 )
 
 var (
-	client, cancel = NewRouteClient("client default")
+//client, cancel = NewRouteClient("client default")
 )
 
-func SetClient(c *RouteClient) {
-	cancel()
-	client = c
-}
+//func SetClient(c *RouteClient) {
+//	cancel()
+//	client = c
+//}
 
 type RouteClient struct {
 	Name string
@@ -57,8 +57,8 @@ func TestRouteManager(t *testing.T) {
 }
 
 func TestRoutineRun(t *testing.T) {
-	c, tmp := NewRouteClient("client one")
-	SetClient(c)
-	cancel = tmp
-	select {}
+	//c, tmp := NewRouteClient("client one")
+	//SetClient(c)
+	//cancel = tmp
+	//select {}
 }

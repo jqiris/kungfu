@@ -1,6 +1,7 @@
 package stores
 
 import (
+	"github.com/go-redis/redis/v8"
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/logger"
 	"time"
@@ -42,6 +43,12 @@ type StoreKeeper interface {
 	HExists(key, field string) bool
 	Expire(key string, expiration time.Duration) bool
 	HKeys(key string) ([]string, error)
+	ZAdd(key string, members ...*redis.Z) error
+	ZRevRangeWithScores(key string, start, stop int64) ([]redis.Z, error)
+	ZRevRank(key, member string) (int64, error)
+	ZScore(key, member string) float64
+	ZIncrBy(key string, increment float64, member string) (float64, error)
+	ZRem(key string, members ...interface{}) error
 	LPush(key string, values ...interface{}) error
 	RPush(key string, values ...interface{}) error
 	LPop(key string, val interface{}) error
@@ -165,4 +172,27 @@ func FlushAllAsync() error {
 }
 func FlushAll() error {
 	return defStoreKeeper.FlushAll()
+}
+
+func ZAdd(key string, members ...*redis.Z) error {
+	return defStoreKeeper.ZAdd(key, members...)
+}
+func ZRevRangeWithScores(key string, start, stop int64) ([]redis.Z, error) {
+	return defStoreKeeper.ZRevRangeWithScores(key, start, stop)
+}
+
+func ZRevRank(key, member string) (int64, error) {
+	return defStoreKeeper.ZRevRank(key, member)
+}
+
+func ZScore(key, member string) float64 {
+	return defStoreKeeper.ZScore(key, member)
+}
+
+func ZIncrBy(key string, increment float64, member string) (float64, error) {
+	return defStoreKeeper.ZIncrBy(key, increment, member)
+}
+
+func ZRem(key string, members ...interface{}) error {
+	return defStoreKeeper.ZRem(key, members...)
 }
