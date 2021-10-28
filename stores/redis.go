@@ -381,47 +381,47 @@ func (s *StoreRedis) FlushAllAsync() error {
 func (s *StoreRedis) ZAdd(key string, members ...*redis.Z) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	return s.Client.ZAdd(ctx, key, members...).Err()
+	return s.Client.ZAdd(ctx, s.GetKey(key), members...).Err()
 }
 
 func (s *StoreRedis) ZRangeWithScores(key string, start, stop int64) ([]redis.Z, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	return s.Client.ZRangeWithScores(ctx, key, start, stop).Result()
+	return s.Client.ZRangeWithScores(ctx, s.GetKey(key), start, stop).Result()
 }
 
 func (s *StoreRedis) ZRevRangeWithScores(key string, start, stop int64) ([]redis.Z, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	return s.Client.ZRevRangeWithScores(ctx, key, start, stop).Result()
+	return s.Client.ZRevRangeWithScores(ctx, s.GetKey(key), start, stop).Result()
 }
 
 func (s *StoreRedis) ZRevRank(key, member string) (int64, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	return s.Client.ZRevRank(ctx, key, member).Result()
+	return s.Client.ZRevRank(ctx, s.GetKey(key), member).Result()
 }
 
 func (s *StoreRedis) ZScore(key, member string) float64 {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	return s.Client.ZScore(ctx, key, member).Val()
+	return s.Client.ZScore(ctx, s.GetKey(key), member).Val()
 }
 
 func (s *StoreRedis) ZIncrBy(key string, increment float64, member string) (float64, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	return s.Client.ZIncrBy(ctx, key, increment, member).Result()
+	return s.Client.ZIncrBy(ctx, s.GetKey(key), increment, member).Result()
 }
 
 func (s *StoreRedis) ZRem(key string, members ...interface{}) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	return s.Client.ZRem(ctx, key, members...).Err()
+	return s.Client.ZRem(ctx, s.GetKey(key), members...).Err()
 }
 
 func (s *StoreRedis) ZCard(key string) int64 {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	return s.Client.ZCard(ctx, key).Val()
+	return s.Client.ZCard(ctx, s.GetKey(key)).Val()
 }

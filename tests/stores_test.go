@@ -2,7 +2,10 @@ package tests
 
 import (
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"github.com/jqiris/kungfu/logger"
+	"github.com/jqiris/kungfu/utils"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -56,20 +59,20 @@ func TestStoreList(t *testing.T) {
 }
 
 func TestZAdd(t *testing.T) {
-	//rand.Seed(time.Now().UnixNano())
-	//maxNum := 200000
-	//list := make([]*redis.Z, 0)
-	//for i := 0; i < maxNum; i++ {
-	//	//score, member := float64(rand.Intn(maxNum)), fmt.Sprintf("member_%d", i)
-	//	score, member := float64(rand.Intn(maxNum)), i+1
-	//	list = append(list, &redis.Z{
-	//		Score:  score,
-	//		Member: member,
-	//	})
-	//}
-	//if err := stores.ZAdd("list_rank", list...); err != nil {
-	//	fmt.Println(err)
-	//}
+	rand.Seed(time.Now().UnixNano())
+	maxNum := 100000
+	list := make([]*redis.Z, 0)
+	for i := 0; i < maxNum; i++ {
+		//score, member := float64(rand.Intn(maxNum)), fmt.Sprintf("member_%d", i)
+		score, member := float64(rand.Intn(maxNum)), utils.IntToString(i+1)
+		list = append(list, &redis.Z{
+			Score:  score,
+			Member: member,
+		})
+	}
+	if err := stores.ZAdd("ListRank", list...); err != nil {
+		fmt.Println(err)
+	}
 	//fmt.Println("ZAdd成功")
 	//list, err := stores.ZRevRangeWithScores("list_rank", 0, 100)
 	//if err != nil {
@@ -95,11 +98,11 @@ func TestZAdd(t *testing.T) {
 	//}
 	//score := stores.ZScore("list_rank", utils.IntToString(6113))
 	//fmt.Println(score)
-	if v, err := stores.ZRangeWithScores("list_rank", 0, 0); err != nil {
-		logger.Error(err)
-	} else {
-		for _, item := range v {
-			fmt.Println(item.Member, item.Score)
-		}
-	}
+	//if v, err := stores.ZRangeWithScores("list_rank", 0, 0); err != nil {
+	//	logger.Error(err)
+	//} else {
+	//	for _, item := range v {
+	//		fmt.Println(item.Member, item.Score)
+	//	}
+	//}
 }
