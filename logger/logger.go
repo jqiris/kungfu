@@ -53,8 +53,8 @@ func NewLogger(options ...Option) (*Logger, context.CancelFunc) {
 		logChan:     make(chan *LogItem, 1024),
 		timeFormat:  "2006-01-02 15:04:05",
 		zipDuration: defZipDuration,
-		zipStart:    nowTime.Add(-defZipDuration),
-		zipEnd:      nowTime, //默认启动做一次检查
+		zipStart:    nowTime,
+		zipEnd:      nowTime.Add(defZipDuration), //zip时间
 		tickTime:    10 * time.Minute,
 	}
 	for _, option := range options {
