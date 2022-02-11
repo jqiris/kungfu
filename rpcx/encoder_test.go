@@ -2,12 +2,13 @@ package rpcx
 
 import (
 	"github.com/jqiris/kungfu/logger"
+	"github.com/jqiris/kungfu/serialize"
 	"github.com/jqiris/kungfu/treaty"
 	"testing"
 )
 
 func TestRpcEncoder(t *testing.T) {
-	coder := NewRpcEncoder()
+	coder := NewRpcEncoder(serialize.NewJsonSerializer())
 	eData, err := coder.Encode(&RpcMsg{
 		MsgType: Publish,
 		MsgId:   int32(treaty.MsgId_Msg_Login_Request),

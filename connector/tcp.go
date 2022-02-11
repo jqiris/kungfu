@@ -8,7 +8,6 @@ import (
 	"github.com/jqiris/kungfu/tcpface"
 	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
-	"github.com/jqiris/kungfu/utils"
 )
 
 type TcpConnector struct {
@@ -23,12 +22,16 @@ type TcpConnector struct {
 }
 
 func (b *TcpConnector) Init() {
-	//find the  server config
-	if serverConf := utils.FindServerConfig(config.GetServersConf(), b.GetServerId()); serverConf == nil {
-		logger.Fatal("NanoConnector can't find the server config")
-	} else {
-		b.Server = serverConf
+	if b.Server == nil {
+		panic("服务配置信息不能为空")
+		return
 	}
+	if b.RouteHandler == nil {
+		panic("路由配置信息不能为空")
+		return
+	}
+	//赋值id
+	b.ServerId = b.Server.ServerId
 	//init the rpcx
 	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf(), b.Server)
 	//run the front server
@@ -40,21 +43,40 @@ func (b *TcpConnector) Init() {
 }
 
 func (b *TcpConnector) AfterInit() {
-	//Subscribe event
-	if err := b.RpcX.Subscribe(b.Server, func(req *rpcx.RpcMsg) []byte {
+	if b.Server == nil {
+		panic("服务配置信息不能为空")
+		return
+	}
+	if b.EventJsonSelf == nil {
+		panic("EventJsonSelf不能为空")
+		return
+	}
+	if b.EventHandlerSelf == nil {
+		panic("EventHandlerSelf不能为空")
+		return
+	}
+	if b.EventHandlerBroadcast == nil {
+		panic("EventHandlerBroadcast不能为空")
+		return
+	}
+	builder := rpcx.NewRpcSubscriber(b.Server).SetCodeType(rpcx.CodeTypeProto).SetCallback(func(req *rpcx.RpcMsg) []byte {
 		return b.EventHandlerSelf(req)
-	}); err != nil {
-		logger.Error(err)
-	}
+	})
 	//Subscribe event
-	if err := b.RpcX.SubscribeJson(b.Server, func(req *rpcx.RpcMsg) []byte {
-		return b.EventJsonSelf(req)
-	}); err != nil {
+	if err := b.RpcX.Subscribe(builder); err != nil {
 		logger.Error(err)
 	}
-	if err := b.RpcX.SubscribeConnector(func(req *rpcx.RpcMsg) []byte {
+	builder = builder.SetSuffix("json").SetCodeType(rpcx.CodeTypeJson).SetCallback(func(req *rpcx.RpcMsg) []byte {
+		return b.EventJsonSelf(req)
+	})
+	//Subscribe event
+	if err := b.RpcX.Subscribe(builder); err != nil {
+		logger.Error(err)
+	}
+	builder = builder.SetSuffix(rpcx.DefaultSuffix).SetCodeType(rpcx.CodeTypeProto).SetCallback(func(req *rpcx.RpcMsg) []byte {
 		return b.EventHandlerBroadcast(req)
-	}); err != nil {
+	})
+	if err := b.RpcX.SubscribeConnector(builder); err != nil {
 		logger.Error(err)
 	}
 	//register the service
@@ -80,23 +102,6 @@ func (b *TcpConnector) Shutdown() {
 
 func (b *TcpConnector) GetServer() *treaty.Server {
 	return b.Server
-}
-func (b *TcpConnector) RegEventJsonSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
-	b.EventJsonSelf = handler
-}
-func (b *TcpConnector) RegEventHandlerSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
-	b.EventHandlerSelf = handler
-}
-
-func (b *TcpConnector) RegEventHandlerBroadcast(handler rpcx.CallbackFunc) { //注册广播事件处理器
-	b.EventHandlerBroadcast = handler
-}
-func (b *TcpConnector) SetServerId(serverId string) {
-	b.ServerId = serverId
-}
-
-func (b *TcpConnector) GetServerId() string {
-	return b.ServerId
 }
 
 func (b *TcpConnector) SetRouteHandler(handler func(s tcpface.IServer)) {

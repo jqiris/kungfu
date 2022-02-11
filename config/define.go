@@ -10,7 +10,6 @@ type Config struct {
 	Stores    StoresConf                `json:"stores"`
 	Connector ConnectorConf             `json:"connector"`
 	Servers   map[string]*treaty.Server `json:"servers"`
-	Launch    []string                  `json:"launch"`
 }
 
 type DiscoverConf struct {

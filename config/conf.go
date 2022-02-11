@@ -60,16 +60,3 @@ func GetConnectorConf() ConnectorConf {
 func GetServersConf() map[string]*treaty.Server {
 	return config.Servers
 }
-
-func GetLaunchConf() []string {
-	return config.Launch
-}
-
-func IsInLaunch(serverId string) bool {
-	for _, v := range config.Launch {
-		if v == serverId {
-			return true
-		}
-	}
-	return false
-}

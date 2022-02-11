@@ -55,14 +55,14 @@ func (h *Handler) Register(msgId int32, v interface{}) {
 	}
 }
 
-func (h *Handler) DealMsg(server RpcServer, req *RpcMsg) ([]byte, error) {
+func (h *Handler) DealMsg(codeType string, server RpcServer, req *RpcMsg) ([]byte, error) {
 	msgId, msgData := req.MsgId, req.MsgData.([]byte)
 	if handler, ok := h.handlers[msgId]; ok {
 		if handler.MsgType != req.MsgType {
 			return nil, fmt.Errorf("req msg type not suit handler msg type, msgId:%v, req:%+v", msgId, req)
 		}
 		inElem := reflect.New(handler.InType.Elem()).Interface()
-		err := server.DecodeMsg(msgData, inElem)
+		err := server.DecodeMsg(codeType, msgData, inElem)
 		if err != nil {
 			return nil, err
 		}
@@ -70,29 +70,7 @@ func (h *Handler) DealMsg(server RpcServer, req *RpcMsg) ([]byte, error) {
 		resp := handler.Func.Call(args)
 		if handler.MsgType == Request && len(resp) > 0 {
 			outItem := resp[0].Interface()
-			return server.Response(outItem), nil
-		}
-		return nil, nil
-	}
-	return nil, fmt.Errorf("req msg not suit handler, msgId:%v, req:%+v", msgId, req)
-}
-
-func (h *Handler) DealJsonMsg(server RpcServer, req *RpcMsg) ([]byte, error) {
-	msgId, msgData := req.MsgId, req.MsgData.([]byte)
-	if handler, ok := h.handlers[msgId]; ok {
-		if handler.MsgType != req.MsgType {
-			return nil, fmt.Errorf("req msg type not suit handler msg type, msgId:%v, req:%+v", msgId, req)
-		}
-		inElem := reflect.New(handler.InType.Elem()).Interface()
-		err := server.DecodeJsonMsg(msgData, inElem)
-		if err != nil {
-			return nil, err
-		}
-		args := []reflect.Value{reflect.ValueOf(inElem)}
-		resp := handler.Func.Call(args)
-		if handler.MsgType == Request && len(resp) > 0 {
-			outItem := resp[0].Interface()
-			return server.ResponseJson(outItem), nil
+			return server.Response(codeType, outItem), nil
 		}
 		return nil, nil
 	}

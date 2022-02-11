@@ -1,6 +1,8 @@
 package rpcx
 
 import (
+	"errors"
+	"fmt"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/serialize"
 	"path"
@@ -19,22 +21,76 @@ const (
 	Server    = "server"
 	Database  = "database"
 )
-
 const (
-	JsonSuffix = "json"
+	DefaultQueue  = "dq"
+	DefaultSuffix = ""
+)
+const (
+	CodeTypeJson  = "json"
+	CodeTypeProto = "proto"
 )
 
+func DefaultCallback(req *RpcMsg) []byte {
+	logger.Info("DefaultCallback")
+	return nil
+}
+
+type RpcSubscriber struct {
+	queue    string
+	server   *treaty.Server
+	callback CallbackFunc
+	codeType string
+	suffix   string
+	parallel bool
+}
+
+func NewRpcSubscriber(server *treaty.Server) *RpcSubscriber {
+	return &RpcSubscriber{
+		queue:    DefaultQueue,
+		server:   server,
+		callback: DefaultCallback,
+		codeType: CodeTypeProto,
+		suffix:   DefaultSuffix,
+		parallel: false,
+	}
+}
+
+func (r *RpcSubscriber) SetQueue(queue string) *RpcSubscriber {
+	r.queue = queue
+	return r
+}
+
+func (r *RpcSubscriber) SetServer(server *treaty.Server) *RpcSubscriber {
+	r.server = server
+	return r
+}
+func (r *RpcSubscriber) SetCallback(callback CallbackFunc) *RpcSubscriber {
+	r.callback = callback
+	return r
+}
+func (r *RpcSubscriber) SetCodeType(codeType string) *RpcSubscriber {
+	r.codeType = codeType
+	return r
+}
+func (r *RpcSubscriber) SetSuffix(suffix string) *RpcSubscriber {
+	r.suffix = suffix
+	return r
+}
+func (r *RpcSubscriber) SetParallel(parallel bool) *RpcSubscriber {
+	r.parallel = parallel
+	return r
+}
+
 type RpcNats struct {
-	Endpoints    []string
-	Options      []nats.Option
-	Client       *nats.Conn
-	DialTimeout  time.Duration
-	RpcCoder     *RpcEncoder
-	RpcJsonCoder *RpcEncoder
-	Server       *treaty.Server
-	DebugMsg     bool
-	Prefix       string
-	Finder       *discover.Finder
+	Endpoints   []string
+	Options     []nats.Option
+	Client      *nats.Conn
+	DialTimeout time.Duration
+	RpcCoder    map[string]RpcEncoder
+	Server      *treaty.Server
+	DebugMsg    bool
+	Prefix      string
+	Finder      *discover.Finder
 }
 type RpcNatsOption func(r *RpcNats)
 
@@ -82,40 +138,55 @@ func NewRpcNats(opts ...RpcNatsOption) *RpcNats {
 		logger.Fatal(err)
 	}
 	r.Client = conn
-	r.RpcCoder = NewRpcEncoder(serialize.NewProtoSerializer())
-	r.RpcJsonCoder = NewRpcEncoder(serialize.NewJsonSerializer())
+	r.RpcCoder = map[string]RpcEncoder{
+		CodeTypeProto: NewRpcEncoder(serialize.NewProtoSerializer()),
+		CodeTypeJson:  NewRpcEncoder(serialize.NewJsonSerializer()),
+	}
 	r.Finder = discover.NewFinder()
 	return r
 }
 
-func (r *RpcNats) Find(serverType string, userId int) *treaty.Server {
-	return r.Finder.GetUserServer(serverType, userId)
-}
-func (r *RpcNats) Find2(serverType string, arg string) *treaty.Server {
-	return r.Finder.GetUserServer2(serverType, arg)
-}
-func (r *RpcNats) RemoveFindCache(userId int) {
-	r.Finder.RemoveUserCache(userId)
-}
-
-func (r *RpcNats) RemoveFindCache2(arg string) {
-	r.Finder.RemoveUserCache2(arg)
-}
-
-func (r *RpcNats) Subscribe(server *treaty.Server, callback CallbackFunc, args ...bool) error {
-	isConCurrent := true
-	if len(args) > 0 {
-		isConCurrent = args[0]
+func (r *RpcNats) RegEncoder(typ string, encoder RpcEncoder) {
+	if _, ok := r.RpcCoder[typ]; !ok {
+		r.RpcCoder[typ] = encoder
+	} else {
+		logger.Fatalf("encoder type has exist:%v", typ)
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server))
-	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
-		if isConCurrent {
+}
+
+func (r *RpcNats) Find(serverType string, arg any) *treaty.Server {
+	return r.Finder.GetUserServer(serverType, arg)
+}
+
+func (r *RpcNats) RemoveFindCache(arg any) {
+	r.Finder.RemoveUserCache(arg)
+}
+
+func (r *RpcNats) prepare(s *RpcSubscriber) (RpcEncoder, error) {
+	if s == nil {
+		return nil, errors.New("subscribe订阅配置不能为空")
+	}
+	coder := r.RpcCoder[s.codeType]
+	if coder == nil {
+		return nil, fmt.Errorf("rpc coder not exist:%v", s.codeType)
+	}
+	return coder, nil
+}
+
+func (r *RpcNats) Subscribe(s *RpcSubscriber) error {
+	coder, err := r.prepare(s)
+	if err != nil {
+		return err
+	}
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
+	if _, err = r.Client.Subscribe(sub, func(msg *nats.Msg) {
+		if s.parallel {
 			go utils.SafeRun(func() {
-				r.DealMsg(msg, callback)
+				r.DealMsg(msg, s.callback, coder)
 			})
 		} else {
 			utils.SafeRun(func() {
-				r.DealMsg(msg, callback)
+				r.DealMsg(msg, s.callback, coder)
 			})
 		}
 	}); err != nil {
@@ -124,20 +195,20 @@ func (r *RpcNats) Subscribe(server *treaty.Server, callback CallbackFunc, args .
 	return nil
 }
 
-func (r *RpcNats) SubscribeJson(server *treaty.Server, callback CallbackFunc, args ...bool) error {
-	isConCurrent := true
-	if len(args) > 0 {
-		isConCurrent = args[0]
+func (r *RpcNats) QueueSubscribe(s *RpcSubscriber) error {
+	coder, err := r.prepare(s)
+	if err != nil {
+		return err
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server), JsonSuffix)
-	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
-		if isConCurrent {
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
+	if _, err = r.Client.QueueSubscribe(sub, s.queue, func(msg *nats.Msg) {
+		if s.parallel {
 			go utils.SafeRun(func() {
-				r.DealJsonMsg(msg, callback)
+				r.DealMsg(msg, s.callback, coder)
 			})
 		} else {
 			utils.SafeRun(func() {
-				r.DealJsonMsg(msg, callback)
+				r.DealMsg(msg, s.callback, coder)
 			})
 		}
 	}); err != nil {
@@ -146,20 +217,20 @@ func (r *RpcNats) SubscribeJson(server *treaty.Server, callback CallbackFunc, ar
 	return nil
 }
 
-func (r *RpcNats) QueueSubscribe(queue string, server *treaty.Server, callback CallbackFunc, args ...bool) error {
-	isConCurrent := true
-	if len(args) > 0 {
-		isConCurrent = args[0]
+func (r *RpcNats) SubscribeBalancer(s *RpcSubscriber) error {
+	coder, err := r.prepare(s)
+	if err != nil {
+		return err
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server))
-	if _, err := r.Client.QueueSubscribe(sub, queue, func(msg *nats.Msg) {
-		if isConCurrent {
+	sub := path.Join(r.Prefix, Balancer, s.suffix)
+	if _, err = r.Client.Subscribe(sub, func(msg *nats.Msg) {
+		if s.parallel {
 			go utils.SafeRun(func() {
-				r.DealMsg(msg, callback)
+				r.DealMsg(msg, s.callback, coder)
 			})
 		} else {
 			utils.SafeRun(func() {
-				r.DealMsg(msg, callback)
+				r.DealMsg(msg, s.callback, coder)
 			})
 		}
 	}); err != nil {
@@ -168,20 +239,20 @@ func (r *RpcNats) QueueSubscribe(queue string, server *treaty.Server, callback C
 	return nil
 }
 
-func (r *RpcNats) QueueSubscribeJson(queue string, server *treaty.Server, callback CallbackFunc, args ...bool) error {
-	isConCurrent := true
-	if len(args) > 0 {
-		isConCurrent = args[0]
+func (r *RpcNats) SubscribeConnector(s *RpcSubscriber) error {
+	coder, err := r.prepare(s)
+	if err != nil {
+		return err
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server), JsonSuffix)
-	if _, err := r.Client.QueueSubscribe(sub, queue, func(msg *nats.Msg) {
-		if isConCurrent {
+	sub := path.Join(r.Prefix, Connector, s.suffix)
+	if _, err = r.Client.Subscribe(sub, func(msg *nats.Msg) {
+		if s.parallel {
 			go utils.SafeRun(func() {
-				r.DealJsonMsg(msg, callback)
+				r.DealMsg(msg, s.callback, coder)
 			})
 		} else {
 			utils.SafeRun(func() {
-				r.DealJsonMsg(msg, callback)
+				r.DealMsg(msg, s.callback, coder)
 			})
 		}
 	}); err != nil {
@@ -190,57 +261,53 @@ func (r *RpcNats) QueueSubscribeJson(queue string, server *treaty.Server, callba
 	return nil
 }
 
-func (r *RpcNats) SubscribeBalancer(callback CallbackFunc) error {
-	sub := path.Join(r.Prefix, Balancer)
-	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
-		go utils.SafeRun(func() {
-			r.DealMsg(msg, callback)
-		})
+func (r *RpcNats) SubscribeServer(s *RpcSubscriber) error {
+	coder, err := r.prepare(s)
+	if err != nil {
+		return err
+	}
+	sub := path.Join(r.Prefix, Server, s.suffix)
+	if _, err = r.Client.Subscribe(sub, func(msg *nats.Msg) {
+		if s.parallel {
+			go utils.SafeRun(func() {
+				r.DealMsg(msg, s.callback, coder)
+			})
+		} else {
+			utils.SafeRun(func() {
+				r.DealMsg(msg, s.callback, coder)
+			})
+		}
 	}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *RpcNats) SubscribeConnector(callback CallbackFunc) error {
-	sub := path.Join(r.Prefix, Connector)
-	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
-		go utils.SafeRun(func() {
-			r.DealMsg(msg, callback)
-		})
+func (r *RpcNats) SubscribeDatabase(s *RpcSubscriber) error {
+	coder, err := r.prepare(s)
+	if err != nil {
+		return err
+	}
+	sub := path.Join(r.Prefix, Database, s.suffix)
+	if _, err = r.Client.Subscribe(sub, func(msg *nats.Msg) {
+		if s.parallel {
+			go utils.SafeRun(func() {
+				r.DealMsg(msg, s.callback, coder)
+			})
+		} else {
+			utils.SafeRun(func() {
+				r.DealMsg(msg, s.callback, coder)
+			})
+		}
 	}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *RpcNats) SubscribeServer(callback CallbackFunc) error {
-	sub := path.Join(r.Prefix, Server)
-	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
-		go utils.SafeRun(func() {
-			r.DealMsg(msg, callback)
-		})
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *RpcNats) SubscribeDatabase(callback CallbackFunc) error {
-	sub := path.Join(r.Prefix, Database, JsonSuffix)
-	if _, err := r.Client.Subscribe(sub, func(msg *nats.Msg) {
-		utils.SafeRun(func() {
-			r.DealJsonMsg(msg, callback)
-		})
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *RpcNats) DealMsg(msg *nats.Msg, callback CallbackFunc) {
+func (r *RpcNats) DealMsg(msg *nats.Msg, callback CallbackFunc, coder RpcEncoder) {
 	req := &RpcMsg{}
-	err := r.RpcCoder.Decode(msg.Data, req)
+	err := coder.Decode(msg.Data, req)
 	if err != nil {
 		logger.Error(err)
 		return
@@ -256,36 +323,22 @@ func (r *RpcNats) DealMsg(msg *nats.Msg, callback CallbackFunc) {
 	}
 }
 
-func (r *RpcNats) DealJsonMsg(msg *nats.Msg, callback CallbackFunc) {
-	req := &RpcMsg{}
-	err := r.RpcJsonCoder.Decode(msg.Data, req)
-	if err != nil {
-		logger.Error(err)
-		return
+func (r *RpcNats) Request(codeType, suffix string, server *treaty.Server, msgId int32, req, resp interface{}) error {
+	coder := r.RpcCoder[codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", codeType)
 	}
-	resp := callback(req)
-	if resp != nil {
-		if err = msg.Respond(resp); err != nil {
-			logger.Error(err)
-		}
-	}
-	if r.DebugMsg {
-		logger.Infof("DealJsonMsg,msgType: %v, msgId: %v", req.MsgType, req.MsgId)
-	}
-}
-
-func (r *RpcNats) Request(server *treaty.Server, msgId int32, req, resp interface{}) error {
 	var msg *nats.Msg
 	var err error
 	var data []byte
-	data, err = r.EncodeMsg(Request, msgId, req)
+	data, err = r.EncodeMsg(coder, Request, msgId, req)
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server))
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(server), suffix)
 	if msg, err = r.Client.Request(sub, data, r.DialTimeout); err == nil {
 		respMsg := &RpcMsg{MsgData: resp}
-		err = r.RpcCoder.Decode(msg.Data, respMsg)
+		err = coder.Decode(msg.Data, respMsg)
 		if err != nil {
 			return err
 		}
@@ -295,135 +348,106 @@ func (r *RpcNats) Request(server *treaty.Server, msgId int32, req, resp interfac
 	return nil
 }
 
-func (r *RpcNats) RequestJson(server *treaty.Server, msgId int32, req, resp interface{}) error {
-	var msg *nats.Msg
-	var err error
-	var data []byte
-	data, err = r.EncodeJsonMsg(Request, msgId, req)
+func (r *RpcNats) Publish(codeType, suffix string, server *treaty.Server, msgId int32, req interface{}) error {
+	coder := r.RpcCoder[codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", codeType)
+	}
+	data, err := r.EncodeMsg(coder, Publish, msgId, req)
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server), JsonSuffix)
-	if msg, err = r.Client.Request(sub, data, r.DialTimeout); err == nil {
-		respMsg := &RpcMsg{MsgData: resp}
-		err = r.RpcJsonCoder.Decode(msg.Data, respMsg)
-		if err != nil {
-			return err
-		}
-	} else {
-		return err
-	}
-	return nil
-}
-
-func (r *RpcNats) Publish(server *treaty.Server, msgId int32, req interface{}) error {
-	data, err := r.EncodeMsg(Publish, msgId, req)
-	if err != nil {
-		return err
-	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server))
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(server), suffix)
 	if err = r.Client.Publish(sub, data); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *RpcNats) PublishJson(server *treaty.Server, msgId int32, req interface{}) error {
-	data, err := r.EncodeJsonMsg(Publish, msgId, req)
+func (r *RpcNats) PublishBalancer(codeType, suffix string, msgId int32, req interface{}) error {
+	coder := r.RpcCoder[codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", codeType)
+	}
+	data, err := r.EncodeMsg(coder, Publish, msgId, req)
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server), JsonSuffix)
-	if err = r.Client.Publish(sub, data); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *RpcNats) PublishBalancer(msgId int32, req interface{}) error {
-	data, err := r.EncodeMsg(Publish, msgId, req)
-	if err != nil {
-		return err
-	}
-	sub := path.Join(r.Prefix, Balancer)
+	sub := path.Join(r.Prefix, Balancer, suffix)
 	return r.Client.Publish(sub, data)
 }
 
-func (r *RpcNats) PublishConnector(msgId int32, req interface{}) error {
-	data, err := r.EncodeMsg(Publish, msgId, req)
+func (r *RpcNats) PublishConnector(codeType, suffix string, msgId int32, req interface{}) error {
+	coder := r.RpcCoder[codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", codeType)
+	}
+	data, err := r.EncodeMsg(coder, Publish, msgId, req)
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, Connector)
+	sub := path.Join(r.Prefix, Connector, suffix)
 	return r.Client.Publish(sub, data)
 }
 
-func (r *RpcNats) PublishServer(msgId int32, req interface{}) error {
-	data, err := r.EncodeMsg(Publish, msgId, req)
+func (r *RpcNats) PublishServer(codeType, suffix string, msgId int32, req interface{}) error {
+	coder := r.RpcCoder[codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", codeType)
+	}
+	data, err := r.EncodeMsg(coder, Publish, msgId, req)
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, Server)
+	sub := path.Join(r.Prefix, Server, suffix)
 	return r.Client.Publish(sub, data)
 }
 
-func (r *RpcNats) PublishDatabase(msgId int32, req interface{}) error {
-	data, err := r.EncodeJsonMsg(Publish, msgId, req)
+func (r *RpcNats) PublishDatabase(codeType, suffix string, msgId int32, req interface{}) error {
+	coder := r.RpcCoder[codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", codeType)
+	}
+	data, err := r.EncodeMsg(coder, Publish, msgId, req)
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, Database, JsonSuffix)
+	sub := path.Join(r.Prefix, Database, suffix)
 	return r.Client.Publish(sub, data)
 }
 
-func (r *RpcNats) EncodeMsg(msgType MessageType, msgId int32, req interface{}) ([]byte, error) {
+func (r *RpcNats) EncodeMsg(coder RpcEncoder, msgType MessageType, msgId int32, req interface{}) ([]byte, error) {
 	rpcMsg := &RpcMsg{
 		MsgType: msgType,
 		MsgId:   msgId,
 		MsgData: req,
 	}
-	data, err := r.RpcCoder.Encode(rpcMsg)
+	data, err := coder.Encode(rpcMsg)
 	if err != nil {
 		return nil, err
 	}
 	return data, nil
 }
 
-func (r *RpcNats) EncodeJsonMsg(msgType MessageType, msgId int32, req interface{}) ([]byte, error) {
-	rpcMsg := &RpcMsg{
-		MsgType: msgType,
-		MsgId:   msgId,
-		MsgData: req,
+func (r *RpcNats) DecodeMsg(codeType string, data []byte, v interface{}) error {
+	coder := r.RpcCoder[codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", codeType)
 	}
-	data, err := r.RpcJsonCoder.Encode(rpcMsg)
-	if err != nil {
-		return nil, err
+	return coder.DecodeMsg(data, v)
+}
+
+func (r *RpcNats) GetCoder(codeType string) RpcEncoder {
+	return r.RpcCoder[codeType]
+}
+
+func (r *RpcNats) Response(codeType string, v interface{}) []byte {
+	coder := r.RpcCoder[codeType]
+	if coder == nil {
+		logger.Errorf("rpc coder not exist:%v", codeType)
+		return nil
 	}
-	return data, nil
-}
-
-func (r *RpcNats) DecodeMsg(data []byte, v interface{}) error {
-	return r.RpcCoder.DecodeMsg(data, v)
-}
-
-func (r *RpcNats) DecodeJsonMsg(data []byte, v interface{}) error {
-	return r.RpcJsonCoder.DecodeMsg(data, v)
-}
-
-func (r *RpcNats) GetCoder() *RpcEncoder {
-	return r.RpcCoder
-}
-
-func (r *RpcNats) GetJsonCoder() *RpcEncoder {
-	return r.RpcJsonCoder
-}
-
-func (r *RpcNats) Response(v interface{}) []byte {
-	return r.RpcCoder.Response(v)
-}
-
-func (r *RpcNats) ResponseJson(v interface{}) []byte {
-	return r.RpcJsonCoder.Response(v)
+	return coder.Response(v)
 }
 
 func (r *RpcNats) GetServer() *treaty.Server {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jqiris/kungfu/rpcx"
 	"time"
@@ -9,7 +10,6 @@ import (
 	"github.com/jqiris/kungfu/treaty"
 
 	"github.com/jqiris/kungfu/backend"
-	"github.com/jqiris/kungfu/launch"
 	"github.com/jqiris/kungfu/logger"
 )
 
@@ -74,9 +74,9 @@ func (g *MyBackend) ChannelTest(req *treaty.ChannelMsgRequest) *treaty.ChannelMs
 	return resp
 }
 
-func (b *MyBackend) EventHandleSelf(req *rpcx.RpcMsg) []byte {
+func (g *MyBackend) EventHandleSelf(req *rpcx.RpcMsg) []byte {
 	logger.Infof("MyBackend EventHandleSelf received: %+v", req)
-	resp, err := b.handler.DealMsg(b.RpcX, req)
+	resp, err := g.handler.DealMsg(rpcx.CodeTypeProto, g.RpcX, req)
 	if err != nil {
 		logger.Error(err)
 		return nil
@@ -84,21 +84,27 @@ func (b *MyBackend) EventHandleSelf(req *rpcx.RpcMsg) []byte {
 	return resp
 }
 
-func (b *MyBackend) EventHandleBroadcast(req *rpcx.RpcMsg) []byte {
+func (g *MyBackend) EventHandleBroadcast(req *rpcx.RpcMsg) []byte {
 	fmt.Printf("MyBackend EventHandleBroadcast received: %+v \n", req)
 	return nil
 }
-
-func init() {
-	srv := &MyBackend{
+func MyBackendCreator(s *treaty.Server) (rpcx.ServerEntity, error) {
+	if len(s.ServerId) < 1 {
+		return nil, errors.New("服务器id不能为空")
+	}
+	server := &MyBackend{
+		BaseBackEnd: backend.BaseBackEnd{
+			Server: s,
+		},
 		conns:   make(map[int32]*treaty.Server),
 		handler: rpcx.NewHandler(),
 	}
-	srv.SetServerId("backend_3001")
-	srv.RegEventHandlerSelf(srv.EventHandleSelf)
-	srv.RegEventHandlerBroadcast(srv.EventHandleBroadcast)
-	launch.RegisterServer(srv)
-	srv.handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogin), srv.BackendLogin)
-	srv.handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogout), srv.BackendOut)
-	srv.handler.Register(int32(treaty.RpcMsgId_RpcMsgChatTest), srv.ChannelTest)
+	return server, nil
+}
+
+func init() {
+	handler := rpcx.NewHandler()
+	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogin), srv.BackendLogin)
+	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogout), srv.BackendOut)
+	handler.Register(int32(treaty.RpcMsgId_RpcMsgChatTest), srv.ChannelTest)
 }

@@ -23,7 +23,7 @@
         "use_type": "redis",
         "dial_timeout": 5,
         "endpoints": [
-            "127.0.0.1:6379"
+            "192.168.91.129:6379"
         ],
         "password": "",
         "db": 0
@@ -34,7 +34,8 @@
             "server_type": "balancer",
             "server_name": "kungfu balancer",
             "server_ip": "127.0.0.1",
-            "client_port": 8188
+            "client_port": 8188,
+            "is_launch": true
         },
         "balancer_1002": {
             "server_id": "balancer_1002",
@@ -48,7 +49,8 @@
             "server_type": "connector",
             "server_name": "kungfu connector",
             "server_ip": "127.0.0.1",
-            "client_port": 8288
+            "client_port": 8288,
+            "is_launch": true
         },
         "connector_2002": {
             "server_id": "connector_2002",
@@ -62,7 +64,8 @@
             "server_type": "backend",
             "server_name": "kungfu backend",
             "server_ip": "127.0.0.1",
-            "client_port": 8388
+            "client_port": 8388,
+            "is_launch": true
         }
     },
     "connector": {
@@ -75,10 +78,5 @@
         "max_conn": 3000,
         "worker_pool_size": 10,
         "token_key": "kungfu token"
-    },
-    "launch": [
-        "balancer_1001",
-        "connector_2001",
-        "backend_3001"
-    ]
+    }
 }
