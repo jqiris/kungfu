@@ -14,16 +14,16 @@
         "prefix": "welcome",
         "dial_timeout": 5,
         "endpoints": [
-            "nats:@xgtf1988@localhost:4222",
-            "nats:@xgtf1988@localhost:4223",
-            "nats:@xgtf1988@localhost:4224"
+            "nats:@kungfu2021@localhost:4222",
+            "nats:@kungfu2021@localhost:4223",
+            "nats:@kungfu2021@localhost:4224"
         ]
     },
     "stores": {
         "use_type": "redis",
         "dial_timeout": 5,
         "endpoints": [
-            "192.168.91.129:6379"
+            "127.0.0.1:6379"
         ],
         "password": "",
         "db": 0

@@ -41,6 +41,8 @@ func Startup() {
 				logger.Fatalf("创建服务失败，配置:%+v", cfg)
 				return
 			}
+			server.Init()
+			server.AfterInit()
 			launched[sid] = server
 		}
 	}

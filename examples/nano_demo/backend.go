@@ -52,7 +52,7 @@ func (g *MyBackend) BackendLogin(req *treaty.LoginRequest) *treaty.LoginResponse
 	return resp
 }
 
-func (g *MyBackend) BackendOut(server rpcx.RpcServer, msg *treaty.LogoutRequest) *treaty.LogoutResponse {
+func (g *MyBackend) BackendOut(msg *treaty.LogoutRequest) *treaty.LogoutResponse {
 	//服务端登出
 	resp := &treaty.LogoutResponse{}
 	//销毁通道
@@ -95,7 +95,10 @@ func MyBackendCreator(s *treaty.Server) (rpcx.ServerEntity, error) {
 	}
 	server := &MyBackend{
 		BaseBackEnd: backend.BaseBackEnd{
-			Server: s,
+			Server:                s,
+			EventJsonSelf:         EventHandleSelf,
+			EventHandlerSelf:      EventHandleSelf,
+			EventHandlerBroadcast: EventHandleBroadcast,
 		},
 		connMap: make(map[int32]*treaty.Server),
 	}

@@ -18,7 +18,7 @@ import (
 const (
 	Balancer  = "balancer"
 	Connector = "connector"
-	Server    = "server"
+	Server    = "backend"
 	Database  = "database"
 )
 const (

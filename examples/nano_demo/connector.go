@@ -130,7 +130,10 @@ func UserConnectorCreator(s *treaty.Server) (rpcx.ServerEntity, error) {
 		return nil, errors.New("服务器id不能为空")
 	}
 	server := &UserConnector{connector.TcpConnector{
-		Server: s,
+		Server:                s,
+		EventJsonSelf:         EventHandleSelf,
+		EventHandlerSelf:      EventHandleSelf,
+		EventHandlerBroadcast: EventHandleBroadcast,
 	}}
 	server.TcpConnector.EventHandlerSelf = server.EventHandlerSelf
 	server.TcpConnector.EventJsonSelf = server.EventHandlerSelf
