@@ -8,11 +8,7 @@ import (
 	"sync"
 )
 
-type FindKey interface {
-	int | string
-}
-
-type ServerMap[K FindKey] map[K]*treaty.Server
+type ServerMap map[int]*treaty.Server
 
 type Finder struct {
 	servers    map[string]ServerMap
@@ -40,18 +36,19 @@ func (f *Finder) ServerEventHandler(ev *clientv3.Event, server *treaty.Server) {
 		f.serverLock.Unlock()
 	}
 }
-func (f *Finder) GetServerCache(serverType string, arg any) *treaty.Server {
+func (f *Finder) GetServerCache(serverType string, arg int) *treaty.Server {
 	f.serverLock.RLock()
 	defer f.serverLock.RUnlock()
 	if serverTypeList, ok := f.servers[serverType]; ok {
 		if server, okv := serverTypeList[arg]; okv {
 			return server
 		}
+
 	}
 	return nil
 }
 
-func (f *Finder) GetServerDiscover(serverType string, arg any) *treaty.Server {
+func (f *Finder) GetServerDiscover(serverType string, arg int) *treaty.Server {
 	f.serverLock.Lock()
 	defer f.serverLock.Unlock()
 	server := GetServerByType(serverType, fmt.Sprintf("%v", arg))
@@ -66,7 +63,7 @@ func (f *Finder) GetServerDiscover(serverType string, arg any) *treaty.Server {
 	return nil
 }
 
-func (f *Finder) GetUserServer(serverType string, arg any) *treaty.Server {
+func (f *Finder) GetUserServer(serverType string, arg int) *treaty.Server {
 	if server := f.GetServerCache(serverType, arg); server != nil {
 		return server
 	}
@@ -79,7 +76,7 @@ func (f *Finder) GetUserServer(serverType string, arg any) *treaty.Server {
 	return &treaty.Server{ServerType: "none"}
 }
 
-func (f *Finder) RemoveUserCache(arg any) {
+func (f *Finder) RemoveUserCache(arg int) {
 	f.serverLock.Lock()
 	defer f.serverLock.Unlock()
 	for typ, v := range f.servers {

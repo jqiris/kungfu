@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/jqiris/kungfu/launch"
 	"github.com/jqiris/kungfu/rpcx"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 type MyBackend struct {
 	backend.BaseBackEnd
 	handler *rpcx.Handler
-	conns   map[int32]*treaty.Server
+	connMap map[int32]*treaty.Server
 }
 
 func (g *MyBackend) BackendLogin(req *treaty.LoginRequest) *treaty.LoginResponse {
@@ -96,15 +97,16 @@ func MyBackendCreator(s *treaty.Server) (rpcx.ServerEntity, error) {
 		BaseBackEnd: backend.BaseBackEnd{
 			Server: s,
 		},
-		conns:   make(map[int32]*treaty.Server),
-		handler: rpcx.NewHandler(),
+		connMap: make(map[int32]*treaty.Server),
 	}
+	handler := rpcx.NewHandler()
+	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogin), server.BackendLogin)
+	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogout), server.BackendOut)
+	handler.Register(int32(treaty.RpcMsgId_RpcMsgChatTest), server.ChannelTest)
+	server.handler = handler
 	return server, nil
 }
 
 func init() {
-	handler := rpcx.NewHandler()
-	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogin), srv.BackendLogin)
-	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogout), srv.BackendOut)
-	handler.Register(int32(treaty.RpcMsgId_RpcMsgChatTest), srv.ChannelTest)
+	launch.RegisterCreator(rpcx.Server, MyBackendCreator)
 }

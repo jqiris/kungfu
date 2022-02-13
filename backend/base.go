@@ -6,7 +6,6 @@ import (
 	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/treaty"
-	"github.com/jqiris/kungfu/utils"
 )
 
 //BaseBackEnd 后盾服务
@@ -20,31 +19,52 @@ type BaseBackEnd struct {
 }
 
 func (b *BaseBackEnd) Init() {
-	//find the  server config
-	if b.Server = utils.FindServerConfig(config.GetServersConf(), b.GetServerId()); b.Server == nil {
-		logger.Fatal("BaseBackEnd can find the server config")
+	if b.Server == nil {
+		panic("服务配置信息不能为空")
+		return
 	}
+	//赋值id
+	b.ServerId = b.Server.ServerId
 	//init the rpcx
 	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf(), b.Server)
 	logger.Info("init the backend:", b.ServerId)
 }
 
 func (b *BaseBackEnd) AfterInit() {
-	//Subscribe event
-	if err := b.RpcX.Subscribe(b.Server, func(req *rpcx.RpcMsg) []byte {
+	if b.Server == nil {
+		panic("服务配置信息不能为空")
+		return
+	}
+	if b.EventJsonSelf == nil {
+		panic("EventJsonSelf不能为空")
+		return
+	}
+	if b.EventHandlerSelf == nil {
+		panic("EventHandlerSelf不能为空")
+		return
+	}
+	if b.EventHandlerBroadcast == nil {
+		panic("EventHandlerBroadcast不能为空")
+		return
+	}
+	builder := rpcx.NewRpcSubscriber(b.Server).SetCodeType(rpcx.CodeTypeProto).SetCallback(func(req *rpcx.RpcMsg) []byte {
 		return b.EventHandlerSelf(req)
-	}); err != nil {
-		logger.Error(err)
-	}
+	})
 	//Subscribe event
-	if err := b.RpcX.SubscribeJson(b.Server, func(req *rpcx.RpcMsg) []byte {
-		return b.EventJsonSelf(req)
-	}); err != nil {
+	if err := b.RpcX.Subscribe(builder); err != nil {
 		logger.Error(err)
 	}
-	if err := b.RpcX.SubscribeServer(func(req *rpcx.RpcMsg) []byte {
+	builder = builder.SetSuffix("json").SetCodeType(rpcx.CodeTypeJson).SetCallback(func(req *rpcx.RpcMsg) []byte {
+		return b.EventJsonSelf(req)
+	})
+	//Subscribe event
+	if err := b.RpcX.Subscribe(builder); err != nil {
+		logger.Error(err)
+	}
+	builder = builder.SetSuffix(rpcx.DefaultSuffix).SetCodeType(rpcx.CodeTypeProto).SetCallback(func(req *rpcx.RpcMsg) []byte {
 		return b.EventHandlerBroadcast(req)
-	}); err != nil {
+	})
+	if err := b.RpcX.SubscribeServer(builder); err != nil {
 		logger.Error(err)
 	}
 	//register the service

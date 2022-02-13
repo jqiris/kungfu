@@ -30,8 +30,8 @@ type RpcServer interface {
 	DecodeMsg(codeType string, data []byte, v interface{}) error                                      //decode msg
 	GetCoder(codeType string) RpcEncoder                                                              //get encoder
 	GetServer() *treaty.Server                                                                        //get current server
-	Find(serverType string, arg any) *treaty.Server                                                   //find server
-	RemoveFindCache(arg any)                                                                          //clear find cache
+	Find(serverType string, arg int) *treaty.Server                                                   //find server
+	RemoveFindCache(arg int)                                                                          //clear find cache
 }
 
 // NewRpcServer create rpc server
