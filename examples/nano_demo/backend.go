@@ -95,13 +95,13 @@ func MyBackendCreator(s *treaty.Server) (rpcx.ServerEntity, error) {
 	}
 	server := &MyBackend{
 		BaseBackEnd: backend.BaseBackEnd{
-			Server:                s,
-			EventJsonSelf:         EventHandleSelf,
-			EventHandlerSelf:      EventHandleSelf,
-			EventHandlerBroadcast: EventHandleBroadcast,
+			Server: s,
 		},
 		connMap: make(map[int32]*treaty.Server),
 	}
+	server.BaseBackEnd.EventJsonSelf = server.EventHandleSelf
+	server.BaseBackEnd.EventHandlerSelf = server.EventHandleSelf
+	server.BaseBackEnd.EventHandlerBroadcast = server.EventHandleBroadcast
 	handler := rpcx.NewHandler()
 	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogin), server.BackendLogin)
 	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogout), server.BackendOut)

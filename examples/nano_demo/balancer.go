@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/rpcx"
 	"github.com/jqiris/kungfu/treaty"
 
@@ -14,13 +14,13 @@ type MyBalancer struct {
 	balancer.BaseBalancer
 }
 
-func EventHandleSelf(req *rpcx.RpcMsg) []byte {
-	fmt.Printf("MyBalancer EventHandleSelf received: %+v \n", req)
+func (b *MyBalancer) EventHandleSelf(req *rpcx.RpcMsg) []byte {
+	logger.Infof("MyBalancer EventHandleSelf received: %+v", req)
 	return nil
 }
 
-func EventHandleBroadcast(req *rpcx.RpcMsg) []byte {
-	fmt.Printf("MyBalancer EventHandleBroadcast received: %+v \n", req)
+func (b *MyBalancer) EventHandleBroadcast(req *rpcx.RpcMsg) []byte {
+	logger.Infof("MyBalancer EventHandleBroadcast received: %+v", req)
 	return nil
 }
 
@@ -30,12 +30,12 @@ func MyBalancerCreator(s *treaty.Server) (rpcx.ServerEntity, error) {
 	}
 	server := &MyBalancer{
 		BaseBalancer: balancer.BaseBalancer{
-			Server:                s,
-			EventJsonSelf:         EventHandleSelf,
-			EventHandlerSelf:      EventHandleSelf,
-			EventHandlerBroadcast: EventHandleBroadcast,
+			Server: s,
 		},
 	}
+	server.BaseBalancer.EventJsonSelf = server.EventHandleSelf
+	server.BaseBalancer.EventHandlerSelf = server.EventHandleSelf
+	server.BaseBalancer.EventHandlerBroadcast = server.EventHandleBroadcast
 	return server, nil
 }
 

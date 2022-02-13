@@ -11,13 +11,14 @@
     },
     "rpcx": {
         "use_type": "nats",
-        "prefix": "welcome",
+        "prefix": "good",
         "dial_timeout": 5,
         "endpoints": [
             "nats:@kungfu2021@localhost:4222",
             "nats:@kungfu2021@localhost:4223",
             "nats:@kungfu2021@localhost:4224"
-        ]
+        ],
+        "debug_msg": true
     },
     "stores": {
         "use_type": "redis",
@@ -66,6 +67,14 @@
             "server_ip": "127.0.0.1",
             "client_port": 8388,
             "is_launch": true
+        },
+        "backend_3002": {
+            "server_id": "backend_3002",
+            "server_type": "backend",
+            "server_name": "kungfu backend2",
+            "server_ip": "127.0.0.1",
+            "client_port": 8389,
+            "is_launch": false
         }
     },
     "connector": {

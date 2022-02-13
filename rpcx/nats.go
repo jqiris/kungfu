@@ -1,7 +1,6 @@
 package rpcx
 
 import (
-	"errors"
 	"fmt"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/serialize"
@@ -162,10 +161,7 @@ func (r *RpcNats) RemoveFindCache(arg int) {
 	r.Finder.RemoveUserCache(arg)
 }
 
-func (r *RpcNats) prepare(s *RpcSubscriber) (RpcEncoder, error) {
-	if s == nil {
-		return nil, errors.New("subscribe订阅配置不能为空")
-	}
+func (r *RpcNats) prepare(s RpcSubscriber) (RpcEncoder, error) {
 	coder := r.RpcCoder[s.codeType]
 	if coder == nil {
 		return nil, fmt.Errorf("rpc coder not exist:%v", s.codeType)
@@ -173,7 +169,7 @@ func (r *RpcNats) prepare(s *RpcSubscriber) (RpcEncoder, error) {
 	return coder, nil
 }
 
-func (r *RpcNats) Subscribe(s *RpcSubscriber) error {
+func (r *RpcNats) Subscribe(s RpcSubscriber) error {
 	coder, err := r.prepare(s)
 	if err != nil {
 		return err
@@ -195,7 +191,7 @@ func (r *RpcNats) Subscribe(s *RpcSubscriber) error {
 	return nil
 }
 
-func (r *RpcNats) QueueSubscribe(s *RpcSubscriber) error {
+func (r *RpcNats) QueueSubscribe(s RpcSubscriber) error {
 	coder, err := r.prepare(s)
 	if err != nil {
 		return err
@@ -217,7 +213,7 @@ func (r *RpcNats) QueueSubscribe(s *RpcSubscriber) error {
 	return nil
 }
 
-func (r *RpcNats) SubscribeBalancer(s *RpcSubscriber) error {
+func (r *RpcNats) SubscribeBalancer(s RpcSubscriber) error {
 	coder, err := r.prepare(s)
 	if err != nil {
 		return err
@@ -239,7 +235,7 @@ func (r *RpcNats) SubscribeBalancer(s *RpcSubscriber) error {
 	return nil
 }
 
-func (r *RpcNats) SubscribeConnector(s *RpcSubscriber) error {
+func (r *RpcNats) SubscribeConnector(s RpcSubscriber) error {
 	coder, err := r.prepare(s)
 	if err != nil {
 		return err
@@ -261,7 +257,7 @@ func (r *RpcNats) SubscribeConnector(s *RpcSubscriber) error {
 	return nil
 }
 
-func (r *RpcNats) SubscribeServer(s *RpcSubscriber) error {
+func (r *RpcNats) SubscribeServer(s RpcSubscriber) error {
 	coder, err := r.prepare(s)
 	if err != nil {
 		return err
@@ -283,7 +279,7 @@ func (r *RpcNats) SubscribeServer(s *RpcSubscriber) error {
 	return nil
 }
 
-func (r *RpcNats) SubscribeDatabase(s *RpcSubscriber) error {
+func (r *RpcNats) SubscribeDatabase(s RpcSubscriber) error {
 	coder, err := r.prepare(s)
 	if err != nil {
 		return err

@@ -14,12 +14,12 @@ type CallbackFunc func(req *RpcMsg) []byte
 // RpcServer rpc interface
 type RpcServer interface {
 	RegEncoder(typ string, encoder RpcEncoder)                                                        //register encoder
-	Subscribe(s *RpcSubscriber) error                                                                 //self Subscribe
-	SubscribeBalancer(s *RpcSubscriber) error                                                         //balancer subscribe
-	SubscribeConnector(s *RpcSubscriber) error                                                        //connect subscribe
-	SubscribeServer(s *RpcSubscriber) error                                                           //server subscribe
-	SubscribeDatabase(s *RpcSubscriber) error                                                         //database subscribe
-	QueueSubscribe(s *RpcSubscriber) error                                                            //queue self Subscribe
+	Subscribe(s RpcSubscriber) error                                                                  //self Subscribe
+	SubscribeBalancer(s RpcSubscriber) error                                                          //balancer subscribe
+	SubscribeConnector(s RpcSubscriber) error                                                         //connect subscribe
+	SubscribeServer(s RpcSubscriber) error                                                            //server subscribe
+	SubscribeDatabase(s RpcSubscriber) error                                                          //database subscribe
+	QueueSubscribe(s RpcSubscriber) error                                                             //queue self Subscribe
 	Publish(codeType, suffix string, server *treaty.Server, msgId int32, req interface{}) error       //publish
 	PublishBalancer(codeType, suffix string, msgId int32, req interface{}) error                      //balancer publish
 	PublishConnector(codeType, suffix string, msgId int32, req interface{}) error                     //connect publish

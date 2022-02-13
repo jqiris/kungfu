@@ -55,7 +55,7 @@ func (u *UserConnector) Login(s *session.Session, req *treaty.LoginRequest) erro
 	}
 	//后端服务器进行登录操作
 	respBack := &treaty.LoginResponse{}
-	if err := u.RpcX.Request(rpcx.CodeTypeJson, rpcx.DefaultSuffix, backend, int32(treaty.RpcMsgId_RpcMsgBackendLogin), req, respBack); err != nil {
+	if err := u.RpcX.Request(rpcx.CodeTypeProto, rpcx.DefaultSuffix, backend, int32(treaty.RpcMsgId_RpcMsgBackendLogin), req, respBack); err != nil {
 		resp.Code = treaty.CodeType_CodeFailed
 		resp.Msg = err.Error()
 		return s.Response(resp)
@@ -130,14 +130,11 @@ func UserConnectorCreator(s *treaty.Server) (rpcx.ServerEntity, error) {
 		return nil, errors.New("服务器id不能为空")
 	}
 	server := &UserConnector{connector.TcpConnector{
-		Server:                s,
-		EventJsonSelf:         EventHandleSelf,
-		EventHandlerSelf:      EventHandleSelf,
-		EventHandlerBroadcast: EventHandleBroadcast,
+		Server: s,
 	}}
-	server.TcpConnector.EventHandlerSelf = server.EventHandlerSelf
-	server.TcpConnector.EventJsonSelf = server.EventHandlerSelf
-	server.TcpConnector.EventHandlerBroadcast = server.EventHandlerBroadcast
+	server.TcpConnector.EventHandlerSelf = server.EventHandleSelf
+	server.TcpConnector.EventJsonSelf = server.EventHandleSelf
+	server.TcpConnector.EventHandlerBroadcast = server.EventHandleBroadcast
 	server.RouteHandler = func(s tcpface.IServer) {
 		rs := s.GetMsgHandler()
 		router := rs.(*nano.MsgHandle)

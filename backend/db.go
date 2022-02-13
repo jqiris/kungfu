@@ -51,20 +51,20 @@ func (b *DatabaseEnd) AfterInit() {
 		return b.EventHandlerSelf(req)
 	})
 	//Subscribe event
-	if err := b.RpcX.Subscribe(builder); err != nil {
+	if err := b.RpcX.Subscribe(*builder); err != nil {
 		logger.Error(err)
 	}
 	builder = builder.SetSuffix("json").SetCodeType(rpcx.CodeTypeJson).SetCallback(func(req *rpcx.RpcMsg) []byte {
 		return b.EventJsonSelf(req)
 	})
 	//Subscribe event
-	if err := b.RpcX.Subscribe(builder); err != nil {
+	if err := b.RpcX.Subscribe(*builder); err != nil {
 		logger.Error(err)
 	}
 	builder = builder.SetSuffix(rpcx.DefaultSuffix).SetCodeType(rpcx.CodeTypeProto).SetCallback(func(req *rpcx.RpcMsg) []byte {
 		return b.EventHandlerBroadcast(req)
 	})
-	if err := b.RpcX.SubscribeDatabase(builder); err != nil {
+	if err := b.RpcX.SubscribeDatabase(*builder); err != nil {
 		logger.Error(err)
 	}
 	//register the service
