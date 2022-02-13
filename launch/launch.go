@@ -3,21 +3,21 @@ package launch
 import (
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/rpc"
 )
 
 //服务器集群管理
 var (
-	creators map[string]rpcx.ServerCreator
-	launched map[string]rpcx.ServerEntity
+	creators map[string]rpc.ServerCreator
+	launched map[string]rpc.ServerEntity
 )
 
 func init() {
-	creators = make(map[string]rpcx.ServerCreator)
-	launched = make(map[string]rpcx.ServerEntity)
+	creators = make(map[string]rpc.ServerCreator)
+	launched = make(map[string]rpc.ServerEntity)
 }
 
-func RegisterCreator(typ string, creator rpcx.ServerCreator) {
+func RegisterCreator(typ string, creator rpc.ServerCreator) {
 	if _, ok := creators[typ]; !ok {
 		creators[typ] = creator
 	} else {

@@ -1,4 +1,4 @@
-package rpcx
+package rpc
 
 import (
 	"fmt"
@@ -55,7 +55,7 @@ func (h *Handler) Register(msgId int32, v interface{}) {
 	}
 }
 
-func (h *Handler) DealMsg(codeType string, server RpcServer, req *RpcMsg) ([]byte, error) {
+func (h *Handler) DealMsg(codeType string, server ServerRpc, req *MsgRpc) ([]byte, error) {
 	msgId, msgData := req.MsgId, req.MsgData.([]byte)
 	if handler, ok := h.handlers[msgId]; ok {
 		if handler.MsgType != req.MsgType {

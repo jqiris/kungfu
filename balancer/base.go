@@ -8,7 +8,7 @@ import (
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/rpc"
 	"github.com/jqiris/kungfu/serialize"
 	"github.com/jqiris/kungfu/session"
 	"github.com/jqiris/kungfu/treaty"
@@ -20,12 +20,12 @@ import (
 type BaseBalancer struct {
 	ServerId              string
 	Server                *treaty.Server
-	RpcX                  rpcx.RpcServer
+	Rpc                   rpc.ServerRpc
 	ClientServer          *http.Server
 	ClientCoder           serialize.Serializer
-	EventJsonSelf         rpcx.CallbackFunc //处理自己的json事件
-	EventHandlerSelf      rpcx.CallbackFunc //处理自己的事件
-	EventHandlerBroadcast rpcx.CallbackFunc //处理广播事件
+	EventJsonSelf         rpc.CallbackFunc //处理自己的json事件
+	EventHandlerSelf      rpc.CallbackFunc //处理自己的事件
+	EventHandlerBroadcast rpc.CallbackFunc //处理广播事件
 }
 
 func (b *BaseBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
@@ -83,8 +83,8 @@ func (b *BaseBalancer) Init() {
 	}
 	//赋值id
 	b.ServerId = b.Server.ServerId
-	//init the rpcx
-	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf(), b.Server)
+	//init the rpc
+	b.Rpc = rpc.NewRpcServer(config.GetRpcConf(), b.Server)
 	//init the coder
 	b.ClientCoder = serialize.NewProtoSerializer()
 	//set the server
@@ -118,24 +118,24 @@ func (b *BaseBalancer) AfterInit() {
 		panic("EventHandlerBroadcast不能为空")
 		return
 	}
-	builder := rpcx.NewRpcSubscriber(b.Server).SetCodeType(rpcx.CodeTypeProto).SetCallback(func(req *rpcx.RpcMsg) []byte {
+	builder := rpc.NewSubscriberRpc(b.Server).SetCodeType(rpc.CodeTypeProto).SetCallback(func(req *rpc.MsgRpc) []byte {
 		return b.EventHandlerSelf(req)
 	})
 	//Subscribe event
-	if err := b.RpcX.Subscribe(builder.Build()); err != nil {
+	if err := b.Rpc.Subscribe(builder.Build()); err != nil {
 		logger.Error(err)
 	}
-	builder = builder.SetSuffix("json").SetCodeType(rpcx.CodeTypeJson).SetCallback(func(req *rpcx.RpcMsg) []byte {
+	builder = builder.SetSuffix("json").SetCodeType(rpc.CodeTypeJson).SetCallback(func(req *rpc.MsgRpc) []byte {
 		return b.EventJsonSelf(req)
 	})
 	//Subscribe event
-	if err := b.RpcX.Subscribe(builder.Build()); err != nil {
+	if err := b.Rpc.Subscribe(builder.Build()); err != nil {
 		logger.Error(err)
 	}
-	builder = builder.SetSuffix(rpcx.DefaultSuffix).SetCodeType(rpcx.CodeTypeProto).SetCallback(func(req *rpcx.RpcMsg) []byte {
+	builder = builder.SetSuffix(rpc.DefaultSuffix).SetCodeType(rpc.CodeTypeProto).SetCallback(func(req *rpc.MsgRpc) []byte {
 		return b.EventHandlerBroadcast(req)
 	})
-	if err := b.RpcX.SubscribeBalancer(builder.Build()); err != nil {
+	if err := b.Rpc.SubscribeBalancer(builder.Build()); err != nil {
 		logger.Error(err)
 	}
 	//register the service

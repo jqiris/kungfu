@@ -6,7 +6,7 @@ import (
 
 type Config struct {
 	Discover  DiscoverConf              `json:"discover"`
-	RpcX      RpcXConf                  `json:"rpcx"`
+	Rpc       RpcConf                   `json:"rpc"`
 	Stores    StoresConf                `json:"stores"`
 	Connector ConnectorConf             `json:"connector"`
 	Servers   map[string]*treaty.Server `json:"servers"`
@@ -19,7 +19,7 @@ type DiscoverConf struct {
 	Prefix      string   `json:"prefix"`
 }
 
-type RpcXConf struct {
+type RpcConf struct {
 	UseType     string   `json:"use_type"`
 	DialTimeout int      `json:"dial_timeout"`
 	Endpoints   []string `json:"endpoints"`

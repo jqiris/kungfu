@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/rpc"
 	"time"
 
 	"github.com/jqiris/kungfu/channel"
@@ -18,8 +18,8 @@ type MyBackend struct {
 	conns map[int32]*treaty.Server
 }
 
-func (b *MyBackend) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
-	fmt.Printf("MyBackend EventHandleSelf received: %+v \n", req)
+func (b *MyBackend) HandleSelfEvent(server rpc.ServerRpc, req *rpc.MsgRpc) []byte {
+	fmt.Printf("MyBackend HandleSelfEvent received: %+v \n", req)
 	msgId, msgData := treaty.RpcMsgId(req.MsgId), req.MsgData.([]byte)
 	switch msgId {
 	case treaty.RpcMsgId_RpcMsgBackendLogin:
@@ -100,15 +100,15 @@ func (b *MyBackend) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) []b
 	return nil
 }
 
-func (b *MyBackend) EventHandleBroadcast(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
-	fmt.Printf("MyBackend EventHandleBroadcast received: %+v \n", req)
+func (b *MyBackend) HandleBroadcastEvent(server rpc.ServerRpc, req *rpc.MsgRpc) []byte {
+	fmt.Printf("MyBackend HandleBroadcastEvent received: %+v \n", req)
 	return nil
 }
 
 func init() {
 	srv := &MyBackend{conns: make(map[int32]*treaty.Server)}
 	srv.SetServerId("backend_3001")
-	srv.RegEventHandlerSelf(srv.EventHandleSelf)
-	srv.RegEventHandlerBroadcast(srv.EventHandleBroadcast)
+	srv.RegEventHandlerSelf(srv.HandleSelfEvent)
+	srv.RegEventHandlerBroadcast(srv.HandleBroadcastEvent)
 	launch.RegisterServer(srv)
 }

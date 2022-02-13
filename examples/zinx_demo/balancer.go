@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/rpc"
 
 	"github.com/jqiris/kungfu/balancer"
 	"github.com/jqiris/kungfu/launch"
@@ -12,26 +12,26 @@ type MyBalancer struct {
 	balancer.BaseBalancer
 }
 
-func (b *MyBalancer) EventHandleSelf(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
-	fmt.Printf("MyBalancer EventHandleSelf received: %+v \n", req)
+func (b *MyBalancer) HandleSelfEvent(server rpc.ServerRpc, req *rpc.MsgRpc) []byte {
+	fmt.Printf("MyBalancer HandleSelfEvent received: %+v \n", req)
 	return nil
 }
 
-func (b *MyBalancer) EventHandleBroadcast(server rpcx.RpcServer, req *rpcx.RpcMsg) []byte {
-	fmt.Printf("MyBalancer EventHandleBroadcast received: %+v \n", req)
+func (b *MyBalancer) HandleBroadcastEvent(server rpc.ServerRpc, req *rpc.MsgRpc) []byte {
+	fmt.Printf("MyBalancer HandleBroadcastEvent received: %+v \n", req)
 	return nil
 }
 
 func init() {
 	srv := &MyBalancer{}
 	srv.SetServerId("balancer_1001")
-	srv.RegEventHandlerSelf(srv.EventHandleSelf)
-	srv.RegEventHandlerBroadcast(srv.EventHandleBroadcast)
+	srv.RegEventHandlerSelf(srv.HandleSelfEvent)
+	srv.RegEventHandlerBroadcast(srv.HandleBroadcastEvent)
 	launch.RegisterServer(srv)
 
 	srv2 := &MyBalancer{}
 	srv2.SetServerId("balancer_1002")
-	srv2.RegEventHandlerSelf(srv2.EventHandleSelf)
-	srv2.RegEventHandlerBroadcast(srv2.EventHandleBroadcast)
+	srv2.RegEventHandlerSelf(srv2.HandleSelfEvent)
+	srv2.RegEventHandlerBroadcast(srv2.HandleBroadcastEvent)
 	launch.RegisterServer(srv2)
 }

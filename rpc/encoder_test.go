@@ -1,4 +1,4 @@
-package rpcx
+package rpc
 
 import (
 	"github.com/jqiris/kungfu/logger"
@@ -9,7 +9,7 @@ import (
 
 func TestRpcEncoder(t *testing.T) {
 	coder := NewRpcEncoder(serialize.NewJsonSerializer())
-	eData, err := coder.Encode(&RpcMsg{
+	eData, err := coder.Encode(&MsgRpc{
 		MsgType: Publish,
 		MsgId:   int32(treaty.MsgId_Msg_Login_Request),
 		MsgData: &treaty.LoginRequest{
@@ -22,8 +22,8 @@ func TestRpcEncoder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	//msg := &RpcMsg{MsgData: &treaty.LoginRequest{}}
-	msg := &RpcMsg{}
+	//msg := &MsgRpc{MsgData: &treaty.LoginRequest{}}
+	msg := &MsgRpc{}
 	err = coder.Decode(eData, msg)
 	if err != nil {
 		t.Fatal(err)

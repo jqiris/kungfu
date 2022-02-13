@@ -3,20 +3,20 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/jqiris/kungfu/base"
 	"github.com/jqiris/kungfu/launch"
-	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/rpc"
 	"time"
 
 	"github.com/jqiris/kungfu/channel"
 	"github.com/jqiris/kungfu/treaty"
 
-	"github.com/jqiris/kungfu/backend"
 	"github.com/jqiris/kungfu/logger"
 )
 
 type MyBackend struct {
-	backend.BaseBackEnd
-	handler *rpcx.Handler
+	*base.ServerBase
+	handler *rpc.Handler
 	connMap map[int32]*treaty.Server
 }
 
@@ -24,7 +24,7 @@ func (g *MyBackend) BackendLogin(req *treaty.LoginRequest) *treaty.LoginResponse
 	logger.Info("BackendLogin:", req)
 	resp := &treaty.LoginResponse{}
 	//检查游戏通道是否建立
-	ch := channel.GetChannel(g.GetServer(), req.Uid)
+	ch := channel.GetChannel(g.Server, req.Uid)
 	if ch != nil {
 		ch.ReconnectNum++
 		ch.ReconnectTime = time.Now().Unix()
@@ -33,14 +33,14 @@ func (g *MyBackend) BackendLogin(req *treaty.LoginRequest) *treaty.LoginResponse
 		}
 		resp.Code = treaty.CodeType_CodeSuccess
 		resp.Msg = "登录成功"
-		resp.Backend = g.GetServer()
+		resp.Backend = g.Server
 		return resp
 	}
 	//游戏通道建立
 	ch = &treaty.GameChannel{
 		Uid:        req.Uid,
 		Connector:  req.Connector,
-		Backend:    g.GetServer(),
+		Backend:    g.Server,
 		CreateTime: time.Now().Unix(),
 	}
 	if err := channel.SaveChannel(ch); err != nil {
@@ -48,7 +48,7 @@ func (g *MyBackend) BackendLogin(req *treaty.LoginRequest) *treaty.LoginResponse
 	}
 	resp.Code = treaty.CodeType_CodeSuccess
 	resp.Msg = "登录成功"
-	resp.Backend = g.GetServer()
+	resp.Backend = g.Server
 	return resp
 }
 
@@ -75,9 +75,9 @@ func (g *MyBackend) ChannelTest(req *treaty.ChannelMsgRequest) *treaty.ChannelMs
 	return resp
 }
 
-func (g *MyBackend) EventHandleSelf(req *rpcx.RpcMsg) []byte {
-	logger.Infof("MyBackend EventHandleSelf received: %+v", req)
-	resp, err := g.handler.DealMsg(rpcx.CodeTypeProto, g.RpcX, req)
+func (g *MyBackend) HandleSelfEvent(req *rpc.MsgRpc) []byte {
+	logger.Infof("MyBackend HandleSelfEvent received: %+v", req)
+	resp, err := g.handler.DealMsg(rpc.CodeTypeProto, g.Rpc, req)
 	if err != nil {
 		logger.Error(err)
 		return nil
@@ -85,24 +85,19 @@ func (g *MyBackend) EventHandleSelf(req *rpcx.RpcMsg) []byte {
 	return resp
 }
 
-func (g *MyBackend) EventHandleBroadcast(req *rpcx.RpcMsg) []byte {
-	fmt.Printf("MyBackend EventHandleBroadcast received: %+v \n", req)
+func (g *MyBackend) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
+	logger.Infof("MyBackend HandleBroadcastEvent received: %+v \n", req)
 	return nil
 }
-func MyBackendCreator(s *treaty.Server) (rpcx.ServerEntity, error) {
+func MyBackendCreator(s *treaty.Server) (rpc.ServerEntity, error) {
 	if len(s.ServerId) < 1 {
 		return nil, errors.New("服务器id不能为空")
 	}
 	server := &MyBackend{
-		BaseBackEnd: backend.BaseBackEnd{
-			Server: s,
-		},
-		connMap: make(map[int32]*treaty.Server),
+		ServerBase: base.NewServerBase(s),
+		connMap:    make(map[int32]*treaty.Server),
 	}
-	server.BaseBackEnd.EventJsonSelf = server.EventHandleSelf
-	server.BaseBackEnd.EventHandlerSelf = server.EventHandleSelf
-	server.BaseBackEnd.EventHandlerBroadcast = server.EventHandleBroadcast
-	handler := rpcx.NewHandler()
+	handler := rpc.NewHandler()
 	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogin), server.BackendLogin)
 	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogout), server.BackendOut)
 	handler.Register(int32(treaty.RpcMsgId_RpcMsgChatTest), server.ChannelTest)
@@ -111,5 +106,5 @@ func MyBackendCreator(s *treaty.Server) (rpcx.ServerEntity, error) {
 }
 
 func init() {
-	launch.RegisterCreator(rpcx.Server, MyBackendCreator)
+	launch.RegisterCreator(rpc.Server, MyBackendCreator)
 }

@@ -45,8 +45,8 @@ func GetDiscoverConf() DiscoverConf {
 	return config.Discover
 }
 
-func GetRpcXConf() RpcXConf {
-	return config.RpcX
+func GetRpcConf() RpcConf {
+	return config.Rpc
 }
 
 func GetStoresConf() StoresConf {

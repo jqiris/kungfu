@@ -4,7 +4,7 @@ import (
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/rpc"
 	"github.com/jqiris/kungfu/tcpface"
 	"github.com/jqiris/kungfu/tcpserver"
 	"github.com/jqiris/kungfu/treaty"
@@ -13,10 +13,10 @@ import (
 type TcpConnector struct {
 	ServerId              string
 	Server                *treaty.Server
-	RpcX                  rpcx.RpcServer
-	EventJsonSelf         rpcx.CallbackFunc       //处理自己的json事件
-	EventHandlerSelf      rpcx.CallbackFunc       //处理自己的事件
-	EventHandlerBroadcast rpcx.CallbackFunc       //处理广播事件
+	Rpc                   rpc.ServerRpc
+	EventJsonSelf         rpc.CallbackFunc        //处理自己的json事件
+	EventHandlerSelf      rpc.CallbackFunc        //处理自己的事件
+	EventHandlerBroadcast rpc.CallbackFunc        //处理广播事件
 	ClientServer          tcpface.IServer         //zinx server
 	RouteHandler          func(s tcpface.IServer) //注册路由
 }
@@ -32,8 +32,8 @@ func (b *TcpConnector) Init() {
 	}
 	//赋值id
 	b.ServerId = b.Server.ServerId
-	//init the rpcx
-	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf(), b.Server)
+	//init the rpc
+	b.Rpc = rpc.NewRpcServer(config.GetRpcConf(), b.Server)
 	//run the front server
 	b.ClientServer = tcpserver.NewServer(b.Server)
 	b.RouteHandler(b.ClientServer)
@@ -59,24 +59,24 @@ func (b *TcpConnector) AfterInit() {
 		panic("EventHandlerBroadcast不能为空")
 		return
 	}
-	builder := rpcx.NewRpcSubscriber(b.Server).SetCodeType(rpcx.CodeTypeProto).SetCallback(func(req *rpcx.RpcMsg) []byte {
+	builder := rpc.NewSubscriberRpc(b.Server).SetCodeType(rpc.CodeTypeProto).SetCallback(func(req *rpc.MsgRpc) []byte {
 		return b.EventHandlerSelf(req)
 	})
 	//Subscribe event
-	if err := b.RpcX.Subscribe(builder.Build()); err != nil {
+	if err := b.Rpc.Subscribe(builder.Build()); err != nil {
 		logger.Error(err)
 	}
-	builder = builder.SetSuffix("json").SetCodeType(rpcx.CodeTypeJson).SetCallback(func(req *rpcx.RpcMsg) []byte {
+	builder = builder.SetSuffix("json").SetCodeType(rpc.CodeTypeJson).SetCallback(func(req *rpc.MsgRpc) []byte {
 		return b.EventJsonSelf(req)
 	})
 	//Subscribe event
-	if err := b.RpcX.Subscribe(builder.Build()); err != nil {
+	if err := b.Rpc.Subscribe(builder.Build()); err != nil {
 		logger.Error(err)
 	}
-	builder = builder.SetSuffix(rpcx.DefaultSuffix).SetCodeType(rpcx.CodeTypeProto).SetCallback(func(req *rpcx.RpcMsg) []byte {
+	builder = builder.SetSuffix(rpc.DefaultSuffix).SetCodeType(rpc.CodeTypeProto).SetCallback(func(req *rpc.MsgRpc) []byte {
 		return b.EventHandlerBroadcast(req)
 	})
-	if err := b.RpcX.SubscribeConnector(builder.Build()); err != nil {
+	if err := b.Rpc.SubscribeConnector(builder.Build()); err != nil {
 		logger.Error(err)
 	}
 	//register the service

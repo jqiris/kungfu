@@ -3,14 +3,14 @@ package tests
 import (
 	"fmt"
 	"github.com/jqiris/kungfu/config"
-	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/rpc"
 	"github.com/jqiris/kungfu/treaty"
 	"reflect"
 	"testing"
 )
 
 //func TestRpc(t *testing.T) {
-//	cfg := config.GetRpcXConf()
+//	cfg := config.GetRpcConf()
 //	//gate
 //	s1 := &treaty.Server{
 //		ServerId:   "1001",
@@ -19,7 +19,7 @@ import (
 //		ServerIp:   "127.0.0.1",
 //		ClientPort: 123,
 //	}
-//	w1 := rpcx.NewRpcBalancer(cfg)
+//	w1 := rpc.NewRpcBalancer(cfg)
 //	if err := w1.Subscribe(s1, func(req []byte) []byte {
 //		logger.Infof("gate received: %v", string(req))
 //		return []byte(fmt.Sprintf("gate received: %v", string(req)))
@@ -40,7 +40,7 @@ import (
 //		ServerIp:   "127.0.0.1",
 //		ClientPort: 456,
 //	}
-//	w2 := rpcx.NewRpcConnector(cfg)
+//	w2 := rpc.NewRpcConnector(cfg)
 //	if err := w2.Subscribe(s2, func(req []byte) []byte {
 //		logger.Infof("connector received: %v", string(req))
 //		return []byte(fmt.Sprintf("connector received: %v", string(req)))
@@ -61,7 +61,7 @@ import (
 //		ServerIp:   "127.0.0.1",
 //		ClientPort: 789,
 //	}
-//	w3 := rpcx.NewRpcServer(cfg)
+//	w3 := rpc.NewRpcServer(cfg)
 //	if err := w3.Subscribe(s3, func(req []byte) []byte {
 //		logger.Infof("server received: %v", string(req))
 //		return []byte(fmt.Sprintf("server received: %v", string(req)))
@@ -87,8 +87,8 @@ func TestServerByte(t *testing.T) {
 }
 
 func TestServerInterface(t *testing.T) {
-	var server rpcx.RpcServer
-	server = rpcx.NewRpcServer(config.GetRpcXConf(), &treaty.Server{})
+	var server rpc.ServerRpc
+	server = rpc.NewRpcServer(config.GetRpcConf(), &treaty.Server{})
 	value := reflect.TypeOf(server)
 	fmt.Println(value.Kind(), value)
 }
@@ -99,27 +99,27 @@ type RpcHandler struct {
 	Handler reflect.Value
 }
 
-func BackendLogin(server rpcx.RpcServer, req *treaty.LoginRequest) *treaty.LoginResponse {
+func BackendLogin(server rpc.ServerRpc, req *treaty.LoginRequest) *treaty.LoginResponse {
 	fmt.Printf("server is:%+v, req is %+v \n", server, req)
 	return &treaty.LoginResponse{
 		Msg: "login response",
 	}
 }
 
-func BackendLogin2(server rpcx.RpcServer, req *treaty.LoginRequest) {
+func BackendLogin2(server rpc.ServerRpc, req *treaty.LoginRequest) {
 	fmt.Printf("server is:%+v, req is %+v \n", server, req)
 }
 
 func TestRpcHandler(t *testing.T) {
-	var server rpcx.RpcServer
-	server = rpcx.NewRpcServer(config.GetRpcXConf(), &treaty.Server{})
+	var server rpc.ServerRpc
+	server = rpc.NewRpcServer(config.GetRpcConf(), &treaty.Server{})
 	funcValue := reflect.ValueOf(BackendLogin)
 	ts := reflect.TypeOf(BackendLogin)
 	fmt.Println(funcValue, ts, ts.NumIn(), ts.NumOut(), ts.In(1), ts.Out(0))
 	in := reflect.New(ts.In(1).Elem()).Interface()
 	srv := reflect.ValueOf(server)
 	srvT := ts.In(0).String()
-	//_, ok := srvT.(rpcx.RpcServer)
+	//_, ok := srvT.(rpc.ServerRpc)
 	fmt.Println("11111", srvT, "2222", srv.Kind(), "3333")
 	args := []reflect.Value{srv, reflect.ValueOf(in)}
 	res := funcValue.Call(args)
@@ -127,8 +127,8 @@ func TestRpcHandler(t *testing.T) {
 }
 
 func TestRpcHandler2(t *testing.T) {
-	var server rpcx.RpcServer
-	server = rpcx.NewRpcServer(config.GetRpcXConf(), &treaty.Server{})
+	var server rpc.ServerRpc
+	server = rpc.NewRpcServer(config.GetRpcConf(), &treaty.Server{})
 	funcValue := reflect.ValueOf(BackendLogin2)
 	ts := reflect.TypeOf(BackendLogin2)
 	fmt.Println(funcValue, ts.Kind(), ts.NumIn(), ts.NumOut(), ts.In(1))

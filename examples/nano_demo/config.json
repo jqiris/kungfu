@@ -9,7 +9,7 @@
             "127.0.0.1:23793"
         ]
     },
-    "rpcx": {
+    "rpc": {
         "use_type": "nats",
         "prefix": "good",
         "dial_timeout": 5,

@@ -3,13 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/jqiris/kungfu/base"
 	"github.com/jqiris/kungfu/config"
-	"github.com/jqiris/kungfu/connector"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/launch"
 	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/packet/nano"
-	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/rpc"
 	"github.com/jqiris/kungfu/session"
 	"github.com/jqiris/kungfu/tcpface"
 	"github.com/jqiris/kungfu/treaty"
@@ -17,7 +17,7 @@ import (
 )
 
 type UserConnector struct {
-	connector.TcpConnector
+	*base.ServerConnector
 }
 
 func NewUserConnector() *UserConnector {
@@ -55,7 +55,7 @@ func (u *UserConnector) Login(s *session.Session, req *treaty.LoginRequest) erro
 	}
 	//后端服务器进行登录操作
 	respBack := &treaty.LoginResponse{}
-	if err := u.RpcX.Request(rpcx.CodeTypeProto, rpcx.DefaultSuffix, backend, int32(treaty.RpcMsgId_RpcMsgBackendLogin), req, respBack); err != nil {
+	if err := u.Rpc.Request(rpc.CodeTypeProto, rpc.DefaultSuffix, backend, int32(treaty.RpcMsgId_RpcMsgBackendLogin), req, respBack); err != nil {
 		resp.Code = treaty.CodeType_CodeFailed
 		resp.Msg = err.Error()
 		return s.Response(resp)
@@ -94,7 +94,7 @@ func (u *UserConnector) ChannelMsg(s *session.Session, req *treaty.ChannelMsgReq
 		return s.Response(resp)
 	}
 	bResp := &treaty.ChannelMsgResponse{}
-	if err := u.RpcX.Request(rpcx.CodeTypeProto, rpcx.DefaultSuffix, backend, int32(treaty.RpcMsgId_RpcMsgChatTest), req, bResp); err != nil {
+	if err := u.Rpc.Request(rpc.CodeTypeProto, rpc.DefaultSuffix, backend, int32(treaty.RpcMsgId_RpcMsgChatTest), req, bResp); err != nil {
 		resp.Code = treaty.CodeType_CodeFailed
 		resp.Msg = err.Error()
 		return s.Response(resp)
@@ -103,15 +103,15 @@ func (u *UserConnector) ChannelMsg(s *session.Session, req *treaty.ChannelMsgReq
 	}
 }
 
-func (u *UserConnector) EventHandleSelf(req *rpcx.RpcMsg) []byte {
-	fmt.Printf("MyConnector EventHandleSelf received: %+v \n", req)
+func (u *UserConnector) HandleSelfEvent(req *rpc.MsgRpc) []byte {
+	fmt.Printf("MyConnector HandleSelfEvent received: %+v \n", req)
 
 	msgId, msgData := treaty.RpcMsgId(req.MsgId), req.MsgData.([]byte)
 	switch msgId {
 	case treaty.RpcMsgId_RpcMsgMultiLoginOut:
 		//多端登录退出，向客户端发消息
 		msg := &treaty.MultiLoginOut{}
-		if err := u.RpcX.DecodeMsg(rpcx.CodeTypeProto, msgData, msg); err != nil {
+		if err := u.Rpc.DecodeMsg(rpc.CodeTypeProto, msgData, msg); err != nil {
 			logger.Error(err)
 		} else {
 			logger.Info(msg)
@@ -120,21 +120,16 @@ func (u *UserConnector) EventHandleSelf(req *rpcx.RpcMsg) []byte {
 	return nil
 }
 
-func (u *UserConnector) EventHandleBroadcast(req *rpcx.RpcMsg) []byte {
-	fmt.Printf("MyConnector EventHandleBroadcast received: %+v \n", req)
+func (u *UserConnector) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
+	fmt.Printf("MyConnector HandleBroadcastEvent received: %+v \n", req)
 	return nil
 }
 
-func UserConnectorCreator(s *treaty.Server) (rpcx.ServerEntity, error) {
+func UserConnectorCreator(s *treaty.Server) (rpc.ServerEntity, error) {
 	if len(s.ServerId) < 1 {
 		return nil, errors.New("服务器id不能为空")
 	}
-	server := &UserConnector{connector.TcpConnector{
-		Server: s,
-	}}
-	server.TcpConnector.EventHandlerSelf = server.EventHandleSelf
-	server.TcpConnector.EventJsonSelf = server.EventHandleSelf
-	server.TcpConnector.EventHandlerBroadcast = server.EventHandleBroadcast
+	server := &UserConnector{ServerConnector: base.NewServerConnector(s)}
 	server.RouteHandler = func(s tcpface.IServer) {
 		rs := s.GetMsgHandler()
 		router := rs.(*nano.MsgHandle)
@@ -147,5 +142,5 @@ func UserConnectorCreator(s *treaty.Server) (rpcx.ServerEntity, error) {
 }
 
 func init() {
-	launch.RegisterCreator(rpcx.Connector, UserConnectorCreator)
+	launch.RegisterCreator(rpc.Connector, UserConnectorCreator)
 }

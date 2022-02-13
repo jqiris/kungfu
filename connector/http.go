@@ -4,17 +4,17 @@ import (
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/discover"
 	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/rpc"
 	"github.com/jqiris/kungfu/treaty"
 )
 
 type HttpConnector struct {
 	ServerId              string
 	Server                *treaty.Server
-	RpcX                  rpcx.RpcServer
-	EventJsonSelf         rpcx.CallbackFunc //处理自己的json事件
-	EventHandlerSelf      rpcx.CallbackFunc //处理自己的事件
-	EventHandlerBroadcast rpcx.CallbackFunc //处理广播事件
+	Rpc                   rpc.ServerRpc
+	EventJsonSelf         rpc.CallbackFunc //处理自己的json事件
+	EventHandlerSelf      rpc.CallbackFunc //处理自己的事件
+	EventHandlerBroadcast rpc.CallbackFunc //处理广播事件
 	ConnectorConf         config.ConnectorConf
 }
 
@@ -26,8 +26,8 @@ func (b *HttpConnector) Init() {
 	//赋值id
 	b.ServerId = b.Server.ServerId
 	b.ConnectorConf = config.GetConnectorConf()
-	//init the rpcx
-	b.RpcX = rpcx.NewRpcServer(config.GetRpcXConf(), b.Server)
+	//init the rpc
+	b.Rpc = rpc.NewRpcServer(config.GetRpcConf(), b.Server)
 }
 
 func (b *HttpConnector) AfterInit() {
@@ -47,24 +47,24 @@ func (b *HttpConnector) AfterInit() {
 		panic("EventHandlerBroadcast不能为空")
 		return
 	}
-	builder := rpcx.NewRpcSubscriber(b.Server).SetCodeType(rpcx.CodeTypeProto).SetCallback(func(req *rpcx.RpcMsg) []byte {
+	builder := rpc.NewSubscriberRpc(b.Server).SetCodeType(rpc.CodeTypeProto).SetCallback(func(req *rpc.MsgRpc) []byte {
 		return b.EventHandlerSelf(req)
 	})
 	//Subscribe event
-	if err := b.RpcX.Subscribe(builder.Build()); err != nil {
+	if err := b.Rpc.Subscribe(builder.Build()); err != nil {
 		logger.Error(err)
 	}
-	builder = builder.SetSuffix("json").SetCodeType(rpcx.CodeTypeJson).SetCallback(func(req *rpcx.RpcMsg) []byte {
+	builder = builder.SetSuffix("json").SetCodeType(rpc.CodeTypeJson).SetCallback(func(req *rpc.MsgRpc) []byte {
 		return b.EventJsonSelf(req)
 	})
 	//Subscribe event
-	if err := b.RpcX.Subscribe(builder.Build()); err != nil {
+	if err := b.Rpc.Subscribe(builder.Build()); err != nil {
 		logger.Error(err)
 	}
-	builder = builder.SetSuffix(rpcx.DefaultSuffix).SetCodeType(rpcx.CodeTypeProto).SetCallback(func(req *rpcx.RpcMsg) []byte {
+	builder = builder.SetSuffix(rpc.DefaultSuffix).SetCodeType(rpc.CodeTypeProto).SetCallback(func(req *rpc.MsgRpc) []byte {
 		return b.EventHandlerBroadcast(req)
 	})
-	if err := b.RpcX.SubscribeConnector(builder.Build()); err != nil {
+	if err := b.Rpc.SubscribeConnector(builder.Build()); err != nil {
 		logger.Error(err)
 	}
 	//register the service
@@ -87,14 +87,14 @@ func (b *HttpConnector) Shutdown() {
 func (b *HttpConnector) GetServer() *treaty.Server {
 	return b.Server
 }
-func (b *HttpConnector) RegEventJsonSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
+func (b *HttpConnector) RegEventJsonSelf(handler rpc.CallbackFunc) { //注册自己事件处理器
 	b.EventJsonSelf = handler
 }
-func (b *HttpConnector) RegEventHandlerSelf(handler rpcx.CallbackFunc) { //注册自己事件处理器
+func (b *HttpConnector) RegEventHandlerSelf(handler rpc.CallbackFunc) { //注册自己事件处理器
 	b.EventHandlerSelf = handler
 }
 
-func (b *HttpConnector) RegEventHandlerBroadcast(handler rpcx.CallbackFunc) { //注册广播事件处理器
+func (b *HttpConnector) RegEventHandlerBroadcast(handler rpc.CallbackFunc) { //注册广播事件处理器
 	b.EventHandlerBroadcast = handler
 }
 func (b *HttpConnector) SetServerId(serverId string) {

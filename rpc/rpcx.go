@@ -1,4 +1,4 @@
-package rpcx
+package rpc
 
 import (
 	"time"
@@ -9,17 +9,14 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-type CallbackFunc func(req *RpcMsg) []byte
+type CallbackFunc func(req *MsgRpc) []byte
 
-// RpcServer rpc interface
-type RpcServer interface {
-	RegEncoder(typ string, encoder RpcEncoder)                                                        //register encoder
-	Subscribe(s RpcSubscriber) error                                                                  //self Subscribe
-	SubscribeBalancer(s RpcSubscriber) error                                                          //balancer subscribe
-	SubscribeConnector(s RpcSubscriber) error                                                         //connect subscribe
-	SubscribeServer(s RpcSubscriber) error                                                            //server subscribe
-	SubscribeDatabase(s RpcSubscriber) error                                                          //database subscribe
-	QueueSubscribe(s RpcSubscriber) error                                                             //queue self Subscribe
+// ServerRpc rpc interface
+type ServerRpc interface {
+	RegEncoder(typ string, encoder EncoderRpc)                                                        //register encoder
+	Subscribe(s SubscriberRpc) error                                                                  //self Subscribe
+	SubscribeBroadcast(s SubscriberRpc) error                                                         //broadcast subscribe
+	QueueSubscribe(s SubscriberRpc) error                                                             //queue self Subscribe
 	Publish(codeType, suffix string, server *treaty.Server, msgId int32, req interface{}) error       //publish
 	PublishBalancer(codeType, suffix string, msgId int32, req interface{}) error                      //balancer publish
 	PublishConnector(codeType, suffix string, msgId int32, req interface{}) error                     //connect publish
@@ -28,16 +25,16 @@ type RpcServer interface {
 	Request(codeType, suffix string, server *treaty.Server, msgId int32, req, resp interface{}) error //request
 	Response(codeType string, v interface{}) []byte                                                   //response the msg
 	DecodeMsg(codeType string, data []byte, v interface{}) error                                      //decode msg
-	GetCoder(codeType string) RpcEncoder                                                              //get encoder
+	GetCoder(codeType string) EncoderRpc                                                              //get encoder
 	GetServer() *treaty.Server                                                                        //get current server
 	Find(serverType string, arg int) *treaty.Server                                                   //find server
 	RemoveFindCache(arg int)                                                                          //clear find cache
 }
 
 // NewRpcServer create rpc server
-func NewRpcServer(cfg config.RpcXConf, server *treaty.Server) RpcServer {
+func NewRpcServer(cfg config.RpcConf, server *treaty.Server) ServerRpc {
 	timeout := time.Duration(cfg.DialTimeout) * time.Second
-	var r RpcServer
+	var r ServerRpc
 	switch cfg.UseType {
 	case "nats":
 		r = NewRpcNats(

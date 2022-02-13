@@ -1,4 +1,4 @@
-package rpcx
+package rpc
 
 import (
 	"fmt"
@@ -23,18 +23,19 @@ const (
 const (
 	DefaultQueue  = "dq"
 	DefaultSuffix = ""
+	JsonSuffix    = "json"
 )
 const (
 	CodeTypeJson  = "json"
 	CodeTypeProto = "proto"
 )
 
-func DefaultCallback(req *RpcMsg) []byte {
+func DefaultCallback(req *MsgRpc) []byte {
 	logger.Info("DefaultCallback")
 	return nil
 }
 
-type RpcSubscriber struct {
+type SubscriberRpc struct {
 	queue    string
 	server   *treaty.Server
 	callback CallbackFunc
@@ -43,8 +44,8 @@ type RpcSubscriber struct {
 	parallel bool
 }
 
-func NewRpcSubscriber(server *treaty.Server) *RpcSubscriber {
-	return &RpcSubscriber{
+func NewSubscriberRpc(server *treaty.Server) *SubscriberRpc {
+	return &SubscriberRpc{
 		queue:    DefaultQueue,
 		server:   server,
 		callback: DefaultCallback,
@@ -54,34 +55,34 @@ func NewRpcSubscriber(server *treaty.Server) *RpcSubscriber {
 	}
 }
 
-func (r *RpcSubscriber) SetQueue(queue string) *RpcSubscriber {
+func (r *SubscriberRpc) SetQueue(queue string) *SubscriberRpc {
 	r.queue = queue
 	return r
 }
 
-func (r *RpcSubscriber) SetServer(server *treaty.Server) *RpcSubscriber {
+func (r *SubscriberRpc) SetServer(server *treaty.Server) *SubscriberRpc {
 	r.server = server
 	return r
 }
-func (r *RpcSubscriber) SetCallback(callback CallbackFunc) *RpcSubscriber {
+func (r *SubscriberRpc) SetCallback(callback CallbackFunc) *SubscriberRpc {
 	r.callback = callback
 	return r
 }
-func (r *RpcSubscriber) SetCodeType(codeType string) *RpcSubscriber {
+func (r *SubscriberRpc) SetCodeType(codeType string) *SubscriberRpc {
 	r.codeType = codeType
 	return r
 }
-func (r *RpcSubscriber) SetSuffix(suffix string) *RpcSubscriber {
+func (r *SubscriberRpc) SetSuffix(suffix string) *SubscriberRpc {
 	r.suffix = suffix
 	return r
 }
-func (r *RpcSubscriber) SetParallel(parallel bool) *RpcSubscriber {
+func (r *SubscriberRpc) SetParallel(parallel bool) *SubscriberRpc {
 	r.parallel = parallel
 	return r
 }
 
-func (r *RpcSubscriber) Build() RpcSubscriber {
-	return RpcSubscriber{
+func (r *SubscriberRpc) Build() SubscriberRpc {
+	return SubscriberRpc{
 		queue:    r.queue,
 		server:   r.server,
 		callback: r.callback,
@@ -91,53 +92,53 @@ func (r *RpcSubscriber) Build() RpcSubscriber {
 	}
 }
 
-type RpcNats struct {
+type NatsRpc struct {
 	Endpoints   []string
 	Options     []nats.Option
 	Client      *nats.Conn
 	DialTimeout time.Duration
-	RpcCoder    map[string]RpcEncoder
+	RpcCoder    map[string]EncoderRpc
 	Server      *treaty.Server
 	DebugMsg    bool
 	Prefix      string
 	Finder      *discover.Finder
 }
-type RpcNatsOption func(r *RpcNats)
+type NatsRpcOption func(r *NatsRpc)
 
-func WithNatsDebugMsg(debug bool) RpcNatsOption {
-	return func(r *RpcNats) {
+func WithNatsDebugMsg(debug bool) NatsRpcOption {
+	return func(r *NatsRpc) {
 		r.DebugMsg = debug
 	}
 }
-func WithNatsEndpoints(endpoints []string) RpcNatsOption {
-	return func(r *RpcNats) {
+func WithNatsEndpoints(endpoints []string) NatsRpcOption {
+	return func(r *NatsRpc) {
 		r.Endpoints = endpoints
 	}
 }
-func WithNatsDialTimeout(timeout time.Duration) RpcNatsOption {
-	return func(r *RpcNats) {
+func WithNatsDialTimeout(timeout time.Duration) NatsRpcOption {
+	return func(r *NatsRpc) {
 		r.DialTimeout = timeout
 	}
 }
-func WithNatsServer(server *treaty.Server) RpcNatsOption {
-	return func(r *RpcNats) {
+func WithNatsServer(server *treaty.Server) NatsRpcOption {
+	return func(r *NatsRpc) {
 		r.Server = server
 	}
 }
-func WithNatsOptions(opts ...nats.Option) RpcNatsOption {
-	return func(r *RpcNats) {
+func WithNatsOptions(opts ...nats.Option) NatsRpcOption {
+	return func(r *NatsRpc) {
 		r.Options = opts
 	}
 }
-func WithNatsPrefix(prefix string) RpcNatsOption {
-	return func(r *RpcNats) {
+func WithNatsPrefix(prefix string) NatsRpcOption {
+	return func(r *NatsRpc) {
 		r.Prefix = prefix
 	}
 }
 
-func NewRpcNats(opts ...RpcNatsOption) *RpcNats {
-	r := &RpcNats{
-		Prefix: "RpcX",
+func NewRpcNats(opts ...NatsRpcOption) *NatsRpc {
+	r := &NatsRpc{
+		Prefix: "Rpc",
 	}
 	for _, opt := range opts {
 		opt(r)
@@ -148,7 +149,7 @@ func NewRpcNats(opts ...RpcNatsOption) *RpcNats {
 		logger.Fatal(err)
 	}
 	r.Client = conn
-	r.RpcCoder = map[string]RpcEncoder{
+	r.RpcCoder = map[string]EncoderRpc{
 		CodeTypeProto: NewRpcEncoder(serialize.NewProtoSerializer()),
 		CodeTypeJson:  NewRpcEncoder(serialize.NewJsonSerializer()),
 	}
@@ -156,7 +157,7 @@ func NewRpcNats(opts ...RpcNatsOption) *RpcNats {
 	return r
 }
 
-func (r *RpcNats) RegEncoder(typ string, encoder RpcEncoder) {
+func (r *NatsRpc) RegEncoder(typ string, encoder EncoderRpc) {
 	if _, ok := r.RpcCoder[typ]; !ok {
 		r.RpcCoder[typ] = encoder
 	} else {
@@ -164,15 +165,15 @@ func (r *RpcNats) RegEncoder(typ string, encoder RpcEncoder) {
 	}
 }
 
-func (r *RpcNats) Find(serverType string, arg int) *treaty.Server {
+func (r *NatsRpc) Find(serverType string, arg int) *treaty.Server {
 	return r.Finder.GetUserServer(serverType, arg)
 }
 
-func (r *RpcNats) RemoveFindCache(arg int) {
+func (r *NatsRpc) RemoveFindCache(arg int) {
 	r.Finder.RemoveUserCache(arg)
 }
 
-func (r *RpcNats) prepare(s RpcSubscriber) (RpcEncoder, error) {
+func (r *NatsRpc) prepare(s SubscriberRpc) (EncoderRpc, error) {
 	coder := r.RpcCoder[s.codeType]
 	if coder == nil {
 		return nil, fmt.Errorf("rpc coder not exist:%v", s.codeType)
@@ -180,7 +181,7 @@ func (r *RpcNats) prepare(s RpcSubscriber) (RpcEncoder, error) {
 	return coder, nil
 }
 
-func (r *RpcNats) Subscribe(s RpcSubscriber) error {
+func (r *NatsRpc) Subscribe(s SubscriberRpc) error {
 	coder, err := r.prepare(s)
 	if err != nil {
 		return err
@@ -202,7 +203,7 @@ func (r *RpcNats) Subscribe(s RpcSubscriber) error {
 	return nil
 }
 
-func (r *RpcNats) QueueSubscribe(s RpcSubscriber) error {
+func (r *NatsRpc) QueueSubscribe(s SubscriberRpc) error {
 	coder, err := r.prepare(s)
 	if err != nil {
 		return err
@@ -224,12 +225,12 @@ func (r *RpcNats) QueueSubscribe(s RpcSubscriber) error {
 	return nil
 }
 
-func (r *RpcNats) SubscribeBalancer(s RpcSubscriber) error {
+func (r *NatsRpc) SubscribeBroadcast(s SubscriberRpc) error {
 	coder, err := r.prepare(s)
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, Balancer, s.suffix)
+	sub := path.Join(r.Prefix, s.server.ServerType, s.suffix)
 	if _, err = r.Client.Subscribe(sub, func(msg *nats.Msg) {
 		if s.parallel {
 			go utils.SafeRun(func() {
@@ -246,74 +247,8 @@ func (r *RpcNats) SubscribeBalancer(s RpcSubscriber) error {
 	return nil
 }
 
-func (r *RpcNats) SubscribeConnector(s RpcSubscriber) error {
-	coder, err := r.prepare(s)
-	if err != nil {
-		return err
-	}
-	sub := path.Join(r.Prefix, Connector, s.suffix)
-	if _, err = r.Client.Subscribe(sub, func(msg *nats.Msg) {
-		if s.parallel {
-			go utils.SafeRun(func() {
-				r.DealMsg(msg, s.callback, coder)
-			})
-		} else {
-			utils.SafeRun(func() {
-				r.DealMsg(msg, s.callback, coder)
-			})
-		}
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *RpcNats) SubscribeServer(s RpcSubscriber) error {
-	coder, err := r.prepare(s)
-	if err != nil {
-		return err
-	}
-	sub := path.Join(r.Prefix, Server, s.suffix)
-	if _, err = r.Client.Subscribe(sub, func(msg *nats.Msg) {
-		if s.parallel {
-			go utils.SafeRun(func() {
-				r.DealMsg(msg, s.callback, coder)
-			})
-		} else {
-			utils.SafeRun(func() {
-				r.DealMsg(msg, s.callback, coder)
-			})
-		}
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *RpcNats) SubscribeDatabase(s RpcSubscriber) error {
-	coder, err := r.prepare(s)
-	if err != nil {
-		return err
-	}
-	sub := path.Join(r.Prefix, Database, s.suffix)
-	if _, err = r.Client.Subscribe(sub, func(msg *nats.Msg) {
-		if s.parallel {
-			go utils.SafeRun(func() {
-				r.DealMsg(msg, s.callback, coder)
-			})
-		} else {
-			utils.SafeRun(func() {
-				r.DealMsg(msg, s.callback, coder)
-			})
-		}
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *RpcNats) DealMsg(msg *nats.Msg, callback CallbackFunc, coder RpcEncoder) {
-	req := &RpcMsg{}
+func (r *NatsRpc) DealMsg(msg *nats.Msg, callback CallbackFunc, coder EncoderRpc) {
+	req := &MsgRpc{}
 	err := coder.Decode(msg.Data, req)
 	if err != nil {
 		logger.Error(err)
@@ -330,7 +265,7 @@ func (r *RpcNats) DealMsg(msg *nats.Msg, callback CallbackFunc, coder RpcEncoder
 	}
 }
 
-func (r *RpcNats) Request(codeType, suffix string, server *treaty.Server, msgId int32, req, resp interface{}) error {
+func (r *NatsRpc) Request(codeType, suffix string, server *treaty.Server, msgId int32, req, resp interface{}) error {
 	coder := r.RpcCoder[codeType]
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", codeType)
@@ -344,7 +279,7 @@ func (r *RpcNats) Request(codeType, suffix string, server *treaty.Server, msgId 
 	}
 	sub := path.Join(r.Prefix, treaty.RegSeverItem(server), suffix)
 	if msg, err = r.Client.Request(sub, data, r.DialTimeout); err == nil {
-		respMsg := &RpcMsg{MsgData: resp}
+		respMsg := &MsgRpc{MsgData: resp}
 		err = coder.Decode(msg.Data, respMsg)
 		if err != nil {
 			return err
@@ -355,7 +290,7 @@ func (r *RpcNats) Request(codeType, suffix string, server *treaty.Server, msgId 
 	return nil
 }
 
-func (r *RpcNats) Publish(codeType, suffix string, server *treaty.Server, msgId int32, req interface{}) error {
+func (r *NatsRpc) Publish(codeType, suffix string, server *treaty.Server, msgId int32, req interface{}) error {
 	coder := r.RpcCoder[codeType]
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", codeType)
@@ -371,7 +306,7 @@ func (r *RpcNats) Publish(codeType, suffix string, server *treaty.Server, msgId 
 	return nil
 }
 
-func (r *RpcNats) PublishBalancer(codeType, suffix string, msgId int32, req interface{}) error {
+func (r *NatsRpc) PublishBalancer(codeType, suffix string, msgId int32, req interface{}) error {
 	coder := r.RpcCoder[codeType]
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", codeType)
@@ -384,7 +319,7 @@ func (r *RpcNats) PublishBalancer(codeType, suffix string, msgId int32, req inte
 	return r.Client.Publish(sub, data)
 }
 
-func (r *RpcNats) PublishConnector(codeType, suffix string, msgId int32, req interface{}) error {
+func (r *NatsRpc) PublishConnector(codeType, suffix string, msgId int32, req interface{}) error {
 	coder := r.RpcCoder[codeType]
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", codeType)
@@ -397,7 +332,7 @@ func (r *RpcNats) PublishConnector(codeType, suffix string, msgId int32, req int
 	return r.Client.Publish(sub, data)
 }
 
-func (r *RpcNats) PublishServer(codeType, suffix string, msgId int32, req interface{}) error {
+func (r *NatsRpc) PublishServer(codeType, suffix string, msgId int32, req interface{}) error {
 	coder := r.RpcCoder[codeType]
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", codeType)
@@ -410,7 +345,7 @@ func (r *RpcNats) PublishServer(codeType, suffix string, msgId int32, req interf
 	return r.Client.Publish(sub, data)
 }
 
-func (r *RpcNats) PublishDatabase(codeType, suffix string, msgId int32, req interface{}) error {
+func (r *NatsRpc) PublishDatabase(codeType, suffix string, msgId int32, req interface{}) error {
 	coder := r.RpcCoder[codeType]
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", codeType)
@@ -423,8 +358,8 @@ func (r *RpcNats) PublishDatabase(codeType, suffix string, msgId int32, req inte
 	return r.Client.Publish(sub, data)
 }
 
-func (r *RpcNats) EncodeMsg(coder RpcEncoder, msgType MessageType, msgId int32, req interface{}) ([]byte, error) {
-	rpcMsg := &RpcMsg{
+func (r *NatsRpc) EncodeMsg(coder EncoderRpc, msgType MessageType, msgId int32, req interface{}) ([]byte, error) {
+	rpcMsg := &MsgRpc{
 		MsgType: msgType,
 		MsgId:   msgId,
 		MsgData: req,
@@ -436,7 +371,7 @@ func (r *RpcNats) EncodeMsg(coder RpcEncoder, msgType MessageType, msgId int32, 
 	return data, nil
 }
 
-func (r *RpcNats) DecodeMsg(codeType string, data []byte, v interface{}) error {
+func (r *NatsRpc) DecodeMsg(codeType string, data []byte, v interface{}) error {
 	coder := r.RpcCoder[codeType]
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", codeType)
@@ -444,11 +379,11 @@ func (r *RpcNats) DecodeMsg(codeType string, data []byte, v interface{}) error {
 	return coder.DecodeMsg(data, v)
 }
 
-func (r *RpcNats) GetCoder(codeType string) RpcEncoder {
+func (r *NatsRpc) GetCoder(codeType string) EncoderRpc {
 	return r.RpcCoder[codeType]
 }
 
-func (r *RpcNats) Response(codeType string, v interface{}) []byte {
+func (r *NatsRpc) Response(codeType string, v interface{}) []byte {
 	coder := r.RpcCoder[codeType]
 	if coder == nil {
 		logger.Errorf("rpc coder not exist:%v", codeType)
@@ -457,6 +392,6 @@ func (r *RpcNats) Response(codeType string, v interface{}) []byte {
 	return coder.Response(v)
 }
 
-func (r *RpcNats) GetServer() *treaty.Server {
+func (r *NatsRpc) GetServer() *treaty.Server {
 	return r.Server
 }

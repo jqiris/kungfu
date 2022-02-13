@@ -1,4 +1,4 @@
-package rpcx
+package rpc
 
 import (
 	"errors"
@@ -23,14 +23,14 @@ var (
 	ErrInvalidMessage = errors.New("invalid message")
 )
 
-type RpcEncoder interface {
-	Encode(rpcMsg *RpcMsg) ([]byte, error)
-	Decode(data []byte, rpcMsg *RpcMsg) error
+type EncoderRpc interface {
+	Encode(rpcMsg *MsgRpc) ([]byte, error)
+	Decode(data []byte, rpcMsg *MsgRpc) error
 	DecodeMsg(data []byte, v interface{}) error
 	Response(v interface{}) []byte
 }
 
-type RpcMsg struct {
+type MsgRpc struct {
 	MsgType MessageType
 	MsgId   int32
 	MsgData interface{}
@@ -47,7 +47,7 @@ func NewRpcEncoder(encoder serialize.Serializer) *DefaultRpcEncoder {
 // Encode Protocol
 // --------<length>--------|--type--|----<MsgId>------|-<data>-
 // ----------3byte---------|-1 byte-|-----2 byte------|--------
-func (r *DefaultRpcEncoder) Encode(rpcMsg *RpcMsg) ([]byte, error) {
+func (r *DefaultRpcEncoder) Encode(rpcMsg *MsgRpc) ([]byte, error) {
 	var data []byte
 	var err error
 	switch rpcData := rpcMsg.MsgData.(type) {
@@ -74,7 +74,7 @@ func (r *DefaultRpcEncoder) Encode(rpcMsg *RpcMsg) ([]byte, error) {
 	return buf, nil
 }
 
-func (r *DefaultRpcEncoder) Decode(data []byte, rpcMsg *RpcMsg) error {
+func (r *DefaultRpcEncoder) Decode(data []byte, rpcMsg *MsgRpc) error {
 	if len(data) < msgHeadLength {
 		return ErrInvalidMessage
 	}
@@ -104,7 +104,7 @@ func (r *DefaultRpcEncoder) DecodeMsg(data []byte, v interface{}) error {
 }
 
 func (r *DefaultRpcEncoder) Response(v interface{}) []byte {
-	rpcMsg := &RpcMsg{
+	rpcMsg := &MsgRpc{
 		MsgType: Response,
 		MsgId:   0,
 		MsgData: v,

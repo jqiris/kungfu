@@ -11,7 +11,7 @@ import (
 )
 
 func TestChannelSub(t *testing.T) {
-	rpcConf := config.GetRpcXConf()
+	rpcConf := config.GetRpcConf()
 	url := strings.Join(rpcConf.Endpoints, ",")
 	nc, _ := nats.Connect(url)
 	ec, _ := nats.NewEncodedConn(nc, nats.JSON_ENCODER)
@@ -41,7 +41,7 @@ func TestChannelSub(t *testing.T) {
 }
 
 func TestChannelSubProto(t *testing.T) {
-	rpcConf := config.GetRpcXConf()
+	rpcConf := config.GetRpcConf()
 	url := strings.Join(rpcConf.Endpoints, ",")
 	nc, _ := nats.Connect(url)
 	ec, _ := nats.NewEncodedConn(nc, nats.JSON_ENCODER)
@@ -96,7 +96,7 @@ func TestChannelSubProto(t *testing.T) {
 }
 
 func TestChannelNats(t *testing.T) {
-	rpcConf := config.GetRpcXConf()
+	rpcConf := config.GetRpcConf()
 	url := strings.Join(rpcConf.Endpoints, ",")
 	nc, _ := nats.Connect(url, nats.Name("good"))
 	fmt.Println(nc.HeadersSupported())

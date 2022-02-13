@@ -2,43 +2,38 @@ package main
 
 import (
 	"errors"
+	"github.com/jqiris/kungfu/base"
 	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/rpcx"
+	"github.com/jqiris/kungfu/rpc"
 	"github.com/jqiris/kungfu/treaty"
 
-	"github.com/jqiris/kungfu/balancer"
 	"github.com/jqiris/kungfu/launch"
 )
 
 type MyBalancer struct {
-	balancer.BaseBalancer
+	*base.ServerBalancer
 }
 
-func (b *MyBalancer) EventHandleSelf(req *rpcx.RpcMsg) []byte {
-	logger.Infof("MyBalancer EventHandleSelf received: %+v", req)
+func (b *MyBalancer) HandleSelfEvent(req *rpc.MsgRpc) []byte {
+	logger.Infof("MyBalancer HandleSelfEvent received: %+v", req)
 	return nil
 }
 
-func (b *MyBalancer) EventHandleBroadcast(req *rpcx.RpcMsg) []byte {
-	logger.Infof("MyBalancer EventHandleBroadcast received: %+v", req)
+func (b *MyBalancer) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
+	logger.Infof("MyBalancer HandleBroadcastEvent received: %+v", req)
 	return nil
 }
 
-func MyBalancerCreator(s *treaty.Server) (rpcx.ServerEntity, error) {
+func MyBalancerCreator(s *treaty.Server) (rpc.ServerEntity, error) {
 	if len(s.ServerId) < 1 {
 		return nil, errors.New("服务器id不能为空")
 	}
 	server := &MyBalancer{
-		BaseBalancer: balancer.BaseBalancer{
-			Server: s,
-		},
+		ServerBalancer: base.NewServerBalancer(s),
 	}
-	server.BaseBalancer.EventJsonSelf = server.EventHandleSelf
-	server.BaseBalancer.EventHandlerSelf = server.EventHandleSelf
-	server.BaseBalancer.EventHandlerBroadcast = server.EventHandleBroadcast
 	return server, nil
 }
 
 func init() {
-	launch.RegisterCreator(rpcx.Balancer, MyBalancerCreator)
+	launch.RegisterCreator(rpc.Balancer, MyBalancerCreator)
 }
