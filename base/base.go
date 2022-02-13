@@ -9,9 +9,11 @@ import (
 )
 
 type ServerBase struct {
-	Server     *treaty.Server
-	Rpc        rpc.ServerRpc
-	SubBuilder *rpc.SubscriberRpc
+	Server                *treaty.Server
+	Rpc                   rpc.ServerRpc
+	SubBuilder            *rpc.SubscriberRpc
+	SelfEventHandler      rpc.CallbackFunc
+	BroadcastEventHandler rpc.CallbackFunc
 }
 
 func NewServerBase(s *treaty.Server) *ServerBase {
@@ -21,6 +23,9 @@ func NewServerBase(s *treaty.Server) *ServerBase {
 func (s *ServerBase) Init() {
 	if s.Server == nil {
 		panic("服务配置信息不能为空")
+	}
+	if len(s.Server.ServerId) < 1 || len(s.Server.ServerType) < 1 {
+		panic("服务器基本配置信息不能为空")
 	}
 	//初始化rpc服务
 	s.Rpc = rpc.NewRpcServer(config.GetRpcConf(), s.Server)
@@ -33,14 +38,23 @@ func (s *ServerBase) AfterInit() {
 	if s.Server == nil {
 		panic("服务配置信息不能为空")
 	}
+	if len(s.Server.ServerId) < 1 || len(s.Server.ServerType) < 1 {
+		panic("服务器基本配置信息不能为空")
+	}
+	if s.SelfEventHandler == nil {
+		panic("个体事件函数为空")
+	}
+	if s.BroadcastEventHandler == nil {
+		panic("广播事件函数为空")
+	}
 	b := s.SubBuilder.Build()
 	//sub self event
-	if err := s.Rpc.Subscribe(b.SetCodeType(rpc.CodeTypeProto).SetCallback(s.HandleSelfEvent).Build()); err != nil {
+	if err := s.Rpc.Subscribe(b.SetCodeType(rpc.CodeTypeProto).SetCallback(s.SelfEventHandler).Build()); err != nil {
 		panic(err)
 	}
 	//sub broadcast event
 	b = s.SubBuilder.Build()
-	if err := s.Rpc.SubscribeBroadcast(b.SetCodeType(rpc.CodeTypeProto).SetCallback(s.HandleBroadcastEvent).Build()); err != nil {
+	if err := s.Rpc.SubscribeBroadcast(b.SetCodeType(rpc.CodeTypeProto).SetCallback(s.BroadcastEventHandler).Build()); err != nil {
 		panic(err)
 	}
 	//服务注册
@@ -58,14 +72,4 @@ func (s *ServerBase) BeforeShutdown() {
 
 func (s *ServerBase) Shutdown() {
 	logger.Infof("shutdown service,type:%v,id:%v", s.Server.ServerType, s.Server.ServerId)
-}
-
-func (s *ServerBase) HandleSelfEvent(req *rpc.MsgRpc) []byte {
-	//TODO implement me
-	panic("implement HandleSelfEvent")
-}
-
-func (s *ServerBase) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
-	//TODO implement me
-	panic("implement HandleBroadcastEvent")
 }

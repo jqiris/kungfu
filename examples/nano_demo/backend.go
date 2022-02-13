@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/jqiris/kungfu/base"
 	"github.com/jqiris/kungfu/launch"
@@ -90,13 +89,12 @@ func (g *MyBackend) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
 	return nil
 }
 func MyBackendCreator(s *treaty.Server) (rpc.ServerEntity, error) {
-	if len(s.ServerId) < 1 {
-		return nil, errors.New("服务器id不能为空")
-	}
 	server := &MyBackend{
 		ServerBase: base.NewServerBase(s),
 		connMap:    make(map[int32]*treaty.Server),
 	}
+	server.SelfEventHandler = server.HandleSelfEvent
+	server.BroadcastEventHandler = server.HandleBroadcastEvent
 	handler := rpc.NewHandler()
 	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogin), server.BackendLogin)
 	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogout), server.BackendOut)

@@ -34,7 +34,7 @@ func (s *ServerConnector) AfterInit() {
 	s.ServerBase.AfterInit()
 	//sub self json event
 	b := s.SubBuilder.Build()
-	if err := s.Rpc.Subscribe(b.SetSuffix(rpc.JsonSuffix).SetCodeType(rpc.CodeTypeJson).SetCallback(s.HandleSelfEvent).Build()); err != nil {
+	if err := s.Rpc.Subscribe(b.SetSuffix(rpc.JsonSuffix).SetCodeType(rpc.CodeTypeJson).SetCallback(s.SelfEventHandler).Build()); err != nil {
 		panic(err)
 	}
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"github.com/jqiris/kungfu/base"
 	"github.com/jqiris/kungfu/logger"
 	"github.com/jqiris/kungfu/rpc"
@@ -25,12 +24,11 @@ func (b *MyBalancer) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
 }
 
 func MyBalancerCreator(s *treaty.Server) (rpc.ServerEntity, error) {
-	if len(s.ServerId) < 1 {
-		return nil, errors.New("服务器id不能为空")
-	}
 	server := &MyBalancer{
 		ServerBalancer: base.NewServerBalancer(s),
 	}
+	server.SelfEventHandler = server.HandleSelfEvent
+	server.BroadcastEventHandler = server.HandleBroadcastEvent
 	return server, nil
 }
 

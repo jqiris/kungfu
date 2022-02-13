@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/jqiris/kungfu/base"
 	"github.com/jqiris/kungfu/config"
@@ -126,9 +125,6 @@ func (u *UserConnector) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
 }
 
 func UserConnectorCreator(s *treaty.Server) (rpc.ServerEntity, error) {
-	if len(s.ServerId) < 1 {
-		return nil, errors.New("服务器id不能为空")
-	}
 	server := &UserConnector{ServerConnector: base.NewServerConnector(s)}
 	server.RouteHandler = func(s tcpface.IServer) {
 		rs := s.GetMsgHandler()
@@ -138,6 +134,8 @@ func UserConnectorCreator(s *treaty.Server) (rpc.ServerEntity, error) {
 			logger.Fatal(err)
 		}
 	}
+	server.SelfEventHandler = server.HandleSelfEvent
+	server.BroadcastEventHandler = server.HandleBroadcastEvent
 	return server, nil
 }
 
