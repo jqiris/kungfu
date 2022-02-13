@@ -54,7 +54,8 @@ func (u *UserConnector) Login(s *session.Session, req *treaty.LoginRequest) erro
 	}
 	//后端服务器进行登录操作
 	respBack := &treaty.LoginResponse{}
-	if err := u.Rpc.Request(rpc.CodeTypeProto, rpc.DefaultSuffix, backend, int32(treaty.RpcMsgId_RpcMsgBackendLogin), req, respBack); err != nil {
+	b := rpc.NewReqBuilder(backend).SetMsgId(int32(treaty.RpcMsgId_RpcMsgBackendLogin)).SetReq(req).SetResp(respBack).Build()
+	if err := u.Rpc.Request(b); err != nil {
 		resp.Code = treaty.CodeType_CodeFailed
 		resp.Msg = err.Error()
 		return s.Response(resp)
@@ -93,7 +94,8 @@ func (u *UserConnector) ChannelMsg(s *session.Session, req *treaty.ChannelMsgReq
 		return s.Response(resp)
 	}
 	bResp := &treaty.ChannelMsgResponse{}
-	if err := u.Rpc.Request(rpc.CodeTypeProto, rpc.DefaultSuffix, backend, int32(treaty.RpcMsgId_RpcMsgChatTest), req, bResp); err != nil {
+	b := rpc.NewReqBuilder(backend).SetMsgId(int32(treaty.RpcMsgId_RpcMsgChatTest)).SetReq(req).SetResp(bResp).Build()
+	if err := u.Rpc.Request(b); err != nil {
 		resp.Code = treaty.CodeType_CodeFailed
 		resp.Msg = err.Error()
 		return s.Response(resp)

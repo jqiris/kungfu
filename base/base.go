@@ -11,7 +11,7 @@ import (
 type ServerBase struct {
 	Server                *treaty.Server
 	Rpc                   rpc.ServerRpc
-	SubBuilder            *rpc.SubscriberRpc
+	SubBuilder            *rpc.RssBuilder
 	SelfEventHandler      rpc.CallbackFunc
 	BroadcastEventHandler rpc.CallbackFunc
 }
@@ -30,7 +30,7 @@ func (s *ServerBase) Init() {
 	//初始化rpc服务
 	s.Rpc = rpc.NewRpcServer(config.GetRpcConf(), s.Server)
 	//订阅创建
-	s.SubBuilder = rpc.NewSubscriberRpc(s.Server)
+	s.SubBuilder = rpc.NewRssBuilder(s.Server)
 	logger.Infof("init the service,type:%v, id:%v", s.Server.ServerType, s.Server.ServerId)
 }
 

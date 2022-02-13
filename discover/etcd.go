@@ -118,7 +118,7 @@ func (e *EtcdDiscoverer) Watcher() {
 				logger.Errorf("etcd watch err:%v", err)
 			}
 			for _, ev := range wResp.Events {
-				logger.Infof("%s %q %q", ev.Type, ev.Kv.Key, ev.Kv.Value)
+				//logger.Infof("%s %q %q", ev.Type, ev.Kv.Key, ev.Kv.Value)
 				if !e.IsCurEvent(string(ev.Kv.Key)) {
 					continue
 				}
@@ -185,12 +185,11 @@ func (e *EtcdDiscoverer) Register(server *treaty.Server) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
 	key, val := e.Prefix+treaty.RegSeverItem(server), treaty.RegSerialize(server)
-	logger.Infof("discover Register server,k=>v,%s=>%s", key, val)
-	if resp, err := kv.Put(ctx, key, val); err != nil {
+	resp, err := kv.Put(ctx, key, val)
+	if err != nil {
 		return err
-	} else {
-		logger.Infof("EtcdDiscoverer register resp:%+v", resp)
 	}
+	logger.Infof("discover Register server,k=>v,%s=>%s,resp:%v", key, val, resp.Header)
 	return nil
 }
 

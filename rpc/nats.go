@@ -14,84 +14,6 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-const (
-	Balancer  = "balancer"
-	Connector = "connector"
-	Server    = "backend"
-	Database  = "database"
-)
-const (
-	DefaultQueue  = "dq"
-	DefaultSuffix = ""
-	JsonSuffix    = "json"
-)
-const (
-	CodeTypeJson  = "json"
-	CodeTypeProto = "proto"
-)
-
-func DefaultCallback(req *MsgRpc) []byte {
-	logger.Info("DefaultCallback")
-	return nil
-}
-
-type SubscriberRpc struct {
-	queue    string
-	server   *treaty.Server
-	callback CallbackFunc
-	codeType string
-	suffix   string
-	parallel bool
-}
-
-func NewSubscriberRpc(server *treaty.Server) *SubscriberRpc {
-	return &SubscriberRpc{
-		queue:    DefaultQueue,
-		server:   server,
-		callback: DefaultCallback,
-		codeType: CodeTypeProto,
-		suffix:   DefaultSuffix,
-		parallel: true,
-	}
-}
-
-func (r *SubscriberRpc) SetQueue(queue string) *SubscriberRpc {
-	r.queue = queue
-	return r
-}
-
-func (r *SubscriberRpc) SetServer(server *treaty.Server) *SubscriberRpc {
-	r.server = server
-	return r
-}
-func (r *SubscriberRpc) SetCallback(callback CallbackFunc) *SubscriberRpc {
-	r.callback = callback
-	return r
-}
-func (r *SubscriberRpc) SetCodeType(codeType string) *SubscriberRpc {
-	r.codeType = codeType
-	return r
-}
-func (r *SubscriberRpc) SetSuffix(suffix string) *SubscriberRpc {
-	r.suffix = suffix
-	return r
-}
-func (r *SubscriberRpc) SetParallel(parallel bool) *SubscriberRpc {
-	r.parallel = parallel
-	return r
-}
-
-func (r *SubscriberRpc) Build() SubscriberRpc {
-	return SubscriberRpc{
-		queue:    r.queue,
-		server:   r.server,
-		callback: r.callback,
-		codeType: r.codeType,
-		suffix:   r.suffix,
-		parallel: r.parallel,
-	}
-}
-
 type NatsRpc struct {
 	Endpoints   []string
 	Options     []nats.Option
@@ -173,7 +95,7 @@ func (r *NatsRpc) RemoveFindCache(arg int) {
 	r.Finder.RemoveUserCache(arg)
 }
 
-func (r *NatsRpc) prepare(s SubscriberRpc) (EncoderRpc, error) {
+func (r *NatsRpc) prepare(s RssBuilder) (EncoderRpc, error) {
 	coder := r.RpcCoder[s.codeType]
 	if coder == nil {
 		return nil, fmt.Errorf("rpc coder not exist:%v", s.codeType)
@@ -181,7 +103,7 @@ func (r *NatsRpc) prepare(s SubscriberRpc) (EncoderRpc, error) {
 	return coder, nil
 }
 
-func (r *NatsRpc) Subscribe(s SubscriberRpc) error {
+func (r *NatsRpc) Subscribe(s RssBuilder) error {
 	coder, err := r.prepare(s)
 	if err != nil {
 		return err
@@ -203,7 +125,7 @@ func (r *NatsRpc) Subscribe(s SubscriberRpc) error {
 	return nil
 }
 
-func (r *NatsRpc) QueueSubscribe(s SubscriberRpc) error {
+func (r *NatsRpc) QueueSubscribe(s RssBuilder) error {
 	coder, err := r.prepare(s)
 	if err != nil {
 		return err
@@ -225,7 +147,7 @@ func (r *NatsRpc) QueueSubscribe(s SubscriberRpc) error {
 	return nil
 }
 
-func (r *NatsRpc) SubscribeBroadcast(s SubscriberRpc) error {
+func (r *NatsRpc) SubscribeBroadcast(s RssBuilder) error {
 	coder, err := r.prepare(s)
 	if err != nil {
 		return err
@@ -265,21 +187,21 @@ func (r *NatsRpc) DealMsg(msg *nats.Msg, callback CallbackFunc, coder EncoderRpc
 	}
 }
 
-func (r *NatsRpc) Request(codeType, suffix string, server *treaty.Server, msgId int32, req, resp interface{}) error {
-	coder := r.RpcCoder[codeType]
+func (r *NatsRpc) Request(s ReqBuilder) error {
+	coder := r.RpcCoder[s.codeType]
 	if coder == nil {
-		return fmt.Errorf("rpc coder not exist:%v", codeType)
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
 	}
 	var msg *nats.Msg
 	var err error
 	var data []byte
-	data, err = r.EncodeMsg(coder, Request, msgId, req)
+	data, err = r.EncodeMsg(coder, Request, s.msgId, s.req)
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server), suffix)
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
 	if msg, err = r.Client.Request(sub, data, r.DialTimeout); err == nil {
-		respMsg := &MsgRpc{MsgData: resp}
+		respMsg := &MsgRpc{MsgData: s.resp}
 		err = coder.Decode(msg.Data, respMsg)
 		if err != nil {
 			return err
@@ -290,71 +212,35 @@ func (r *NatsRpc) Request(codeType, suffix string, server *treaty.Server, msgId 
 	return nil
 }
 
-func (r *NatsRpc) Publish(codeType, suffix string, server *treaty.Server, msgId int32, req interface{}) error {
-	coder := r.RpcCoder[codeType]
+func (r *NatsRpc) Publish(s ReqBuilder) error {
+	coder := r.RpcCoder[s.codeType]
 	if coder == nil {
-		return fmt.Errorf("rpc coder not exist:%v", codeType)
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
 	}
-	data, err := r.EncodeMsg(coder, Publish, msgId, req)
+	data, err := r.EncodeMsg(coder, Publish, s.msgId, s.req)
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(server), suffix)
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
 	if err = r.Client.Publish(sub, data); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *NatsRpc) PublishBalancer(codeType, suffix string, msgId int32, req interface{}) error {
-	coder := r.RpcCoder[codeType]
+func (r *NatsRpc) PublishBroadcast(s ReqBuilder) error {
+	coder := r.RpcCoder[s.codeType]
 	if coder == nil {
-		return fmt.Errorf("rpc coder not exist:%v", codeType)
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
 	}
-	data, err := r.EncodeMsg(coder, Publish, msgId, req)
+	data, err := r.EncodeMsg(coder, Publish, s.msgId, s.req)
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, Balancer, suffix)
-	return r.Client.Publish(sub, data)
-}
-
-func (r *NatsRpc) PublishConnector(codeType, suffix string, msgId int32, req interface{}) error {
-	coder := r.RpcCoder[codeType]
-	if coder == nil {
-		return fmt.Errorf("rpc coder not exist:%v", codeType)
+	if len(s.serverType) < 1 && s.server != nil {
+		s.serverType = s.server.ServerType
 	}
-	data, err := r.EncodeMsg(coder, Publish, msgId, req)
-	if err != nil {
-		return err
-	}
-	sub := path.Join(r.Prefix, Connector, suffix)
-	return r.Client.Publish(sub, data)
-}
-
-func (r *NatsRpc) PublishServer(codeType, suffix string, msgId int32, req interface{}) error {
-	coder := r.RpcCoder[codeType]
-	if coder == nil {
-		return fmt.Errorf("rpc coder not exist:%v", codeType)
-	}
-	data, err := r.EncodeMsg(coder, Publish, msgId, req)
-	if err != nil {
-		return err
-	}
-	sub := path.Join(r.Prefix, Server, suffix)
-	return r.Client.Publish(sub, data)
-}
-
-func (r *NatsRpc) PublishDatabase(codeType, suffix string, msgId int32, req interface{}) error {
-	coder := r.RpcCoder[codeType]
-	if coder == nil {
-		return fmt.Errorf("rpc coder not exist:%v", codeType)
-	}
-	data, err := r.EncodeMsg(coder, Publish, msgId, req)
-	if err != nil {
-		return err
-	}
-	sub := path.Join(r.Prefix, Database, suffix)
+	sub := path.Join(r.Prefix, s.serverType, s.suffix)
 	return r.Client.Publish(sub, data)
 }
 

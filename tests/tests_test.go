@@ -22,7 +22,7 @@ func init() {
 }
 
 func TestSub(t *testing.T) {
-	s := rpc.NewSubscriberRpc(&treaty.Server{ServerId: "test_001"})
+	s := rpc.NewRssBuilder(&treaty.Server{ServerId: "test_001"})
 	fmt.Println(s)
 	s1 := s.Build()
 	s2 := s1.SetSuffix("wel").Build()
