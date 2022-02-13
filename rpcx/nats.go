@@ -50,7 +50,7 @@ func NewRpcSubscriber(server *treaty.Server) *RpcSubscriber {
 		callback: DefaultCallback,
 		codeType: CodeTypeProto,
 		suffix:   DefaultSuffix,
-		parallel: false,
+		parallel: true,
 	}
 }
 
@@ -78,6 +78,17 @@ func (r *RpcSubscriber) SetSuffix(suffix string) *RpcSubscriber {
 func (r *RpcSubscriber) SetParallel(parallel bool) *RpcSubscriber {
 	r.parallel = parallel
 	return r
+}
+
+func (r *RpcSubscriber) Build() RpcSubscriber {
+	return RpcSubscriber{
+		queue:    r.queue,
+		server:   r.server,
+		callback: r.callback,
+		codeType: r.codeType,
+		suffix:   r.suffix,
+		parallel: r.parallel,
+	}
 }
 
 type RpcNats struct {
