@@ -79,3 +79,15 @@ func TestRand(t *testing.T) {
 	a := int(rand.Float64() * 500)
 	fmt.Println(a)
 }
+func abc(a any) {
+	switch v := a.(type) {
+	case int:
+		fmt.Println("int:", v)
+	case string:
+		fmt.Println("string:", v)
+	}
+}
+func TestGenericType(t *testing.T) {
+	abc(31)
+	abc("welcome")
+}

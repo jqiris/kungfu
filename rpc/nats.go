@@ -87,11 +87,11 @@ func (r *NatsRpc) RegEncoder(typ string, encoder EncoderRpc) {
 	}
 }
 
-func (r *NatsRpc) Find(serverType string, arg int) *treaty.Server {
+func (r *NatsRpc) Find(serverType string, arg any) *treaty.Server {
 	return r.Finder.GetUserServer(serverType, arg)
 }
 
-func (r *NatsRpc) RemoveFindCache(arg int) {
+func (r *NatsRpc) RemoveFindCache(arg any) {
 	r.Finder.RemoveUserCache(arg)
 }
 

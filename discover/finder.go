@@ -8,17 +8,22 @@ import (
 	"sync"
 )
 
-type ServerMap map[int]*treaty.Server
+type Findkey interface {
+	int | string
+}
+
+type ServerMap[k Findkey] map[k]*treaty.Server
 
 type Finder struct {
-	servers    map[string]ServerMap
-	servers2   map[string]map[string]*treaty.Server
+	serversInt map[string]ServerMap[int]
+	serversStr map[string]ServerMap[string]
 	serverLock *sync.RWMutex
 }
 
 func NewFinder() *Finder {
 	f := &Finder{
-		servers:    make(map[string]ServerMap),
+		serversInt: make(map[string]ServerMap[int]),
+		serversStr: make(map[string]ServerMap[string]),
 		serverLock: new(sync.RWMutex),
 	}
 	RegEventHandlers(f.ServerEventHandler)
@@ -32,15 +37,51 @@ func (f *Finder) ServerEventHandler(ev *clientv3.Event, server *treaty.Server) {
 		fallthrough
 	case clientv3.EventTypeDelete:
 		f.serverLock.Lock()
-		delete(f.servers, server.ServerType)
+		delete(f.serversInt, server.ServerType)
+		delete(f.serversStr, server.ServerType)
 		f.serverLock.Unlock()
 	}
 }
-func (f *Finder) GetServerCache(serverType string, arg int) *treaty.Server {
+func (f *Finder) GetServerCache(serverType string, arg any) *treaty.Server {
 	f.serverLock.RLock()
 	defer f.serverLock.RUnlock()
-	if serverTypeList, ok := f.servers[serverType]; ok {
-		if server, okv := serverTypeList[arg]; okv {
+	switch v := arg.(type) {
+	case int:
+		if serverTypeList, ok := f.serversInt[serverType]; ok {
+			if server, okv := serverTypeList[v]; okv {
+				return server
+			}
+		}
+	case string:
+		if serverTypeList, ok := f.serversStr[serverType]; ok {
+			if server, okv := serverTypeList[v]; okv {
+				return server
+			}
+		}
+	}
+
+	return nil
+}
+
+func (f *Finder) GetServerDiscover(serverType string, arg any) *treaty.Server {
+	f.serverLock.Lock()
+	defer f.serverLock.Unlock()
+	server := GetServerByType(serverType, fmt.Sprintf("%v", arg))
+	if server != nil {
+		switch v := arg.(type) {
+		case int:
+			if _, ok := f.serversInt[serverType]; !ok {
+				f.serversInt[serverType] = make(ServerMap[int])
+			}
+			f.serversInt[serverType][v] = server
+			logger.Infof("user server cache,  arg: %v, server_type: %v,server_id:%v", arg, serverType, server.ServerId)
+			return server
+		case string:
+			if _, ok := f.serversStr[serverType]; !ok {
+				f.serversStr[serverType] = make(ServerMap[string])
+			}
+			f.serversStr[serverType][v] = server
+			logger.Infof("user server cache,  arg: %v, server_type: %v,server_id:%v", arg, serverType, server.ServerId)
 			return server
 		}
 
@@ -48,22 +89,7 @@ func (f *Finder) GetServerCache(serverType string, arg int) *treaty.Server {
 	return nil
 }
 
-func (f *Finder) GetServerDiscover(serverType string, arg int) *treaty.Server {
-	f.serverLock.Lock()
-	defer f.serverLock.Unlock()
-	server := GetServerByType(serverType, fmt.Sprintf("%v", arg))
-	if server != nil {
-		if _, ok := f.servers[serverType]; !ok {
-			f.servers[serverType] = make(ServerMap)
-		}
-		f.servers[serverType][arg] = server
-		logger.Infof("user server cache,  arg: %v, server_type: %v,server_id:%v", arg, serverType, server.ServerId)
-		return server
-	}
-	return nil
-}
-
-func (f *Finder) GetUserServer(serverType string, arg int) *treaty.Server {
+func (f *Finder) GetUserServer(serverType string, arg any) *treaty.Server {
 	if server := f.GetServerCache(serverType, arg); server != nil {
 		return server
 	}
@@ -76,12 +102,21 @@ func (f *Finder) GetUserServer(serverType string, arg int) *treaty.Server {
 	return &treaty.Server{ServerType: "none"}
 }
 
-func (f *Finder) RemoveUserCache(arg int) {
+func (f *Finder) RemoveUserCache(arg any) {
 	f.serverLock.Lock()
 	defer f.serverLock.Unlock()
-	for typ, v := range f.servers {
-		if _, ok := v[arg]; ok {
-			delete(f.servers[typ], arg)
+	switch v := arg.(type) {
+	case int:
+		for typ, val := range f.serversInt {
+			if _, ok := val[v]; ok {
+				delete(f.serversInt[typ], v)
+			}
+		}
+	case string:
+		for typ, val := range f.serversStr {
+			if _, ok := val[v]; ok {
+				delete(f.serversStr[typ], v)
+			}
 		}
 	}
 }
