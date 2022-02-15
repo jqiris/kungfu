@@ -5,6 +5,7 @@ const (
 	Connector = "connector"
 	Server    = "backend"
 	Database  = "database"
+	Loader    = "loader"
 )
 const (
 	DefaultQueue  = "dq"

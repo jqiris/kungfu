@@ -9,6 +9,10 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
+type HttpHandler interface {
+	Run(addr ...string) error
+}
+
 type CallbackFunc func(req *MsgRpc) []byte
 
 // ServerRpc rpc interface
