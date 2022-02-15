@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"github.com/apex/log"
 	"github.com/gorilla/websocket"
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/packet/nano"
-	"github.com/jqiris/kungfu/packet/zinx"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/packet/nano"
+	"github.com/jqiris/kungfu/v2/packet/zinx"
 	"net"
 	"net/http"
 	"strings"
 
-	"github.com/jqiris/kungfu/config"
-	"github.com/jqiris/kungfu/tcpface"
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/config"
+	"github.com/jqiris/kungfu/v2/tcpface"
+	"github.com/jqiris/kungfu/v2/treaty"
 )
 
 // Server 接口实现，定义一个Server服务类

@@ -1,9 +1,9 @@
 package jobs
 
 import (
-	"github.com/jqiris/kungfu/ds"
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/utils"
+	"github.com/jqiris/kungfu/v2/ds"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/utils"
 	"sort"
 	"sync"
 	"time"

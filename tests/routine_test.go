@@ -3,7 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
-	"github.com/jqiris/kungfu/logger"
+	"github.com/jqiris/kungfu/v2/logger"
 	"testing"
 	"time"
 )

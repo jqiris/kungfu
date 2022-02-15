@@ -2,8 +2,8 @@ package stores
 
 import (
 	"github.com/go-redis/redis/v8"
-	"github.com/jqiris/kungfu/config"
-	"github.com/jqiris/kungfu/logger"
+	"github.com/jqiris/kungfu/v2/config"
+	"github.com/jqiris/kungfu/v2/logger"
 	"time"
 )
 

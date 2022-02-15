@@ -2,12 +2,12 @@ package tests
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/config"
-	"github.com/jqiris/kungfu/discover"
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/rpc"
-	"github.com/jqiris/kungfu/stores"
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/config"
+	"github.com/jqiris/kungfu/v2/discover"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/rpc"
+	"github.com/jqiris/kungfu/v2/stores"
+	"github.com/jqiris/kungfu/v2/treaty"
 	"testing"
 )
 

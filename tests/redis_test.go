@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-redis/redis/v8"
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/stores"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/stores"
 	"testing"
 	"time"
 )

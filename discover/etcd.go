@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/treaty"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 

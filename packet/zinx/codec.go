@@ -3,7 +3,7 @@ package zinx
 import (
 	"bytes"
 	"errors"
-	"github.com/jqiris/kungfu/utils"
+	"github.com/jqiris/kungfu/v2/utils"
 	"io"
 	"net"
 )

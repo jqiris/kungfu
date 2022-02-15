@@ -2,10 +2,10 @@ package tcpserver
 
 import (
 	"errors"
-	"github.com/jqiris/kungfu/logger"
+	"github.com/jqiris/kungfu/v2/logger"
 	"sync"
 
-	tcpface "github.com/jqiris/kungfu/tcpface"
+	tcpface "github.com/jqiris/kungfu/v2/tcpface"
 )
 
 type ConnManager struct {

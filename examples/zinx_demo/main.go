@@ -1,17 +1,17 @@
 package main
 
 import (
-	"github.com/jqiris/kungfu/logger"
+	"github.com/jqiris/kungfu/v2/logger"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/jqiris/kungfu/config"
+	"github.com/jqiris/kungfu/v2/config"
 
-	"github.com/jqiris/kungfu/discover"
-	"github.com/jqiris/kungfu/launch"
-	"github.com/jqiris/kungfu/stores"
+	"github.com/jqiris/kungfu/v2/discover"
+	"github.com/jqiris/kungfu/v2/launch"
+	"github.com/jqiris/kungfu/v2/stores"
 )
 
 func main() {

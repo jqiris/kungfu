@@ -1,7 +1,7 @@
 package session
 
 import (
-	"github.com/jqiris/kungfu/logger"
+	"github.com/jqiris/kungfu/v2/logger"
 	"runtime"
 	"strings"
 )

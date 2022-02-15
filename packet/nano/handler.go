@@ -3,17 +3,17 @@ package nano
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jqiris/kungfu/component"
-	"github.com/jqiris/kungfu/serialize"
-	"github.com/jqiris/kungfu/tcpface"
+	"github.com/jqiris/kungfu/v2/component"
+	"github.com/jqiris/kungfu/v2/serialize"
+	"github.com/jqiris/kungfu/v2/tcpface"
 	"reflect"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/jqiris/kungfu/config"
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/packet"
+	"github.com/jqiris/kungfu/v2/config"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/packet"
 )
 
 var (

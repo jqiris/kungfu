@@ -1,4 +1,4 @@
-module github.com/jqiris/kungfu
+module github.com/jqiris/kungfu/v2
 
 go 1.18
 

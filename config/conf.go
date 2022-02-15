@@ -2,10 +2,10 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/jqiris/kungfu/logger"
+	"github.com/jqiris/kungfu/v2/logger"
 	"io/ioutil"
 
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/treaty"
 )
 
 var (

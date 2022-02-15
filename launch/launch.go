@@ -1,9 +1,9 @@
 package launch
 
 import (
-	"github.com/jqiris/kungfu/config"
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/rpc"
+	"github.com/jqiris/kungfu/v2/config"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/rpc"
 )
 
 //服务器集群管理

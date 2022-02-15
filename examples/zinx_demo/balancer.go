@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/rpc"
+	"github.com/jqiris/kungfu/v2/rpc"
 
-	"github.com/jqiris/kungfu/balancer"
-	"github.com/jqiris/kungfu/launch"
+	"github.com/jqiris/kungfu/v2/balancer"
+	"github.com/jqiris/kungfu/v2/launch"
 )
 
 type MyBalancer struct {

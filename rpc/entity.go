@@ -1,6 +1,6 @@
 package rpc
 
-import "github.com/jqiris/kungfu/treaty"
+import "github.com/jqiris/kungfu/v2/treaty"
 
 type ServerCreator func(s *treaty.Server) (ServerEntity, error)
 

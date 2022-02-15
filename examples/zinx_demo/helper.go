@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/packet/zinx"
-	"github.com/jqiris/kungfu/serialize"
-	"github.com/jqiris/kungfu/tcpface"
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/packet/zinx"
+	"github.com/jqiris/kungfu/v2/serialize"
+	"github.com/jqiris/kungfu/v2/tcpface"
+	"github.com/jqiris/kungfu/v2/treaty"
 )
 
 var (

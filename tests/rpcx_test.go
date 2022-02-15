@@ -2,9 +2,9 @@ package tests
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/config"
-	"github.com/jqiris/kungfu/rpc"
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/config"
+	"github.com/jqiris/kungfu/v2/rpc"
+	"github.com/jqiris/kungfu/v2/treaty"
 	"reflect"
 	"testing"
 )

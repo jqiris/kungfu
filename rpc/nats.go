@@ -2,15 +2,15 @@ package rpc
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/discover"
-	"github.com/jqiris/kungfu/serialize"
+	"github.com/jqiris/kungfu/v2/discover"
+	"github.com/jqiris/kungfu/v2/serialize"
 	"path"
 	"strings"
 	"time"
 
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/treaty"
-	"github.com/jqiris/kungfu/utils"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/treaty"
+	"github.com/jqiris/kungfu/v2/utils"
 	"github.com/nats-io/nats.go"
 )
 

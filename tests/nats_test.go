@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jqiris/kungfu/config"
+	"github.com/jqiris/kungfu/v2/config"
 	"github.com/nats-io/nats.go"
 )
 

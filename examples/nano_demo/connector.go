@@ -2,17 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/base"
-	"github.com/jqiris/kungfu/config"
-	"github.com/jqiris/kungfu/discover"
-	"github.com/jqiris/kungfu/launch"
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/packet/nano"
-	"github.com/jqiris/kungfu/rpc"
-	"github.com/jqiris/kungfu/session"
-	"github.com/jqiris/kungfu/tcpface"
-	"github.com/jqiris/kungfu/treaty"
-	"github.com/jqiris/kungfu/utils"
+	"github.com/jqiris/kungfu/v2/base"
+	"github.com/jqiris/kungfu/v2/config"
+	"github.com/jqiris/kungfu/v2/discover"
+	"github.com/jqiris/kungfu/v2/launch"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/packet/nano"
+	"github.com/jqiris/kungfu/v2/rpc"
+	"github.com/jqiris/kungfu/v2/session"
+	"github.com/jqiris/kungfu/v2/tcpface"
+	"github.com/jqiris/kungfu/v2/treaty"
+	"github.com/jqiris/kungfu/v2/utils"
 )
 
 type UserConnector struct {

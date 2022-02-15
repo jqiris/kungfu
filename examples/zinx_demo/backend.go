@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/rpc"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/rpc"
 	"time"
 
-	"github.com/jqiris/kungfu/channel"
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/channel"
+	"github.com/jqiris/kungfu/v2/treaty"
 
-	"github.com/jqiris/kungfu/backend"
-	"github.com/jqiris/kungfu/launch"
+	"github.com/jqiris/kungfu/v2/backend"
+	"github.com/jqiris/kungfu/v2/launch"
 )
 
 type MyBackend struct {

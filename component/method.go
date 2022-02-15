@@ -25,7 +25,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/jqiris/kungfu/session"
+	"github.com/jqiris/kungfu/v2/session"
 )
 
 var (

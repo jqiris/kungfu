@@ -1,14 +1,14 @@
 package discover
 
 import (
-	"github.com/jqiris/kungfu/config"
-	"github.com/jqiris/kungfu/logger"
+	"github.com/jqiris/kungfu/v2/config"
+	"github.com/jqiris/kungfu/v2/logger"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"time"
 
 	"stathat.com/c/consistent"
 
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/treaty"
 )
 
 var (

@@ -2,16 +2,16 @@ package main
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/config"
-	"github.com/jqiris/kungfu/packet/zinx"
-	"github.com/jqiris/kungfu/serialize"
-	"github.com/jqiris/kungfu/utils"
+	"github.com/jqiris/kungfu/v2/config"
+	"github.com/jqiris/kungfu/v2/packet/zinx"
+	"github.com/jqiris/kungfu/v2/serialize"
+	"github.com/jqiris/kungfu/v2/utils"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"testing"
 
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/treaty"
 )
 
 func TestClientLogin(t *testing.T) {

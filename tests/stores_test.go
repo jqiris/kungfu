@@ -3,13 +3,13 @@ package tests
 import (
 	"fmt"
 	"github.com/go-redis/redis/v8"
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/utils"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/utils"
 	"math/rand"
 	"testing"
 	"time"
 
-	"github.com/jqiris/kungfu/stores"
+	"github.com/jqiris/kungfu/v2/stores"
 )
 
 func TestStores(t *testing.T) {

@@ -1,10 +1,10 @@
 package base
 
 import (
-	"github.com/jqiris/kungfu/rpc"
-	"github.com/jqiris/kungfu/tcpface"
-	"github.com/jqiris/kungfu/tcpserver"
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/rpc"
+	"github.com/jqiris/kungfu/v2/tcpface"
+	"github.com/jqiris/kungfu/v2/tcpserver"
+	"github.com/jqiris/kungfu/v2/treaty"
 )
 
 type ServerConnector struct {

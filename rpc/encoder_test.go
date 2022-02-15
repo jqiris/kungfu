@@ -1,9 +1,9 @@
 package rpc
 
 import (
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/serialize"
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/serialize"
+	"github.com/jqiris/kungfu/v2/treaty"
 	"testing"
 )
 

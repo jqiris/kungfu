@@ -3,8 +3,8 @@ package utils
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/treaty"
 	"os"
 	"runtime"
 	"strconv"

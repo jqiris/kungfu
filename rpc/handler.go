@@ -2,7 +2,7 @@ package rpc
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/logger"
+	"github.com/jqiris/kungfu/v2/logger"
 	"reflect"
 )
 

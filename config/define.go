@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/treaty"
 )
 
 type Config struct {

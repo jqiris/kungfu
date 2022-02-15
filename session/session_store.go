@@ -1,10 +1,10 @@
 package session
 
 import (
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/stores"
-	"github.com/jqiris/kungfu/treaty"
-	"github.com/jqiris/kungfu/utils"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/stores"
+	"github.com/jqiris/kungfu/v2/treaty"
+	"github.com/jqiris/kungfu/v2/utils"
 )
 
 var (

@@ -1,7 +1,7 @@
 package validator
 
 import (
-	"github.com/jqiris/kungfu/logger"
+	"github.com/jqiris/kungfu/v2/logger"
 )
 
 type ValidateItem struct {

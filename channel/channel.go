@@ -1,9 +1,9 @@
 package channel
 
 import (
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/stores"
-	"github.com/jqiris/kungfu/treaty"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/stores"
+	"github.com/jqiris/kungfu/v2/treaty"
 )
 
 var (

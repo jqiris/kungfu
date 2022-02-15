@@ -2,9 +2,9 @@ package rpc
 
 import (
 	"errors"
-	"github.com/jqiris/kungfu/logger"
-	"github.com/jqiris/kungfu/serialize"
-	"github.com/jqiris/kungfu/utils"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/serialize"
+	"github.com/jqiris/kungfu/v2/utils"
 )
 
 type MessageType byte
