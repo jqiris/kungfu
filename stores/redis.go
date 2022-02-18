@@ -2,7 +2,6 @@ package stores
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
@@ -11,6 +10,11 @@ import (
 	"github.com/jqiris/kungfu/v2/logger"
 
 	"github.com/go-redis/redis/v8"
+	jsoniter "github.com/json-iterator/go"
+)
+
+var (
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 const (
