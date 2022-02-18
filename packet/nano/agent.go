@@ -3,6 +3,12 @@ package nano
 import (
 	"errors"
 	"fmt"
+	"net"
+	"reflect"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/apex/log"
 	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/logger"
@@ -10,11 +16,6 @@ import (
 	"github.com/jqiris/kungfu/v2/serialize"
 	"github.com/jqiris/kungfu/v2/session"
 	"github.com/jqiris/kungfu/v2/tcpface"
-	"net"
-	"reflect"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 type Agent struct {
@@ -182,12 +183,23 @@ func (a *Agent) Close() error {
 		return packet.ErrCloseClosedSession
 	}
 	a.setStatus(packet.StatusClosed)
+	a.onSessionClosed() //关闭session
 	close(a.chDie)
 	close(a.msgChan)
 	close(a.msgBuffChan)
 	a.server.GetConnMgr().Remove(a) //从管理器移除
 	a.server.CallOnConnStop(a)      //连接关闭事件
 	return a.conn.Close()
+}
+
+func (a *Agent) onSessionClosed() {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Infof("onSessionClosed: %v", err)
+			println(stack())
+		}
+	}()
+	session.Lifetime.Close(a.session)
 }
 
 // RemoteAddr  implementation for session.NetworkEntity interface
