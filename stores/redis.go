@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/jqiris/kungfu/v2/logger"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jqiris/kungfu/v2/logger"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -121,8 +122,7 @@ func (s *StoreRedis) SetNx(key string, value interface{}, expire time.Duration) 
 func (s *StoreRedis) Get(key string, val interface{}) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	var bs []byte
-	err := s.Client.Get(ctx, s.GetKey(key)).Scan(&bs)
+	bs, err := s.Client.Get(ctx, s.GetKey(key)).Bytes()
 	if err != nil {
 		return err
 	}
@@ -148,8 +148,7 @@ func (s *StoreRedis) GetInt(key string) int {
 func (s *StoreRedis) GetString(key string) string {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	var bs []byte
-	err := s.Client.Get(ctx, s.GetKey(key)).Scan(&bs)
+	bs, err := s.Client.Get(ctx, s.GetKey(key)).Bytes()
 	if err != nil {
 		logger.Error(err)
 		return ""
@@ -200,7 +199,8 @@ func (s *StoreRedis) HGet(key, field string, val interface{}) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
 	var bs []byte
-	if err := s.Client.HGet(ctx, s.GetKey(key), field).Scan(&bs); err != nil {
+	var err error
+	if bs, err = s.Client.HGet(ctx, s.GetKey(key), field).Bytes(); err != nil {
 		return err
 	}
 	return json.Unmarshal(bs, val)
@@ -283,8 +283,7 @@ func (s *StoreRedis) RPush(key string, values ...interface{}) error {
 func (s *StoreRedis) LPop(key string, val interface{}) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	var bs []byte
-	err := s.Client.LPop(ctx, s.GetKey(key)).Scan(&bs)
+	bs, err := s.Client.LPop(ctx, s.GetKey(key)).Bytes()
 	if err != nil {
 		return err
 	}
@@ -293,8 +292,7 @@ func (s *StoreRedis) LPop(key string, val interface{}) error {
 func (s *StoreRedis) RPop(key string, val interface{}) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	var bs []byte
-	err := s.Client.RPop(ctx, s.GetKey(key)).Scan(&bs)
+	bs, err := s.Client.RPop(ctx, s.GetKey(key)).Bytes()
 	if err != nil {
 		return err
 	}
