@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/jqiris/kungfu/v2/logger"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/jqiris/kungfu/v2/logger"
 
 	"github.com/jqiris/kungfu/v2/config"
 
@@ -31,7 +31,7 @@ func main() {
 	signal.Notify(sg, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
 	select {
 	case s := <-sg:
-		log.Println("server got shutdown signal", s)
+		logger.Info("server got shutdown signal", s)
 	}
 	launch.Shutdown()
 }

@@ -3,14 +3,14 @@ package zinx
 import (
 	"errors"
 	"fmt"
-	"github.com/apex/log"
+	"net"
+	"sync"
+	"sync/atomic"
+
 	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/packet"
 	"github.com/jqiris/kungfu/v2/tcpface"
-	"net"
-	"sync"
-	"sync/atomic"
 )
 
 type Agent struct {
@@ -60,7 +60,7 @@ func (a *Agent) StartWriter() {
 	defer func() {
 		err := a.Close()
 		if err != nil {
-			log.Error(err.Error())
+			logger.Error(err.Error())
 		}
 		logger.Info(a.conn.RemoteAddr().String(), "[conn Writer exit!]")
 	}()

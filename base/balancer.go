@@ -3,7 +3,9 @@ package base
 import (
 	"errors"
 	"fmt"
-	"github.com/apex/log"
+	"net/http"
+	"net/url"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/jqiris/kungfu/v2/discover"
 	"github.com/jqiris/kungfu/v2/logger"
@@ -12,8 +14,6 @@ import (
 	"github.com/jqiris/kungfu/v2/session"
 	"github.com/jqiris/kungfu/v2/treaty"
 	"github.com/jqiris/kungfu/v2/utils"
-	"net/http"
-	"net/url"
 )
 
 type ServerBalancer struct {
@@ -40,7 +40,7 @@ func (s *ServerBalancer) Init() {
 	go func() {
 		err := s.ClientServer.ListenAndServe()
 		if err != nil {
-			log.Error(err.Error())
+			logger.Error(err.Error())
 		}
 	}()
 }

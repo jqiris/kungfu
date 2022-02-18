@@ -2,14 +2,14 @@ package tcpserver
 
 import (
 	"fmt"
-	"github.com/apex/log"
+	"net"
+	"net/http"
+	"strings"
+
 	"github.com/gorilla/websocket"
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/packet/nano"
 	"github.com/jqiris/kungfu/v2/packet/zinx"
-	"net"
-	"net/http"
-	"strings"
 
 	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/tcpface"
@@ -127,7 +127,7 @@ func (s *Server) ListenAndServe(msgHandler tcpface.IMsgHandle, connHandler tcpfa
 		if s.Config.MaxConn > 0 && s.ConnMgr.Len() >= s.Config.MaxConn {
 			err = conn.Close()
 			if err != nil {
-				log.Error(err.Error())
+				logger.Error(err.Error())
 			}
 			continue
 		}
@@ -163,7 +163,7 @@ func (s *Server) ListenAndServeWs(msgHandler tcpface.IMsgHandle, connHandler tcp
 			if s.Config.MaxConn > 0 && s.ConnMgr.Len() >= s.Config.MaxConn {
 				err = wc.Close()
 				if err != nil {
-					log.Error(err.Error())
+					logger.Error(err.Error())
 				}
 				return
 			}

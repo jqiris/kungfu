@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/apex/log"
 	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/packet"
@@ -133,7 +132,7 @@ func (a *Agent) StartWriter() {
 		ticker.Stop()
 		err := a.Close()
 		if err != nil {
-			log.Error(err.Error())
+			logger.Error(err.Error())
 		}
 		logger.Info(a.conn.RemoteAddr().String(), "[conn Writer exit!]")
 	}()
