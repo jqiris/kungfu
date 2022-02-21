@@ -10,6 +10,7 @@ import (
 	"github.com/jqiris/kungfu/v2/logger"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/golang/protobuf/proto"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -110,11 +111,28 @@ func (s *StoreRedis) Set(key string, value interface{}, expire time.Duration) er
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
 	return s.Client.Set(ctx, s.GetKey(key), bs, expire).Err()
-
+}
+func (s *StoreRedis) SetProto(key string, value proto.Message, expire time.Duration) error {
+	bs, err := proto.Marshal(value)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.Set(ctx, s.GetKey(key), bs, expire).Err()
 }
 
 func (s *StoreRedis) SetNx(key string, value interface{}, expire time.Duration) error {
 	bs, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.SetNX(ctx, s.GetKey(key), bs, expire).Err()
+}
+func (s *StoreRedis) SetProtoNx(key string, value proto.Message, expire time.Duration) error {
+	bs, err := proto.Marshal(value)
 	if err != nil {
 		return err
 	}
@@ -131,6 +149,16 @@ func (s *StoreRedis) Get(key string, val interface{}) error {
 		return err
 	}
 	return json.Unmarshal(bs, val)
+}
+
+func (s *StoreRedis) GetProto(key string, val proto.Message) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	bs, err := s.Client.Get(ctx, s.GetKey(key)).Bytes()
+	if err != nil {
+		return err
+	}
+	return proto.Unmarshal(bs, val)
 }
 
 func (s *StoreRedis) GetInt(key string) int {

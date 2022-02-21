@@ -3,11 +3,11 @@ module github.com/jqiris/kungfu/v2
 go 1.18
 
 require (
-	github.com/apex/log v1.9.0
 	github.com/fatih/color v1.13.0
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/websocket v1.4.2
+	github.com/json-iterator/go v1.1.9
 	github.com/nats-io/nats.go v1.13.1-0.20220121202836-972a071d373d
 	go.etcd.io/etcd/client/v3 v3.5.0-alpha.0
 	google.golang.org/protobuf v1.27.1
@@ -22,6 +22,8 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/mattn/go-colorable v0.1.9 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/nats-io/nats-server/v2 v2.7.2 // indirect
 	github.com/nats-io/nkeys v0.3.0 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect

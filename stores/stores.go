@@ -1,10 +1,12 @@
 package stores
 
 import (
+	"time"
+
 	"github.com/go-redis/redis/v8"
+	"github.com/golang/protobuf/proto"
 	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/logger"
-	"time"
 )
 
 var (
@@ -30,9 +32,12 @@ func InitStoreKeeper(cfg config.StoresConf) {
 type StoreKeeper interface {
 	Set(key string, value interface{}, expire time.Duration) error
 	SetNx(key string, value interface{}, expire time.Duration) error //set if not exist
+	SetProto(key string, value proto.Message, expire time.Duration) error
+	SetProtoNx(key string, value proto.Message, expire time.Duration) error
 	Get(key string, val interface{}) error
 	GetInt(key string) int
 	GetString(key string) string
+	GetProto(key string, val proto.Message) error
 	Del(keys ...string) error
 	Exists(keys ...string) bool
 	HSet(key, field string, val interface{}) error
@@ -73,6 +78,12 @@ func Set(key string, value interface{}, expire time.Duration) error {
 func SetNx(key string, value interface{}, expire time.Duration) error {
 	return defStoreKeeper.SetNx(key, value, expire)
 }
+func SetProto(key string, value proto.Message, expire time.Duration) error {
+	return defStoreKeeper.SetProto(key, value, expire)
+}
+func SetProtoNx(key string, value proto.Message, expire time.Duration) error {
+	return defStoreKeeper.SetProtoNx(key, value, expire)
+}
 func Get(key string, val interface{}) error {
 	return defStoreKeeper.Get(key, val)
 }
@@ -81,6 +92,9 @@ func GetInt(key string) int {
 }
 func GetString(key string) string {
 	return defStoreKeeper.GetString(key)
+}
+func GetProto(key string, val proto.Message) error {
+	return defStoreKeeper.GetProto(key, val)
 }
 
 func Del(keys ...string) error {
