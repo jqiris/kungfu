@@ -2,15 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/v2/config"
-	"github.com/jqiris/kungfu/v2/packet/zinx"
-	"github.com/jqiris/kungfu/v2/serialize"
-	"github.com/jqiris/kungfu/v2/utils"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"testing"
 
+	"github.com/jqiris/kungfu/v2/config"
+	"github.com/jqiris/kungfu/v2/packet/zinx"
+	"github.com/jqiris/kungfu/v2/serialize"
+	"github.com/jqiris/kungfu/v2/utils"
+
+	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/treaty"
 )
 
@@ -49,24 +51,24 @@ func TestClientLogin(t *testing.T) {
 		logger.Fatal(err)
 	}
 	msg, _ := zinx.Encode(&zinx.Message{
-		int32(treaty.MsgId_Msg_Login_Request),
-		reqData,
+		Id:   int32(treaty.MsgId_Msg_Login_Request),
+		Data: reqData,
 	})
 	_, err = conn.Write(msg)
 	if err != nil {
-		logger.Println("write error err ", err)
+		logger.Info("write error err ", err)
 		return
 	}
 	recMsg, err := zinx.ReadMsg(conn)
 	if err != nil {
-		fmt.Println("server unpack err:", err)
+		logger.Info("server unpack err:", err)
 		return
 	}
 
 	//解析data数据
 	respData := &treaty.LoginResponse{}
 	if err = coder.Unmarshal(recMsg.Data, respData); err != nil {
-		logger.Printf("login received err:%v", err)
+		logger.Infof("login received err:%v", err)
 	}
 	logger.Infof("login result is:%+v", respData)
 	//登录成功后尝试发送一次聊天数据
@@ -86,12 +88,12 @@ func TestClientLogin(t *testing.T) {
 	})
 	_, err = conn.Write(msg)
 	if err != nil {
-		logger.Println("write error err ", err)
+		logger.Info("write error err ", err)
 		return
 	}
 	recMsg, err = zinx.ReadMsg(conn)
 	if err != nil {
-		fmt.Println("server unpack err:", err)
+		logger.Info("server unpack err:", err)
 		return
 	}
 	logger.Infof("received chat resp:%+v", recMsg.Data)
@@ -101,5 +103,5 @@ func TestTokenCreate(t *testing.T) {
 	uid, nickname := 1001, "jason"
 	tokenkey := config.GetConnectorConf().TokenKey
 	token := utils.Md5(fmt.Sprintf("%d|%s|%s", uid, nickname, tokenkey))
-	fmt.Println(token)
+	logger.Info(token)
 }

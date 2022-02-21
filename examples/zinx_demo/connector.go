@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+
+	"github.com/jqiris/kungfu/v2/base"
 	"github.com/jqiris/kungfu/v2/packet/zinx"
 	"github.com/jqiris/kungfu/v2/rpc"
 	"github.com/jqiris/kungfu/v2/utils"
 
 	"github.com/jqiris/kungfu/v2/config"
-	"github.com/jqiris/kungfu/v2/connector"
 	"github.com/jqiris/kungfu/v2/discover"
 	"github.com/jqiris/kungfu/v2/launch"
 	"github.com/jqiris/kungfu/v2/logger"
@@ -17,18 +18,18 @@ import (
 )
 
 type MyConnector struct {
-	connector.TcpConnector
+	*base.ServerConnector
 	conns map[int32]tcpface.IConnection
 }
 
-func (b *MyConnector) HandleSelfEvent(server rpc.ServerRpc, req *rpc.MsgRpc) []byte {
+func (b *MyConnector) HandleSelfEvent(req *rpc.MsgRpc) []byte {
 	logger.Infof("MyConnector HandleSelfEvent received: %+v \n", req)
 	msgId, msgData := treaty.RpcMsgId(req.MsgId), req.MsgData.([]byte)
 	switch msgId {
 	case treaty.RpcMsgId_RpcMsgMultiLoginOut:
 		//多端登录退出，向客户端发消息
 		msg := &treaty.MultiLoginOut{}
-		if err := server.DecodeMsg(msgData, msg); err != nil {
+		if err := b.Rpc.DecodeMsg(rpc.CodeTypeProto, msgData, msg); err != nil {
 			logger.Error(err)
 		} else {
 			if conn, ok := b.conns[msg.Uid]; ok {
@@ -40,7 +41,7 @@ func (b *MyConnector) HandleSelfEvent(server rpc.ServerRpc, req *rpc.MsgRpc) []b
 	return nil
 }
 
-func (b *MyConnector) HandleBroadcastEvent(server rpc.ServerRpc, req *rpc.MsgRpc) []byte {
+func (b *MyConnector) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
 	logger.Infof("MyConnector HandleBroadcastEvent received: %+v \n", req)
 	return nil
 }
@@ -87,7 +88,8 @@ func (b *MyConnector) Login(request *zinx.Request) {
 	if sess != nil {
 		if sess.Connector != nil && sess.Connector.ServerId != request.GetServerID() {
 			//之前在其他客户端登录，通知其他connetor登出
-			if err := b.Rpc.Publish(sess.Connector, int32(treaty.MsgId_Msg_Multi_Login_Out), &treaty.MultiLoginOut{Uid: uid}); err != nil {
+			reqBuilder := rpc.NewReqBuilder(sess.Connector).SetMsgId(int32(treaty.MsgId_Msg_Multi_Login_Out)).SetReq(&treaty.MultiLoginOut{Uid: uid}).SetResp(resp).Build()
+			if err := b.Rpc.Publish(reqBuilder); err != nil {
 				resp.Code = treaty.CodeType_CodeFailed
 				resp.Msg = err.Error()
 				SendMsg(conn, treaty.MsgId_Msg_Login_Response, resp)
@@ -123,7 +125,8 @@ func (b *MyConnector) Login(request *zinx.Request) {
 		return
 	}
 	respBack := &treaty.LoginResponse{}
-	if err := b.Rpc.Request(backend, int32(treaty.RpcMsgId_RpcMsgBackendLogin), req, respBack); err != nil {
+	reqBuilder := rpc.NewReqBuilder(backend).SetMsgId(int32(treaty.RpcMsgId_RpcMsgBackendLogin)).SetReq(req).SetResp(respBack).Build()
+	if err := b.Rpc.Request(reqBuilder); err != nil {
 		resp.Code = treaty.CodeType_CodeFailed
 		resp.Msg = err.Error()
 		SendMsg(conn, treaty.MsgId_Msg_Login_Response, resp)
@@ -173,7 +176,8 @@ func (b *MyConnector) Logout(request *zinx.Request) {
 	}
 	logger.Infof("Logout request is:%+v", req)
 	respBack := &treaty.LogoutResponse{}
-	if err := b.Rpc.Request(req.Backend, int32(treaty.RpcMsgId_RpcMsgBackendLogout), req, respBack); err != nil {
+	reqBuilder := rpc.NewReqBuilder(req.Backend).SetMsgId(int32(treaty.RpcMsgId_RpcMsgBackendLogout)).SetReq(req).SetResp(respBack).Build()
+	if err := b.Rpc.Request(reqBuilder); err != nil {
 		resp.Code = treaty.CodeType_CodeFailed
 		resp.Msg = err.Error()
 		SendMsg(conn, treaty.MsgId_Msg_Logout_Response, resp)
@@ -229,7 +233,8 @@ func (b *MyConnector) ChannelMsg(request *zinx.Request) {
 		SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
 		return
 	}
-	if err := b.Rpc.Request(sess.Backend, int32(treaty.RpcMsgId_RpcMsgChatTest), req, resp); err != nil {
+	reqBuilder := rpc.NewReqBuilder(sess.Backend).SetMsgId(int32(treaty.RpcMsgId_RpcMsgChatTest)).SetReq(req).SetResp(resp).Build()
+	if err := b.Rpc.Request(reqBuilder); err != nil {
 		resp.Code = treaty.CodeType_CodeFailed
 		resp.Msg = err.Error()
 		SendMsg(conn, treaty.MsgId_Msg_Channel_Response, resp)
@@ -239,17 +244,22 @@ func (b *MyConnector) ChannelMsg(request *zinx.Request) {
 		return
 	}
 }
-
-func init() {
-	srv := &MyConnector{conns: make(map[int32]tcpface.IConnection)}
-	srv.RouteHandler = func(s tcpface.IServer) {
+func MyConnectorCreator(s *treaty.Server) (rpc.ServerEntity, error) {
+	server := &MyConnector{
+		ServerConnector: base.NewServerConnector(s),
+		conns:           make(map[int32]tcpface.IConnection),
+	}
+	server.RouteHandler = func(s tcpface.IServer) {
 		rs := s.GetMsgHandler()
 		router := rs.(*zinx.MsgHandle)
-		router.AddRouter(int32(treaty.MsgId_Msg_Login_Request), srv.Login)
-		router.AddRouter(int32(treaty.MsgId_Msg_Channel_Request), srv.ChannelMsg)
+		router.AddRouter(int32(treaty.MsgId_Msg_Login_Request), server.Login)
+		router.AddRouter(int32(treaty.MsgId_Msg_Channel_Request), server.ChannelMsg)
 	}
-	srv.SetServerId("connector_2001")
-	srv.RegEventHandlerSelf(srv.HandleSelfEvent)
-	srv.RegEventHandlerBroadcast(srv.HandleBroadcastEvent)
-	launch.RegisterServer(srv)
+	server.SelfEventHandler = server.HandleSelfEvent
+	server.BroadcastEventHandler = server.HandleBroadcastEvent
+	return server, nil
+}
+
+func init() {
+	launch.RegisterCreator("connector", MyConnectorCreator)
 }

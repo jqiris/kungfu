@@ -2,35 +2,36 @@ package main
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/rpc"
-	"time"
 
 	"github.com/jqiris/kungfu/v2/channel"
 	"github.com/jqiris/kungfu/v2/treaty"
 
-	"github.com/jqiris/kungfu/v2/backend"
+	"github.com/jqiris/kungfu/v2/base"
 	"github.com/jqiris/kungfu/v2/launch"
 )
 
 type MyBackend struct {
-	backend.BaseBackEnd
+	*base.ServerBase
 	conns map[int32]*treaty.Server
 }
 
-func (b *MyBackend) HandleSelfEvent(server rpc.ServerRpc, req *rpc.MsgRpc) []byte {
-	fmt.Printf("MyBackend HandleSelfEvent received: %+v \n", req)
+func (b *MyBackend) HandleSelfEvent(req *rpc.MsgRpc) []byte {
+	logger.Infof("MyBackend HandleSelfEvent received: %+v \n", req)
 	msgId, msgData := treaty.RpcMsgId(req.MsgId), req.MsgData.([]byte)
 	switch msgId {
 	case treaty.RpcMsgId_RpcMsgBackendLogin:
 		//服务端登录
 		resp := &treaty.LoginResponse{}
 		msg := &treaty.LoginRequest{}
-		if err := server.DecodeMsg(msgData, msg); err != nil {
+		if err := b.Rpc.DecodeMsg(rpc.CodeTypeProto, msgData, msg); err != nil {
 			logger.Error(err)
 			resp.Code = treaty.CodeType_CodeFailed
 			resp.Msg = err.Error()
-			return server.Response(resp)
+			return b.Rpc.Response(rpc.CodeTypeProto, resp)
 		} else {
 			//检查游戏通道是否建立
 			ch := channel.GetChannel(b.Server, msg.Uid)
@@ -44,7 +45,7 @@ func (b *MyBackend) HandleSelfEvent(server rpc.ServerRpc, req *rpc.MsgRpc) []byt
 				resp.Msg = "登录成功"
 				resp.Backend = b.Server
 				b.conns[msg.Uid] = msg.Connector
-				return server.Response(resp)
+				return b.Rpc.Response(rpc.CodeTypeProto, resp)
 			}
 			//游戏通道建立
 			ch = &treaty.GameChannel{
@@ -60,17 +61,17 @@ func (b *MyBackend) HandleSelfEvent(server rpc.ServerRpc, req *rpc.MsgRpc) []byt
 			resp.Msg = "登录成功"
 			resp.Backend = b.Server
 			b.conns[msg.Uid] = msg.Connector
-			return server.Response(resp)
+			return b.Rpc.Response(rpc.CodeTypeProto, resp)
 		}
 	case treaty.RpcMsgId_RpcMsgBackendLogout:
 		//服务端登出
 		resp := &treaty.LogoutResponse{}
 		msg := &treaty.LogoutRequest{}
-		if err := server.DecodeMsg(msgData, msg); err != nil {
+		if err := b.Rpc.DecodeMsg(rpc.CodeTypeProto, msgData, msg); err != nil {
 			logger.Error(err)
 			resp.Code = treaty.CodeType_CodeFailed
 			resp.Msg = err.Error()
-			return server.Response(resp)
+			return b.Rpc.Response(rpc.CodeTypeProto, resp)
 		} else {
 			//游戏机制检查
 			//销毁通道
@@ -79,36 +80,42 @@ func (b *MyBackend) HandleSelfEvent(server rpc.ServerRpc, req *rpc.MsgRpc) []byt
 			}
 			resp.Code = treaty.CodeType_CodeSuccess
 			resp.Msg = "登出成功"
-			return server.Response(resp)
+			return b.Rpc.Response(rpc.CodeTypeProto, resp)
 		}
 	case treaty.RpcMsgId_RpcMsgChatTest:
 		resp := &treaty.ChannelMsgResponse{}
 		msg := &treaty.ChannelMsgRequest{}
-		if err := server.DecodeMsg(msgData, msg); err != nil {
+		if err := b.Rpc.DecodeMsg(rpc.CodeTypeProto, msgData, msg); err != nil {
 			logger.Error(err)
 			resp.Code = treaty.CodeType_CodeFailed
 			resp.Msg = err.Error()
-			return server.Response(resp)
+			return b.Rpc.Response(rpc.CodeTypeProto, resp)
 		} else {
 			resp.Code = 0
 			resp.Msg = "success"
 			resp.MsgData = fmt.Sprintf("received msg:%v", msg.MsgData)
-			return server.Response(resp)
+			return b.Rpc.Response(rpc.CodeTypeProto, resp)
 		}
 	}
 	logger.Errorf("undfined message:%+v", req)
 	return nil
 }
 
-func (b *MyBackend) HandleBroadcastEvent(server rpc.ServerRpc, req *rpc.MsgRpc) []byte {
-	fmt.Printf("MyBackend HandleBroadcastEvent received: %+v \n", req)
+func (b *MyBackend) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
+	logger.Infof("MyBackend HandleBroadcastEvent received: %+v \n", req)
 	return nil
 }
 
+func MyBackendCreator(s *treaty.Server) (rpc.ServerEntity, error) {
+	server := &MyBackend{
+		ServerBase: base.NewServerBase(s),
+		conns:      make(map[int32]*treaty.Server),
+	}
+	server.SelfEventHandler = server.HandleSelfEvent
+	server.BroadcastEventHandler = server.HandleBroadcastEvent
+	return server, nil
+}
+
 func init() {
-	srv := &MyBackend{conns: make(map[int32]*treaty.Server)}
-	srv.SetServerId("backend_3001")
-	srv.RegEventHandlerSelf(srv.HandleSelfEvent)
-	srv.RegEventHandlerBroadcast(srv.HandleBroadcastEvent)
-	launch.RegisterServer(srv)
+	launch.RegisterCreator("backend", MyBackendCreator)
 }
