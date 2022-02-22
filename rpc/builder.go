@@ -20,13 +20,17 @@ type RssBuilder struct {
 }
 
 func NewRssBuilder(server *treaty.Server) *RssBuilder {
+	parallel := true
+	if server.Serial { //串行处理
+		parallel = false
+	}
 	return &RssBuilder{
 		queue:    DefaultQueue,
 		server:   server,
 		callback: DefaultCallback,
 		codeType: CodeTypeProto,
 		suffix:   DefaultSuffix,
-		parallel: true,
+		parallel: parallel,
 	}
 }
 

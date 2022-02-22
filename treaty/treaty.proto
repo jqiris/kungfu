@@ -33,6 +33,7 @@ message Server{
   string server_ip = 4; //服务器IP
   int32  client_port = 5; //客户端端口
   bool  is_launch = 6; //是否加载
+  bool  serial = 7; //是否串行
 }
 
 message BalanceResult{
