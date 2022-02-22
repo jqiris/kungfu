@@ -2,11 +2,12 @@ package rpc
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/v2/discover"
-	"github.com/jqiris/kungfu/v2/serialize"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/jqiris/kungfu/v2/discover"
+	"github.com/jqiris/kungfu/v2/serialize"
 
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/treaty"
@@ -130,7 +131,7 @@ func (r *NatsRpc) QueueSubscribe(s RssBuilder) error {
 	if err != nil {
 		return err
 	}
-	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
+	sub := path.Join(r.Prefix, treaty.RegSeverQueue(s.server.ServerType, s.queue), s.suffix)
 	if _, err = r.Client.QueueSubscribe(sub, s.queue, func(msg *nats.Msg) {
 		if s.parallel {
 			go utils.SafeRun(func() {
@@ -211,6 +212,30 @@ func (r *NatsRpc) Request(s ReqBuilder) error {
 	}
 	return nil
 }
+func (r *NatsRpc) QueueRequest(s ReqBuilder) error {
+	coder := r.RpcCoder[s.codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
+	}
+	var msg *nats.Msg
+	var err error
+	var data []byte
+	data, err = r.EncodeMsg(coder, Request, s.msgId, s.req)
+	if err != nil {
+		return err
+	}
+	sub := path.Join(r.Prefix, treaty.RegSeverQueue(s.serverType, s.queue), s.suffix)
+	if msg, err = r.Client.Request(sub, data, r.DialTimeout); err == nil {
+		respMsg := &MsgRpc{MsgData: s.resp}
+		err = coder.Decode(msg.Data, respMsg)
+		if err != nil {
+			return err
+		}
+	} else {
+		return err
+	}
+	return nil
+}
 
 func (r *NatsRpc) Publish(s ReqBuilder) error {
 	coder := r.RpcCoder[s.codeType]
@@ -222,6 +247,22 @@ func (r *NatsRpc) Publish(s ReqBuilder) error {
 		return err
 	}
 	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
+	if err = r.Client.Publish(sub, data); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *NatsRpc) QueuePublish(s ReqBuilder) error {
+	coder := r.RpcCoder[s.codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
+	}
+	data, err := r.EncodeMsg(coder, Publish, s.msgId, s.req)
+	if err != nil {
+		return err
+	}
+	sub := path.Join(r.Prefix, treaty.RegSeverQueue(s.serverType, s.queue), s.suffix)
 	if err = r.Client.Publish(sub, data); err != nil {
 		return err
 	}

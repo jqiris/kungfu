@@ -68,6 +68,7 @@ func (r *RssBuilder) Build() RssBuilder {
 }
 
 type ReqBuilder struct {
+	queue      string
 	codeType   string
 	suffix     string
 	server     *treaty.Server
@@ -83,13 +84,17 @@ func NewReqBuilder(server *treaty.Server) *ReqBuilder {
 		serverType = server.ServerType
 	}
 	return &ReqBuilder{
+		queue:      DefaultQueue,
 		codeType:   CodeTypeProto,
 		suffix:     DefaultSuffix,
 		server:     server,
 		serverType: serverType,
 	}
 }
-
+func (r *ReqBuilder) SetQueue(queue string) *ReqBuilder {
+	r.queue = queue
+	return r
+}
 func (r *ReqBuilder) SetCodeType(codeType string) *ReqBuilder {
 	r.codeType = codeType
 	return r
@@ -121,6 +126,7 @@ func (r *ReqBuilder) SetServerType(serverType string) *ReqBuilder {
 
 func (r *ReqBuilder) Build() ReqBuilder {
 	return ReqBuilder{
+		queue:      r.queue,
 		codeType:   r.codeType,
 		suffix:     r.suffix,
 		server:     r.server,

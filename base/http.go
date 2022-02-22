@@ -37,11 +37,3 @@ func (s *ServerHttp) AfterInit() {
 	s.ServerBase.AfterInit()
 	go s.Run()
 }
-
-func (s *ServerHttp) BeforeShutdown() {
-	s.ServerBase.BeforeShutdown()
-}
-
-func (s *ServerHttp) Shutdown() {
-	s.ServerBase.Shutdown()
-}

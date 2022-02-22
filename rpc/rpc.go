@@ -22,8 +22,10 @@ type ServerRpc interface {
 	SubscribeBroadcast(s RssBuilder) error                       //broadcast subscribe
 	QueueSubscribe(s RssBuilder) error                           //queue self Subscribe
 	Publish(s ReqBuilder) error                                  //publish
+	QueuePublish(s ReqBuilder) error                             //queue publish
 	PublishBroadcast(s ReqBuilder) error                         //broadcast publish
 	Request(s ReqBuilder) error                                  //request
+	QueueRequest(s ReqBuilder) error                             //queue request
 	Response(codeType string, v interface{}) []byte              //response the msg
 	DecodeMsg(codeType string, data []byte, v interface{}) error //decode msg
 	GetCoder(codeType string) EncoderRpc                         //get encoder

@@ -52,9 +52,19 @@ func (s *ServerBase) AfterInit() {
 	if err := s.Rpc.Subscribe(b.SetCodeType(rpc.CodeTypeProto).SetCallback(s.SelfEventHandler).Build()); err != nil {
 		panic(err)
 	}
+	//sub self json event
+	b = s.SubBuilder.Build()
+	if err := s.Rpc.Subscribe(b.SetSuffix(rpc.JsonSuffix).SetCodeType(rpc.CodeTypeJson).SetCallback(s.SelfEventHandler).Build()); err != nil {
+		panic(err)
+	}
 	//sub broadcast event
 	b = s.SubBuilder.Build()
 	if err := s.Rpc.SubscribeBroadcast(b.SetCodeType(rpc.CodeTypeProto).SetCallback(s.BroadcastEventHandler).Build()); err != nil {
+		panic(err)
+	}
+	//sub broadcast json event
+	b = s.SubBuilder.Build()
+	if err := s.Rpc.SubscribeBroadcast(b.SetSuffix(rpc.JsonSuffix).SetCodeType(rpc.CodeTypeJson).SetCallback(s.BroadcastEventHandler).Build()); err != nil {
 		panic(err)
 	}
 	//服务注册

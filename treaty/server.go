@@ -2,10 +2,14 @@ package treaty
 
 import (
 	"encoding/json"
+	"path"
 )
 
 func RegSeverItem(x *Server) string {
-	return x.ServerType + "/" + x.ServerId
+	return path.Join(x.ServerType, x.ServerId)
+}
+func RegSeverQueue(serverType, queue string) string {
+	return path.Join(serverType, queue)
 }
 
 func RegServerType(x *Server) string {

@@ -1,7 +1,6 @@
 package base
 
 import (
-	"github.com/jqiris/kungfu/v2/rpc"
 	"github.com/jqiris/kungfu/v2/tcpface"
 	"github.com/jqiris/kungfu/v2/tcpserver"
 	"github.com/jqiris/kungfu/v2/treaty"
@@ -28,15 +27,6 @@ func (s *ServerConnector) Init() {
 	s.ClientServer = tcpserver.NewServer(s.Server)
 	s.RouteHandler(s.ClientServer)
 	go s.ClientServer.Serve()
-}
-
-func (s *ServerConnector) AfterInit() {
-	s.ServerBase.AfterInit()
-	//sub self json event
-	b := s.SubBuilder.Build()
-	if err := s.Rpc.Subscribe(b.SetSuffix(rpc.JsonSuffix).SetCodeType(rpc.CodeTypeJson).SetCallback(s.SelfEventHandler).Build()); err != nil {
-		panic(err)
-	}
 }
 
 func (s *ServerConnector) Shutdown() {
