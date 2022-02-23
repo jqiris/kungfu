@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"errors"
+
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/serialize"
 	"github.com/jqiris/kungfu/v2/utils"
@@ -16,7 +17,7 @@ const (
 	Response             = 0x02
 )
 const (
-	msgHeadLength = 0x06
+	msgHeadLength = 0x08
 )
 
 var (
@@ -46,7 +47,7 @@ func NewRpcEncoder(encoder serialize.Serializer) *DefaultRpcEncoder {
 
 // Encode Protocol
 // --------<length>--------|--type--|----<MsgId>------|-<data>-
-// ----------3byte---------|-1 byte-|-----2 byte------|--------
+// ----------3byte---------|-1 byte-|-----4 byte------|--------
 func (r *DefaultRpcEncoder) Encode(rpcMsg *MsgRpc) ([]byte, error) {
 	var data []byte
 	var err error
@@ -68,8 +69,10 @@ func (r *DefaultRpcEncoder) Encode(rpcMsg *MsgRpc) ([]byte, error) {
 	buf[1] = byte((length >> 8) & 0xFF)
 	buf[2] = byte(length & 0xFF)
 	buf[3] = byte(rpcMsg.MsgType)
-	buf[4] = byte((rpcMsg.MsgId >> 8) & 0xFF)
-	buf[5] = byte(rpcMsg.MsgId & 0xFF)
+	buf[4] = byte((rpcMsg.MsgId >> 24) & 0xFF)
+	buf[5] = byte((rpcMsg.MsgId >> 16) & 0xFF)
+	buf[6] = byte((rpcMsg.MsgId >> 8) & 0xFF)
+	buf[7] = byte(rpcMsg.MsgId & 0xFF)
 	buf = append(buf, data...)
 	return buf, nil
 }
@@ -80,7 +83,7 @@ func (r *DefaultRpcEncoder) Decode(data []byte, rpcMsg *MsgRpc) error {
 	}
 	msgLength := utils.BigBytesToInt(data[:3])
 	msgType := data[3]
-	msgId := utils.BigBytesToInt(data[4:6])
+	msgId := utils.BigBytesToInt(data[4:8])
 	msgData := data[msgHeadLength:msgLength]
 	rpcMsg.MsgType = MessageType(msgType)
 	rpcMsg.MsgId = int32(msgId)

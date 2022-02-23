@@ -2,8 +2,9 @@ package rpc
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/v2/logger"
 	"reflect"
+
+	"github.com/jqiris/kungfu/v2/logger"
 )
 
 type HandlerItem struct {
@@ -59,7 +60,7 @@ func (h *Handler) DealMsg(codeType string, server ServerRpc, req *MsgRpc) ([]byt
 	msgId, msgData := req.MsgId, req.MsgData.([]byte)
 	if handler, ok := h.handlers[msgId]; ok {
 		if handler.MsgType != req.MsgType {
-			return nil, fmt.Errorf("req msg type not suit handler msg type, msgId:%v, req:%+v", msgId, req)
+			return nil, fmt.Errorf("req msg type not suit handler msg type, msgId:%v, handler:%+v, req:%+v", msgId, handler, req)
 		}
 		inElem := reflect.New(handler.InType.Elem()).Interface()
 		err := server.DecodeMsg(codeType, msgData, inElem)
@@ -74,5 +75,5 @@ func (h *Handler) DealMsg(codeType string, server ServerRpc, req *MsgRpc) ([]byt
 		}
 		return nil, nil
 	}
-	return nil, fmt.Errorf("req msg not suit handler, msgId:%v, req:%+v", msgId, req)
+	return nil, fmt.Errorf("req msg not suit handler, msgId:%v, handlers:%+v, req:%+v", msgId, h.handlers, req)
 }
