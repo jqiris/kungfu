@@ -34,6 +34,8 @@ message Server{
   int32  client_port = 5; //客户端端口
   bool  is_launch = 6; //是否加载
   bool  serial = 7; //是否串行
+  int32 launch_weight = 8; //启动权重 越大越晚
+  int32 shut_weight = 9; //关闭权重 越大越晚
 }
 
 message BalanceResult{

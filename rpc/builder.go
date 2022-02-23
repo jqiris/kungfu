@@ -95,6 +95,13 @@ func NewReqBuilder(server *treaty.Server) *ReqBuilder {
 		serverType: serverType,
 	}
 }
+func DefaultReqBuilder() *ReqBuilder {
+	return &ReqBuilder{
+		queue:    DefaultQueue,
+		codeType: CodeTypeProto,
+		suffix:   DefaultSuffix,
+	}
+}
 func (r *ReqBuilder) SetQueue(queue string) *ReqBuilder {
 	r.queue = queue
 	return r
@@ -109,6 +116,7 @@ func (r *ReqBuilder) SetSuffix(suffix string) *ReqBuilder {
 }
 func (r *ReqBuilder) SetServer(server *treaty.Server) *ReqBuilder {
 	r.server = server
+	r.SetServerType(server.ServerType)
 	return r
 }
 func (r *ReqBuilder) SetMsgId(msgId int32) *ReqBuilder {
