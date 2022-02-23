@@ -14,10 +14,26 @@ type ServerBase struct {
 	SubBuilder            *rpc.RssBuilder
 	SelfEventHandler      rpc.CallbackFunc
 	BroadcastEventHandler rpc.CallbackFunc
+	handler               rpc.MsgHandler
 }
 
 func NewServerBase(s *treaty.Server) *ServerBase {
-	return &ServerBase{Server: s}
+	return &ServerBase{
+		Server:  s,
+		handler: rpc.NewHandler(),
+	}
+}
+
+func (s *ServerBase) SetMsgHandler(handler rpc.MsgHandler) {
+	s.handler = handler
+}
+
+func (s *ServerBase) DealMsg(codeType string, server rpc.ServerRpc, req *rpc.MsgRpc) ([]byte, error) {
+	return s.handler.DealMsg(codeType, server, req)
+}
+
+func (s *ServerBase) Register(msgId int32, v interface{}) {
+	s.handler.Register(msgId, v)
 }
 
 func (s *ServerBase) Init() {

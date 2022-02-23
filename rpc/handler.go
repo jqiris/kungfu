@@ -7,6 +7,11 @@ import (
 	"github.com/jqiris/kungfu/v2/logger"
 )
 
+type MsgHandler interface {
+	Register(msgId int32, v interface{})
+	DealMsg(codeType string, server ServerRpc, req *MsgRpc) ([]byte, error)
+}
+
 type HandlerItem struct {
 	MsgType MessageType
 	InType  reflect.Type

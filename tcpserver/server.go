@@ -191,8 +191,6 @@ func (s *Server) Stop() {
 // Serve 运行服务
 func (s *Server) Serve() {
 	s.Start()
-	//阻塞,否则主Go退出， listener的go将会退出
-	select {}
 }
 
 // GetConnMgr 得到链接管理
