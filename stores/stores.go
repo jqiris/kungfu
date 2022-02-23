@@ -38,7 +38,7 @@ type StoreKeeper interface {
 	GetInt(key string) int
 	GetString(key string) string
 	GetProto(key string, val proto.Message) error
-	Del(keys ...string) error
+	Del(keys ...string) (int64, error)
 	Exists(keys ...string) bool
 	HSet(key, field string, val interface{}) error
 	HGet(key, field string, val interface{}) error
@@ -70,6 +70,8 @@ type StoreKeeper interface {
 	FlushDBAsync() error
 	FlushAll() error
 	FlushAllAsync() error
+	Lock(key string) bool
+	Unlock(key string) int64
 }
 
 func Set(key string, value interface{}, expire time.Duration) error {
@@ -97,7 +99,7 @@ func GetProto(key string, val proto.Message) error {
 	return defStoreKeeper.GetProto(key, val)
 }
 
-func Del(keys ...string) error {
+func Del(keys ...string) (int64, error) {
 	return defStoreKeeper.Del(keys...)
 }
 
@@ -218,4 +220,12 @@ func ZRem(key string, members ...interface{}) error {
 
 func ZCard(key string) int64 {
 	return defStoreKeeper.ZCard(key)
+}
+
+func Lock(key string) bool {
+	return defStoreKeeper.Lock(key)
+}
+
+func Unlock(key string) int64 {
+	return defStoreKeeper.Unlock(key)
 }

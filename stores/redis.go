@@ -9,6 +9,8 @@ import (
 
 	"github.com/jqiris/kungfu/v2/logger"
 
+	"sync"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/golang/protobuf/proto"
 	jsoniter "github.com/json-iterator/go"
@@ -29,6 +31,7 @@ type StoreRedis struct {
 	DialTimeout time.Duration
 	Client      *redis.Client
 	Prefix      string
+	lock        *sync.Mutex
 }
 
 type StoreRedisOption func(s *StoreRedis)
@@ -78,6 +81,7 @@ func NewStoreRedis(opts ...StoreRedisOption) *StoreRedis {
 		DB:       r.DB,
 	})
 	r.Client = c
+	r.lock = new(sync.Mutex)
 	return r
 }
 
@@ -194,13 +198,10 @@ func (s *StoreRedis) GetString(key string) string {
 	return val
 }
 
-func (s *StoreRedis) Del(keys ...string) error {
+func (s *StoreRedis) Del(keys ...string) (int64, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
-	if _, err := s.Client.Del(ctx, s.GetKeys(keys)...).Result(); err != nil {
-		return err
-	}
-	return nil
+	return s.Client.Del(ctx, s.GetKeys(keys)...).Result()
 }
 
 func (s *StoreRedis) Exists(keys ...string) bool {
@@ -454,4 +455,23 @@ func (s *StoreRedis) ZCard(key string) int64 {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
 	return s.Client.ZCard(ctx, s.GetKey(key)).Val()
+}
+
+func (s *StoreRedis) Lock(key string) bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	err := s.SetNx(key, 1, 10*time.Second)
+	if err != nil {
+		logger.Error(err)
+	}
+	return err == nil
+}
+
+func (s *StoreRedis) Unlock(key string) int64 {
+	num, err := s.Del(key)
+	if err != nil {
+		logger.Error(err)
+		return 0
+	}
+	return num
 }

@@ -108,6 +108,11 @@ func (s *Session) Bind(uid int64) error {
 	return nil
 }
 
+//unbind the uid to current session
+func (s *Session) Unbind() {
+	atomic.StoreInt64(&s.uid, 0)
+}
+
 // Close terminate current session, session related data will not be released,
 // all related data should be Clear explicitly in Session closed callback
 func (s *Session) Close() {
