@@ -64,6 +64,7 @@ type StoreKeeper interface {
 	BRPop(key string, val interface{}) error
 	BLPopString(key string) (string, error)
 	BRPopString(key string) (string, error)
+	Incr(key string) (int64, error)
 	LLen(key string) int64
 	IsRedisNull(err error) bool
 	FlushDB() error
@@ -72,6 +73,8 @@ type StoreKeeper interface {
 	FlushAllAsync() error
 	Lock(key string) bool
 	Unlock(key string) int64
+	TxPipeline() redis.Pipeliner
+	GetKey(key string) string
 }
 
 func Set(key string, value interface{}, expire time.Duration) error {
@@ -228,4 +231,16 @@ func Lock(key string) bool {
 
 func Unlock(key string) int64 {
 	return defStoreKeeper.Unlock(key)
+}
+
+func Incr(key string) (int64, error) {
+	return defStoreKeeper.Incr(key)
+}
+
+func TxPipeline() redis.Pipeliner {
+	return defStoreKeeper.TxPipeline()
+}
+
+func GetKey(key string) string {
+	return defStoreKeeper.GetKey(key)
 }

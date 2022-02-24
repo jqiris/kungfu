@@ -3,11 +3,13 @@ package utils
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/jqiris/kungfu/v2/logger"
-	"github.com/jqiris/kungfu/v2/treaty"
+	"math/rand"
 	"os"
 	"runtime"
 	"strconv"
+
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/treaty"
 )
 
 func StringToInt(s string) int {
@@ -67,4 +69,12 @@ func PathExists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+// 生成区间[-m, n]的安全随机数
+func RangeRand(min, max int) int {
+	if min > max || min < 0 {
+		panic("param is wrong!")
+	}
+	return rand.Intn(max-min+1) + min
 }

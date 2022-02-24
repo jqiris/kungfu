@@ -457,10 +457,16 @@ func (s *StoreRedis) ZCard(key string) int64 {
 	return s.Client.ZCard(ctx, s.GetKey(key)).Val()
 }
 
+func (s *StoreRedis) Incr(key string) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.Incr(ctx, s.GetKey(key)).Result()
+}
+
 func (s *StoreRedis) Lock(key string) bool {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	err := s.SetNx(key, 1, 10*time.Second)
+	err := s.SetNx(key, 1, 3*time.Second)
 	if err != nil {
 		logger.Error(err)
 	}
@@ -474,4 +480,8 @@ func (s *StoreRedis) Unlock(key string) int64 {
 		return 0
 	}
 	return num
+}
+
+func (s *StoreRedis) TxPipeline() redis.Pipeliner {
+	return s.Client.TxPipeline()
 }
