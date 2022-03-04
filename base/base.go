@@ -32,7 +32,7 @@ func (s *ServerBase) DealMsg(codeType string, server rpc.ServerRpc, req *rpc.Msg
 	return s.handler.DealMsg(codeType, server, req)
 }
 
-func (s *ServerBase) Register(msgId int32, v interface{}) {
+func (s *ServerBase) Register(msgId int32, v any) {
 	s.handler.Register(msgId, v)
 }
 

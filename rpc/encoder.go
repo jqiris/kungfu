@@ -27,14 +27,14 @@ var (
 type EncoderRpc interface {
 	Encode(rpcMsg *MsgRpc) ([]byte, error)
 	Decode(data []byte, rpcMsg *MsgRpc) error
-	DecodeMsg(data []byte, v interface{}) error
-	Response(v interface{}) []byte
+	DecodeMsg(data []byte, v any) error
+	Response(v any) []byte
 }
 
 type MsgRpc struct {
 	MsgType MessageType
 	MsgId   int32
-	MsgData interface{}
+	MsgData any
 }
 
 type DefaultRpcEncoder struct {
@@ -98,7 +98,7 @@ func (r *DefaultRpcEncoder) Decode(data []byte, rpcMsg *MsgRpc) error {
 	return nil
 }
 
-func (r *DefaultRpcEncoder) DecodeMsg(data []byte, v interface{}) error {
+func (r *DefaultRpcEncoder) DecodeMsg(data []byte, v any) error {
 	err := r.encoder.Unmarshal(data, v)
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func (r *DefaultRpcEncoder) DecodeMsg(data []byte, v interface{}) error {
 	return nil
 }
 
-func (r *DefaultRpcEncoder) Response(v interface{}) []byte {
+func (r *DefaultRpcEncoder) Response(v any) []byte {
 	rpcMsg := &MsgRpc{
 		MsgType: Response,
 		MsgId:   0,

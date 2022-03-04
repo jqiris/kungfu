@@ -8,7 +8,7 @@ import (
 )
 
 type MsgHandler interface {
-	Register(msgId int32, v interface{})
+	Register(msgId int32, v any)
 	DealMsg(codeType string, server ServerRpc, req *MsgRpc) ([]byte, error)
 }
 
@@ -40,7 +40,7 @@ func (h *Handler) isSuitHandler(tf reflect.Type) bool {
 	return true
 }
 
-func (h *Handler) Register(msgId int32, v interface{}) {
+func (h *Handler) Register(msgId int32, v any) {
 	if _, ok := h.handlers[msgId]; ok {
 		logger.Errorf("msgId has already been registered:%v", msgId)
 		return

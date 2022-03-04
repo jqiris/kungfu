@@ -11,7 +11,7 @@ type (
 	node struct {
 		pre   *node
 		next  *node
-		value interface{}
+		value any
 	}
 )
 
@@ -31,7 +31,7 @@ func (q *Queue) Any() bool {
 }
 
 // Peek 返回队列顶端元素
-func (q *Queue) Peek() interface{} {
+func (q *Queue) Peek() any {
 	if q.top == nil {
 		return nil
 	}
@@ -39,7 +39,7 @@ func (q *Queue) Peek() interface{} {
 }
 
 // Rear 返回队列尾端元素
-func (q *Queue) Rear() interface{} {
+func (q *Queue) Rear() any {
 	if q.rear == nil {
 		return nil
 	}
@@ -47,7 +47,7 @@ func (q *Queue) Rear() interface{} {
 }
 
 // Push 入队操作
-func (q *Queue) Push(v interface{}) {
+func (q *Queue) Push(v any) {
 	n := &node{nil, nil, v}
 	if q.length == 0 {
 		q.top = n
@@ -63,7 +63,7 @@ func (q *Queue) Push(v interface{}) {
 }
 
 // Pop 出队操作
-func (q *Queue) Pop() interface{} {
+func (q *Queue) Pop() any {
 	if q.length == 0 {
 		return nil
 	}
@@ -80,7 +80,7 @@ func (q *Queue) Pop() interface{} {
 }
 
 // RearRange 末尾遍历操作
-func (q *Queue) RearRange(max int, handler func(item interface{})) {
+func (q *Queue) RearRange(max int, handler func(item any)) {
 	if q.length == 0 {
 		return
 	}
@@ -97,7 +97,7 @@ func (q *Queue) RearRange(max int, handler func(item interface{})) {
 }
 
 // Range 从头开始遍历
-func (q *Queue) Range(handler func(item interface{})) {
+func (q *Queue) Range(handler func(item any)) {
 	if q.length == 0 {
 		return
 	}
@@ -109,7 +109,7 @@ func (q *Queue) Range(handler func(item interface{})) {
 }
 
 // RangePop 从头开始遍历
-func (q *Queue) RangePop(handler func(item interface{}) bool) {
+func (q *Queue) RangePop(handler func(item any) bool) {
 	if q.length == 0 {
 		return
 	}
@@ -141,7 +141,7 @@ func (q *Queue) RangePop(handler func(item interface{}) bool) {
 }
 
 // RangePopMax 从头开始遍历,限制最大数量
-func (q *Queue) RangePopMax(max int, handler func(item interface{}) bool) {
+func (q *Queue) RangePopMax(max int, handler func(item any) bool) {
 	if q.length == 0 {
 		return
 	}

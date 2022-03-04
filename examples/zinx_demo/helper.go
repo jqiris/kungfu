@@ -12,14 +12,14 @@ var (
 	encoder = serialize.NewProtoSerializer()
 )
 
-func GetRequest(request *zinx.Request, v interface{}) error {
+func GetRequest(request *zinx.Request, v any) error {
 	if err := encoder.Unmarshal(request.GetMsgData(), v); err != nil {
 		return err
 	}
 	return nil
 }
 
-func SendMsg(iConn tcpface.IConnection, msgId treaty.MsgId, msg interface{}) {
+func SendMsg(iConn tcpface.IConnection, msgId treaty.MsgId, msg any) {
 	conn := iConn.(*zinx.Agent)
 	res, err := encoder.Marshal(msg)
 	if err != nil {

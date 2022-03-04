@@ -97,8 +97,8 @@ func (s *StoreRedis) GetKeys(keys []string) []string {
 	return list
 }
 
-func (s *StoreRedis) GetValues(values []interface{}) []interface{} {
-	res := make([]interface{}, 0)
+func (s *StoreRedis) GetValues(values []any) []any {
+	res := make([]any, 0)
 	for _, v := range values {
 		if bs, err := json.Marshal(v); err == nil {
 			res = append(res, bs)
@@ -107,7 +107,7 @@ func (s *StoreRedis) GetValues(values []interface{}) []interface{} {
 	return res
 }
 
-func (s *StoreRedis) Set(key string, value interface{}, expire time.Duration) error {
+func (s *StoreRedis) Set(key string, value any, expire time.Duration) error {
 	bs, err := json.Marshal(value)
 	if err != nil {
 		return err
@@ -126,7 +126,7 @@ func (s *StoreRedis) SetProto(key string, value proto.Message, expire time.Durat
 	return s.Client.Set(ctx, s.GetKey(key), bs, expire).Err()
 }
 
-func (s *StoreRedis) SetNx(key string, value interface{}, expire time.Duration) error {
+func (s *StoreRedis) SetNx(key string, value any, expire time.Duration) error {
 	bs, err := json.Marshal(value)
 	if err != nil {
 		return err
@@ -145,7 +145,7 @@ func (s *StoreRedis) SetProtoNx(key string, value proto.Message, expire time.Dur
 	return s.Client.SetNX(ctx, s.GetKey(key), bs, expire).Err()
 }
 
-func (s *StoreRedis) Get(key string, val interface{}) error {
+func (s *StoreRedis) Get(key string, val any) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
 	bs, err := s.Client.Get(ctx, s.GetKey(key)).Bytes()
@@ -215,7 +215,7 @@ func (s *StoreRedis) Exists(keys ...string) bool {
 	}
 }
 
-func (s *StoreRedis) HSet(key, field string, val interface{}) error {
+func (s *StoreRedis) HSet(key, field string, val any) error {
 	bs, err := json.Marshal(val)
 	if err != nil {
 		return err
@@ -228,7 +228,7 @@ func (s *StoreRedis) HSet(key, field string, val interface{}) error {
 	return nil
 }
 
-func (s *StoreRedis) HGet(key, field string, val interface{}) error {
+func (s *StoreRedis) HGet(key, field string, val any) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
 	var bs []byte
@@ -295,7 +295,7 @@ func (s *StoreRedis) HKeys(key string) ([]string, error) {
 	return s.Client.HKeys(ctx, s.GetKey(key)).Result()
 }
 
-func (s *StoreRedis) LPush(key string, values ...interface{}) error {
+func (s *StoreRedis) LPush(key string, values ...any) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
 	if _, err := s.Client.LPush(ctx, s.GetKey(key), s.GetValues(values)...).Result(); err != nil {
@@ -304,7 +304,7 @@ func (s *StoreRedis) LPush(key string, values ...interface{}) error {
 	return nil
 }
 
-func (s *StoreRedis) RPush(key string, values ...interface{}) error {
+func (s *StoreRedis) RPush(key string, values ...any) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
 	if _, err := s.Client.RPush(ctx, s.GetKey(key), s.GetValues(values)...).Result(); err != nil {
@@ -313,7 +313,7 @@ func (s *StoreRedis) RPush(key string, values ...interface{}) error {
 	return nil
 }
 
-func (s *StoreRedis) LPop(key string, val interface{}) error {
+func (s *StoreRedis) LPop(key string, val any) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
 	bs, err := s.Client.LPop(ctx, s.GetKey(key)).Bytes()
@@ -322,7 +322,7 @@ func (s *StoreRedis) LPop(key string, val interface{}) error {
 	}
 	return json.Unmarshal(bs, val)
 }
-func (s *StoreRedis) RPop(key string, val interface{}) error {
+func (s *StoreRedis) RPop(key string, val any) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
 	bs, err := s.Client.RPop(ctx, s.GetKey(key)).Bytes()
@@ -332,7 +332,7 @@ func (s *StoreRedis) RPop(key string, val interface{}) error {
 	return json.Unmarshal(bs, val)
 }
 
-func (s *StoreRedis) BLPop(key string, val interface{}) error {
+func (s *StoreRedis) BLPop(key string, val any) error {
 	bss, err := s.Client.BLPop(context.Background(), s.DialTimeout, s.GetKey(key)).Result()
 	if err != nil {
 		return err
@@ -343,7 +343,7 @@ func (s *StoreRedis) BLPop(key string, val interface{}) error {
 	return json.Unmarshal([]byte(bss[1]), val)
 }
 
-func (s *StoreRedis) BRPop(key string, val interface{}) error {
+func (s *StoreRedis) BRPop(key string, val any) error {
 	bss, err := s.Client.BRPop(context.Background(), s.DialTimeout, s.GetKey(key)).Result()
 	if err != nil {
 		return err
@@ -445,7 +445,7 @@ func (s *StoreRedis) ZIncrBy(key string, increment float64, member string) (floa
 	return s.Client.ZIncrBy(ctx, s.GetKey(key), increment, member).Result()
 }
 
-func (s *StoreRedis) ZRem(key string, members ...interface{}) error {
+func (s *StoreRedis) ZRem(key string, members ...any) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
 	return s.Client.ZRem(ctx, s.GetKey(key), members...).Err()

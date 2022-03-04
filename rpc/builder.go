@@ -77,8 +77,8 @@ type ReqBuilder struct {
 	suffix     string
 	server     *treaty.Server
 	msgId      int32
-	req        interface{}
-	resp       interface{}
+	req        any
+	resp       any
 	serverType string
 }
 
@@ -123,11 +123,11 @@ func (r *ReqBuilder) SetMsgId(msgId int32) *ReqBuilder {
 	r.msgId = msgId
 	return r
 }
-func (r *ReqBuilder) SetReq(req interface{}) *ReqBuilder {
+func (r *ReqBuilder) SetReq(req any) *ReqBuilder {
 	r.req = req
 	return r
 }
-func (r *ReqBuilder) SetResp(resp interface{}) *ReqBuilder {
+func (r *ReqBuilder) SetResp(resp any) *ReqBuilder {
 	r.resp = resp
 	return r
 }

@@ -40,10 +40,10 @@ type Agent struct {
 }
 
 type pendingMessage struct {
-	typ     MsgType     // message type
-	route   string      // message route(push)
-	mid     uint        // response message id(response)
-	payload interface{} // payload
+	typ     MsgType // message type
+	route   string  // message route(push)
+	mid     uint    // response message id(response)
+	payload any     // payload
 }
 
 func (a *Agent) MID() uint {
@@ -51,7 +51,7 @@ func (a *Agent) MID() uint {
 }
 
 // Push Push, implementation for session.NetworkEntity interface
-func (a *Agent) Push(route string, v interface{}) error {
+func (a *Agent) Push(route string, v any) error {
 	if a.status() == packet.StatusClosed {
 		return packet.ErrBrokenPipe
 	}
@@ -61,13 +61,13 @@ func (a *Agent) Push(route string, v interface{}) error {
 
 // Response Response, implementation for session.NetworkEntity interface
 // Response message to session
-func (a *Agent) Response(v interface{}) error {
+func (a *Agent) Response(v any) error {
 	return a.ResponseMID(a.lastMid, v)
 }
 
 // ResponseMID Response, implementation for session.NetworkEntity interface
 // Response message to session
-func (a *Agent) ResponseMID(mid uint, v interface{}) error {
+func (a *Agent) ResponseMID(mid uint, v any) error {
 	if a.status() == packet.StatusClosed {
 		return packet.ErrBrokenPipe
 	}

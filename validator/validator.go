@@ -10,7 +10,7 @@ type ValidateItem struct {
 	Code       int
 	PrintError bool
 	PrintFmt   string
-	PrintArgs  []interface{}
+	PrintArgs  []any
 }
 
 type Validate struct {
@@ -27,7 +27,7 @@ func (v *Validate) Condition(con bool, msg string, args ...int) *Validate {
 	v.list = append(v.list, ValidateItem{Con: con, Msg: msg, Code: code})
 	return v
 }
-func (v *Validate) PrintError(fmt string, args ...interface{}) {
+func (v *Validate) PrintError(fmt string, args ...any) {
 	if len(v.list) > 0 {
 		k := len(v.list) - 1
 		v.list[k].PrintError = true

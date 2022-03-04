@@ -285,7 +285,7 @@ func (r *NatsRpc) PublishBroadcast(s ReqBuilder) error {
 	return r.Client.Publish(sub, data)
 }
 
-func (r *NatsRpc) EncodeMsg(coder EncoderRpc, msgType MessageType, msgId int32, req interface{}) ([]byte, error) {
+func (r *NatsRpc) EncodeMsg(coder EncoderRpc, msgType MessageType, msgId int32, req any) ([]byte, error) {
 	rpcMsg := &MsgRpc{
 		MsgType: msgType,
 		MsgId:   msgId,
@@ -298,7 +298,7 @@ func (r *NatsRpc) EncodeMsg(coder EncoderRpc, msgType MessageType, msgId int32, 
 	return data, nil
 }
 
-func (r *NatsRpc) DecodeMsg(codeType string, data []byte, v interface{}) error {
+func (r *NatsRpc) DecodeMsg(codeType string, data []byte, v any) error {
 	coder := r.RpcCoder[codeType]
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", codeType)
@@ -310,7 +310,7 @@ func (r *NatsRpc) GetCoder(codeType string) EncoderRpc {
 	return r.RpcCoder[codeType]
 }
 
-func (r *NatsRpc) Response(codeType string, v interface{}) []byte {
+func (r *NatsRpc) Response(codeType string, v any) []byte {
 	coder := r.RpcCoder[codeType]
 	if coder == nil {
 		logger.Errorf("rpc coder not exist:%v", codeType)

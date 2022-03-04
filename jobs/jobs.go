@@ -1,12 +1,13 @@
 package jobs
 
 import (
-	"github.com/jqiris/kungfu/v2/ds"
-	"github.com/jqiris/kungfu/v2/logger"
-	"github.com/jqiris/kungfu/v2/utils"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/jqiris/kungfu/v2/ds"
+	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/utils"
 )
 
 var (
@@ -107,7 +108,7 @@ func (s *JobQueue) AddJob(job *JobItem) {
 func (s *JobQueue) ExeJob() {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	s.JobItems.RangePop(func(item interface{}) bool {
+	s.JobItems.RangePop(func(item any) bool {
 		if job, ok := item.(*JobItem); ok {
 			if job != nil {
 				go utils.SafeRun(func() {

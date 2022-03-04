@@ -30,18 +30,18 @@ func InitStoreKeeper(cfg config.StoresConf) {
 
 // StoreKeeper stores interface
 type StoreKeeper interface {
-	Set(key string, value interface{}, expire time.Duration) error
-	SetNx(key string, value interface{}, expire time.Duration) error //set if not exist
+	Set(key string, value any, expire time.Duration) error
+	SetNx(key string, value any, expire time.Duration) error //set if not exist
 	SetProto(key string, value proto.Message, expire time.Duration) error
 	SetProtoNx(key string, value proto.Message, expire time.Duration) error
-	Get(key string, val interface{}) error
+	Get(key string, val any) error
 	GetInt(key string) int
 	GetString(key string) string
 	GetProto(key string, val proto.Message) error
 	Del(keys ...string) (int64, error)
 	Exists(keys ...string) bool
-	HSet(key, field string, val interface{}) error
-	HGet(key, field string, val interface{}) error
+	HSet(key, field string, val any) error
+	HGet(key, field string, val any) error
 	HGetAll(key string) (map[string]string, error)
 	HDel(key string, fields ...string) error
 	HDelAll(key string)
@@ -54,14 +54,14 @@ type StoreKeeper interface {
 	ZRevRank(key, member string) (int64, error)
 	ZScore(key, member string) float64
 	ZIncrBy(key string, increment float64, member string) (float64, error)
-	ZRem(key string, members ...interface{}) error
+	ZRem(key string, members ...any) error
 	ZCard(key string) int64
-	LPush(key string, values ...interface{}) error
-	RPush(key string, values ...interface{}) error
-	LPop(key string, val interface{}) error
-	RPop(key string, val interface{}) error
-	BLPop(key string, val interface{}) error
-	BRPop(key string, val interface{}) error
+	LPush(key string, values ...any) error
+	RPush(key string, values ...any) error
+	LPop(key string, val any) error
+	RPop(key string, val any) error
+	BLPop(key string, val any) error
+	BRPop(key string, val any) error
 	BLPopString(key string) (string, error)
 	BRPopString(key string) (string, error)
 	Incr(key string) (int64, error)
@@ -77,10 +77,10 @@ type StoreKeeper interface {
 	GetKey(key string) string
 }
 
-func Set(key string, value interface{}, expire time.Duration) error {
+func Set(key string, value any, expire time.Duration) error {
 	return defStoreKeeper.Set(key, value, expire)
 }
-func SetNx(key string, value interface{}, expire time.Duration) error {
+func SetNx(key string, value any, expire time.Duration) error {
 	return defStoreKeeper.SetNx(key, value, expire)
 }
 func SetProto(key string, value proto.Message, expire time.Duration) error {
@@ -89,7 +89,7 @@ func SetProto(key string, value proto.Message, expire time.Duration) error {
 func SetProtoNx(key string, value proto.Message, expire time.Duration) error {
 	return defStoreKeeper.SetProtoNx(key, value, expire)
 }
-func Get(key string, val interface{}) error {
+func Get(key string, val any) error {
 	return defStoreKeeper.Get(key, val)
 }
 func GetInt(key string) int {
@@ -110,11 +110,11 @@ func Exists(keys ...string) bool {
 	return defStoreKeeper.Exists(keys...)
 }
 
-func HSet(key, field string, val interface{}) error {
+func HSet(key, field string, val any) error {
 	return defStoreKeeper.HSet(key, field, val)
 }
 
-func HGet(key, field string, val interface{}) error {
+func HGet(key, field string, val any) error {
 	return defStoreKeeper.HGet(key, field, val)
 }
 
@@ -142,27 +142,27 @@ func HKeys(key string) ([]string, error) {
 	return defStoreKeeper.HKeys(key)
 }
 
-func LPush(key string, values ...interface{}) error {
+func LPush(key string, values ...any) error {
 	return defStoreKeeper.LPush(key, values...)
 }
 
-func RPush(key string, values ...interface{}) error {
+func RPush(key string, values ...any) error {
 	return defStoreKeeper.RPush(key, values...)
 }
 
-func LPop(key string, val interface{}) error {
+func LPop(key string, val any) error {
 	return defStoreKeeper.LPop(key, val)
 }
 
-func RPop(key string, val interface{}) error {
+func RPop(key string, val any) error {
 	return defStoreKeeper.LPop(key, val)
 }
 
-func BLPop(key string, val interface{}) error {
+func BLPop(key string, val any) error {
 	return defStoreKeeper.BLPop(key, val)
 }
 
-func BRPop(key string, val interface{}) error {
+func BRPop(key string, val any) error {
 	return defStoreKeeper.BRPop(key, val)
 }
 
@@ -217,7 +217,7 @@ func ZIncrBy(key string, increment float64, member string) (float64, error) {
 	return defStoreKeeper.ZIncrBy(key, increment, member)
 }
 
-func ZRem(key string, members ...interface{}) error {
+func ZRem(key string, members ...any) error {
 	return defStoreKeeper.ZRem(key, members...)
 }
 

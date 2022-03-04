@@ -3,13 +3,14 @@ package nano
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jqiris/kungfu/v2/component"
-	"github.com/jqiris/kungfu/v2/serialize"
-	"github.com/jqiris/kungfu/v2/tcpface"
 	"reflect"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/jqiris/kungfu/v2/component"
+	"github.com/jqiris/kungfu/v2/serialize"
+	"github.com/jqiris/kungfu/v2/tcpface"
 
 	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/logger"
@@ -73,10 +74,10 @@ func NewMsgHandle() *MsgHandle {
 }
 
 func (h *MsgHandle) hbdEncode() {
-	sys := map[string]interface{}{
+	sys := map[string]any{
 		"heartbeat": h.Cfg.HeartbeatInterval,
 	}
-	hbd := map[string]interface{}{
+	hbd := map[string]any{
 		"code": 200,
 		"sys":  sys,
 	}
@@ -307,7 +308,7 @@ func (h *MsgHandle) processMessage(agent *Agent, msg *Message) {
 		return
 	}
 	var payload = msg.Data
-	var data interface{}
+	var data any
 	if handler.IsRawArg {
 		data = payload
 	} else {

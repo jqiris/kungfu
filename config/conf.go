@@ -2,8 +2,9 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/jqiris/kungfu/v2/logger"
 	"io/ioutil"
+
+	"github.com/jqiris/kungfu/v2/logger"
 
 	"github.com/jqiris/kungfu/v2/treaty"
 )
@@ -27,7 +28,7 @@ func InitConf(filename string) error {
 	return nil
 }
 
-func InitFrameConf(content interface{}) error {
+func InitFrameConf(content any) error {
 	bys, err := json.Marshal(content)
 	if err != nil {
 		return err

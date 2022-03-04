@@ -20,7 +20,7 @@ type LogItem struct {
 	logTime  time.Time
 	logFile  string
 	logLine  int
-	logTxt   []interface{}
+	logTxt   []any
 }
 
 type Logger struct {
@@ -238,7 +238,7 @@ func (l *Logger) GetCallerPath(file string) string {
 	return file
 }
 
-func (l *Logger) NewLogItem(level LogLevel, txt ...interface{}) *LogItem {
+func (l *Logger) NewLogItem(level LogLevel, txt ...any) *LogItem {
 	item := &LogItem{
 		logLevel: level,
 		logTime:  time.Now(),
@@ -253,52 +253,52 @@ func (l *Logger) NewLogItem(level LogLevel, txt ...interface{}) *LogItem {
 	}
 	return item
 }
-func (l *Logger) Fatal(txt ...interface{}) {
+func (l *Logger) Fatal(txt ...any) {
 	item := l.NewLogItem(FATAL, txt...)
 	l.logChan <- item
 }
 
-func (l *Logger) Fatalf(tmp string, args ...interface{}) {
+func (l *Logger) Fatalf(tmp string, args ...any) {
 	txt := fmt.Sprintf(tmp, args...)
 	l.Fatal(txt)
 }
 
-func (l *Logger) Error(txt ...interface{}) {
+func (l *Logger) Error(txt ...any) {
 	item := l.NewLogItem(ERROR, txt...)
 	l.logChan <- item
 }
 
-func (l *Logger) Errorf(tmp string, args ...interface{}) {
+func (l *Logger) Errorf(tmp string, args ...any) {
 	txt := fmt.Sprintf(tmp, args...)
 	l.Error(txt)
 }
 
-func (l *Logger) Warn(txt ...interface{}) {
+func (l *Logger) Warn(txt ...any) {
 	item := l.NewLogItem(WARN, txt...)
 	l.logChan <- item
 }
 
-func (l *Logger) Warnf(tmp string, args ...interface{}) {
+func (l *Logger) Warnf(tmp string, args ...any) {
 	txt := fmt.Sprintf(tmp, args...)
 	l.Warn(txt)
 }
 
-func (l *Logger) Info(txt ...interface{}) {
+func (l *Logger) Info(txt ...any) {
 	item := l.NewLogItem(INFO, txt...)
 	l.logChan <- item
 }
 
-func (l *Logger) Infof(tmp string, args ...interface{}) {
+func (l *Logger) Infof(tmp string, args ...any) {
 	txt := fmt.Sprintf(tmp, args...)
 	l.Info(txt)
 }
 
-func (l *Logger) Debug(txt ...interface{}) {
+func (l *Logger) Debug(txt ...any) {
 	item := l.NewLogItem(DEBUG, txt...)
 	l.logChan <- item
 }
 
-func (l *Logger) Debugf(tmp string, args ...interface{}) {
+func (l *Logger) Debugf(tmp string, args ...any) {
 	txt := fmt.Sprintf(tmp, args...)
 	l.Debug(txt)
 }
