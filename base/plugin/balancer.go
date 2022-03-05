@@ -1,4 +1,4 @@
-package base
+package plugin
 
 import (
 	"errors"
@@ -17,43 +17,45 @@ import (
 )
 
 type ServerBalancer struct {
-	*ServerBase
 	ClientServer *http.Server
 	ClientCoder  serialize.Serializer
 }
 
-func NewServerBalancer(s *treaty.Server) *ServerBalancer {
+func NewServerBalancer() *ServerBalancer {
 	return &ServerBalancer{
-		ServerBase: NewServerBase(s),
+		ClientCoder: serialize.NewProtoSerializer(),
 	}
 }
 
-func (s *ServerBalancer) Init() {
-	s.ServerBase.Init()
-	//init the coder
-	s.ClientCoder = serialize.NewProtoSerializer()
+func (b *ServerBalancer) Init(s *treaty.Server) {
 	//set the server
-	s.ClientServer = &http.Server{Addr: fmt.Sprintf("%s:%d", s.Server.ServerIp, s.Server.ClientPort)}
+	b.ClientServer = &http.Server{Addr: fmt.Sprintf("%s:%d", s.ServerIp, s.ClientPort)}
 	//handle the balance
-	http.HandleFunc("/balance", s.HandleBalance)
+	http.HandleFunc("/balance", b.HandleBalance)
 	//run the server
 	go func() {
-		err := s.ClientServer.ListenAndServe()
+		err := b.ClientServer.ListenAndServe()
 		if err != nil {
 			logger.Error(err.Error())
 		}
 	}()
 }
-func (s *ServerBalancer) Shutdown() {
-	s.ServerBase.Shutdown()
-	if s.ClientServer != nil {
-		if err := s.ClientServer.Close(); err != nil {
+
+func (b *ServerBalancer) AfterInit(s *treaty.Server) {
+}
+
+func (b *ServerBalancer) BeforeShutdown() {
+}
+
+func (b *ServerBalancer) Shutdown() {
+	if b.ClientServer != nil {
+		if err := b.ClientServer.Close(); err != nil {
 			logger.Error(err)
 		}
 	}
 }
 
-func (s *ServerBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
+func (b *ServerBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
 	queryForm, err := url.ParseQuery(r.URL.RawQuery)
 	serverType, uid := "", 0
 	if err == nil {
@@ -68,15 +70,15 @@ func (s *ServerBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
 		res := &treaty.BalanceResult{
 			Code: treaty.CodeType_CodeChooseBackendLogin,
 		}
-		s.WriteResponse(w, res)
+		b.WriteResponse(w, res)
 		return
 	}
-	connector, err := s.Balance(r.RemoteAddr)
+	connector, err := b.Balance(r.RemoteAddr)
 	if err != nil {
 		res := &treaty.BalanceResult{
 			Code: treaty.CodeType_CodeFailed,
 		}
-		s.WriteResponse(w, res)
+		b.WriteResponse(w, res)
 		return
 	}
 	backend := discover.GetServerByType(serverType, r.RemoteAddr)
@@ -91,17 +93,17 @@ func (s *ServerBalancer) HandleBalance(w http.ResponseWriter, r *http.Request) {
 		Backend:    backend,
 		BackendPre: backendPre,
 	}
-	s.WriteResponse(w, res)
+	b.WriteResponse(w, res)
 }
 
-func (s *ServerBalancer) WriteResponse(w http.ResponseWriter, msg proto.Message) {
-	if v, e := s.ClientCoder.Marshal(msg); e == nil {
+func (b *ServerBalancer) WriteResponse(w http.ResponseWriter, msg proto.Message) {
+	if v, e := b.ClientCoder.Marshal(msg); e == nil {
 		if _, e2 := w.Write(v); e2 != nil {
 			logger.Error(e2)
 		}
 	}
 }
-func (s *ServerBalancer) Balance(remoteAddr string) (*treaty.Server, error) {
+func (b *ServerBalancer) Balance(remoteAddr string) (*treaty.Server, error) {
 	if server := discover.GetServerByType(rpc.Connector, remoteAddr); server != nil {
 		return server, nil
 	}

@@ -13,3 +13,11 @@ type ServerEntity interface {
 	HandleSelfEvent(req *MsgRpc) []byte      //处理自己的事件
 	HandleBroadcastEvent(req *MsgRpc) []byte //处理广播事件
 }
+
+//ServerPlugin server extand
+type ServerPlugin interface {
+	Init(s *treaty.Server)      //初始化
+	AfterInit(s *treaty.Server) //初始化后执行操作
+	BeforeShutdown()            //服务关闭前操作
+	Shutdown()                  //服务关闭操作
+}

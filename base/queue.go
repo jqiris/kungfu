@@ -5,15 +5,15 @@ import (
 	"github.com/jqiris/kungfu/v2/treaty"
 )
 
+//base queue
 type ServerQueue struct {
 	*ServerBase
-	queue  string
-	suffix string
+	queue string
 }
 
-func NewServerQueue(s *treaty.Server, queue string) *ServerQueue {
+func NewServerQueue(queue string, s *treaty.Server, options ...Option) *ServerQueue {
 	return &ServerQueue{
-		ServerBase: NewServerBase(s),
+		ServerBase: NewServerBase(s, options...),
 		queue:      queue,
 	}
 }
@@ -24,11 +24,11 @@ func (s *ServerQueue) AfterInit() {
 	b := s.SubBuilder.Build()
 	b = b.SetQueue(s.queue).Build()
 	//self queue proto event
-	if err := s.Rpc.QueueSubscribe(b.SetCodeType(rpc.CodeTypeProto).SetCallback(s.SelfEventHandler).Build()); err != nil {
+	if err := s.Rpc.QueueSubscribe(b.SetCodeType(rpc.CodeTypeProto).SetCallback(s.selfEventHandler).Build()); err != nil {
 		panic(err)
 	}
 	//self queue json event
-	if err := s.Rpc.QueueSubscribe(b.SetSuffix(rpc.JsonSuffix).SetCodeType(rpc.CodeTypeJson).SetCallback(s.SelfEventHandler).Build()); err != nil {
+	if err := s.Rpc.QueueSubscribe(b.SetSuffix(rpc.JsonSuffix).SetCodeType(rpc.CodeTypeJson).SetCallback(s.selfEventHandler).Build()); err != nil {
 		panic(err)
 	}
 }
