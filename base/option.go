@@ -18,7 +18,7 @@ func WithBroadcastEventHandler(handler rpc.CallbackFunc) Option {
 
 func WithInnerMsgHandler(handler rpc.MsgHandler) Option {
 	return func(b *ServerBase) {
-		b.innerHandler = handler
+		b.innerMsgHandler = handler
 	}
 }
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/base/plugin"
 	"github.com/jqiris/kungfu/v2/rpc"
 	"github.com/jqiris/kungfu/v2/treaty"
 
@@ -10,25 +10,15 @@ import (
 )
 
 type MyBalancer struct {
-	*base.ServerBalancer
-}
-
-func (b *MyBalancer) HandleSelfEvent(req *rpc.MsgRpc) []byte {
-	logger.Infof("MyBalancer HandleSelfEvent received: %+v \n", req)
-	return nil
-}
-
-func (b *MyBalancer) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
-	logger.Infof("MyBalancer HandleBroadcastEvent received: %+v \n", req)
-	return nil
+	*base.ServerBase
 }
 
 func MyBalancerCreator(s *treaty.Server) (rpc.ServerEntity, error) {
 	server := &MyBalancer{
-		ServerBalancer: base.NewServerBalancer(s),
+		ServerBase: base.NewServerBase(s),
 	}
-	server.SelfEventHandler = server.HandleSelfEvent
-	server.BroadcastEventHandler = server.HandleBroadcastEvent
+	plug := plugin.NewServerBalancer()
+	server.AddPlugin(plug)
 	return server, nil
 }
 

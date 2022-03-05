@@ -16,7 +16,7 @@ import (
 
 func main() {
 	//init conf
-	if err := config.InitConf("./config.json"); err != nil {
+	if err := config.InitConf("./examples/zinx_demo/config.json"); err != nil {
 		logger.Fatal(err)
 	}
 	//init discover

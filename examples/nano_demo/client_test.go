@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/v2/config"
-	"github.com/jqiris/kungfu/v2/packet/zinx"
-	"github.com/jqiris/kungfu/v2/serialize"
-	"github.com/jqiris/kungfu/v2/utils"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"testing"
+
+	"github.com/jqiris/kungfu/v2/config"
+	"github.com/jqiris/kungfu/v2/packet/zinx"
+	"github.com/jqiris/kungfu/v2/serialize"
+	"github.com/jqiris/kungfu/v2/utils"
 
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/treaty"
@@ -50,8 +51,8 @@ func TestClientLogin(t *testing.T) {
 		logger.Fatal(err)
 	}
 	msg, _ := zinx.Encode(&zinx.Message{
-		int32(treaty.MsgId_Msg_Login_Request),
-		reqData,
+		Id:   int32(treaty.MsgId_Msg_Login_Request),
+		Data: reqData,
 	})
 	_, err = conn.Write(msg)
 	if err != nil {

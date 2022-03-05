@@ -29,11 +29,13 @@ func NewServerBalancer() *ServerBalancer {
 
 func (b *ServerBalancer) Init(s *treaty.Server) {
 	//set the server
-	b.ClientServer = &http.Server{Addr: fmt.Sprintf("%s:%d", s.ServerIp, s.ClientPort)}
+	addr := fmt.Sprintf("%s:%d", s.ServerIp, s.ClientPort)
+	b.ClientServer = &http.Server{Addr: addr}
 	//handle the balance
 	http.HandleFunc("/balance", b.HandleBalance)
 	//run the server
 	go func() {
+		logger.Warnf("ServerBalancer start at:%v", addr)
 		err := b.ClientServer.ListenAndServe()
 		if err != nil {
 			logger.Error(err.Error())

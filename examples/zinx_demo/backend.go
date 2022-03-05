@@ -101,18 +101,12 @@ func (b *MyBackend) HandleSelfEvent(req *rpc.MsgRpc) []byte {
 	return nil
 }
 
-func (b *MyBackend) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
-	logger.Infof("MyBackend HandleBroadcastEvent received: %+v \n", req)
-	return nil
-}
-
 func MyBackendCreator(s *treaty.Server) (rpc.ServerEntity, error) {
 	server := &MyBackend{
 		ServerBase: base.NewServerBase(s),
 		conns:      make(map[int32]*treaty.Server),
 	}
-	server.SelfEventHandler = server.HandleSelfEvent
-	server.BroadcastEventHandler = server.HandleBroadcastEvent
+	server.SetSelfEventHandler(server.HandleSelfEvent)
 	return server, nil
 }
 

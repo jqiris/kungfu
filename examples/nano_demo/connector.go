@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/jqiris/kungfu/v2/base"
+	"github.com/jqiris/kungfu/v2/base/plugin"
 	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/discover"
 	"github.com/jqiris/kungfu/v2/launch"
@@ -16,7 +18,7 @@ import (
 )
 
 type UserConnector struct {
-	*base.ServerConnector
+	*base.ServerBase
 }
 
 func NewUserConnector() *UserConnector {
@@ -127,8 +129,9 @@ func (u *UserConnector) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
 }
 
 func UserConnectorCreator(s *treaty.Server) (rpc.ServerEntity, error) {
-	server := &UserConnector{ServerConnector: base.NewServerConnector(s)}
-	server.RouteHandler = func(s tcpface.IServer) {
+	server := &UserConnector{ServerBase: base.NewServerBase(s)}
+	plug := plugin.NewServerConnector()
+	plug.RouteHandler = func(s tcpface.IServer) {
 		rs := s.GetMsgHandler()
 		router := rs.(*nano.MsgHandle)
 		err := router.Register(server)
@@ -136,8 +139,7 @@ func UserConnectorCreator(s *treaty.Server) (rpc.ServerEntity, error) {
 			logger.Fatal(err)
 		}
 	}
-	server.SelfEventHandler = server.HandleSelfEvent
-	server.BroadcastEventHandler = server.HandleBroadcastEvent
+	server.AddPlugin(plug)
 	return server, nil
 }
 

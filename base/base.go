@@ -14,15 +14,15 @@ type ServerBase struct {
 	SubBuilder            *rpc.RssBuilder
 	selfEventHandler      rpc.CallbackFunc
 	broadcastEventHandler rpc.CallbackFunc
-	innerHandler          rpc.MsgHandler
+	innerMsgHandler       rpc.MsgHandler
 	plugins               []rpc.ServerPlugin
 }
 
 func NewServerBase(s *treaty.Server, options ...Option) *ServerBase {
 	server := &ServerBase{
-		Server:       s,
-		innerHandler: rpc.NewHandler(),
-		plugins:      make([]rpc.ServerPlugin, 0),
+		Server:          s,
+		innerMsgHandler: rpc.NewHandler(),
+		plugins:         make([]rpc.ServerPlugin, 0),
 	}
 	for _, option := range options {
 		option(server)
@@ -31,11 +31,23 @@ func NewServerBase(s *treaty.Server, options ...Option) *ServerBase {
 }
 
 func (s *ServerBase) Register(msgId int32, v any) {
-	s.innerHandler.Register(msgId, v)
+	s.innerMsgHandler.Register(msgId, v)
 }
 
 func (s *ServerBase) AddPlugin(plugin rpc.ServerPlugin) {
 	s.plugins = append(s.plugins, plugin)
+}
+
+func (s *ServerBase) SetSelfEventHandler(handler rpc.CallbackFunc) {
+	s.selfEventHandler = handler
+}
+
+func (s *ServerBase) SetBroadcastEventHandler(handler rpc.CallbackFunc) {
+	s.broadcastEventHandler = handler
+}
+
+func (s *ServerBase) SetInnerMsgHandler(handler rpc.MsgHandler) {
+	s.innerMsgHandler = handler
 }
 
 func (s *ServerBase) Init() {
@@ -122,7 +134,7 @@ func (s *ServerBase) Shutdown() {
 
 //内部事件处理
 func (s *ServerBase) HandleSelfEvent(req *rpc.MsgRpc) []byte {
-	resp, err := s.innerHandler.DealMsg(rpc.CodeTypeProto, s.Rpc, req)
+	resp, err := s.innerMsgHandler.DealMsg(rpc.CodeTypeProto, s.Rpc, req)
 	if err != nil {
 		logger.Error(err)
 		return nil
@@ -131,7 +143,7 @@ func (s *ServerBase) HandleSelfEvent(req *rpc.MsgRpc) []byte {
 }
 
 func (s *ServerBase) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
-	resp, err := s.innerHandler.DealMsg(rpc.CodeTypeProto, s.Rpc, req)
+	resp, err := s.innerMsgHandler.DealMsg(rpc.CodeTypeProto, s.Rpc, req)
 	if err != nil {
 		logger.Error(err)
 		return nil

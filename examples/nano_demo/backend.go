@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/jqiris/kungfu/v2/base"
 	"github.com/jqiris/kungfu/v2/launch"
 	"github.com/jqiris/kungfu/v2/rpc"
-	"time"
 
 	"github.com/jqiris/kungfu/v2/channel"
 	"github.com/jqiris/kungfu/v2/treaty"
@@ -15,7 +16,6 @@ import (
 
 type MyBackend struct {
 	*base.ServerBase
-	handler *rpc.Handler
 	connMap map[int32]*treaty.Server
 }
 
@@ -74,32 +74,14 @@ func (g *MyBackend) ChannelTest(req *treaty.ChannelMsgRequest) *treaty.ChannelMs
 	return resp
 }
 
-func (g *MyBackend) HandleSelfEvent(req *rpc.MsgRpc) []byte {
-	logger.Infof("MyBackend HandleSelfEvent received: %+v", req)
-	resp, err := g.handler.DealMsg(rpc.CodeTypeProto, g.Rpc, req)
-	if err != nil {
-		logger.Error(err)
-		return nil
-	}
-	return resp
-}
-
-func (g *MyBackend) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
-	logger.Infof("MyBackend HandleBroadcastEvent received: %+v \n", req)
-	return nil
-}
 func MyBackendCreator(s *treaty.Server) (rpc.ServerEntity, error) {
 	server := &MyBackend{
 		ServerBase: base.NewServerBase(s),
 		connMap:    make(map[int32]*treaty.Server),
 	}
-	server.SelfEventHandler = server.HandleSelfEvent
-	server.BroadcastEventHandler = server.HandleBroadcastEvent
-	handler := rpc.NewHandler()
-	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogin), server.BackendLogin)
-	handler.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogout), server.BackendOut)
-	handler.Register(int32(treaty.RpcMsgId_RpcMsgChatTest), server.ChannelTest)
-	server.handler = handler
+	server.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogin), server.BackendLogin)
+	server.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogout), server.BackendOut)
+	server.Register(int32(treaty.RpcMsgId_RpcMsgChatTest), server.ChannelTest)
 	return server, nil
 }
 

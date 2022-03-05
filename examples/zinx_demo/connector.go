@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jqiris/kungfu/v2/base"
+	"github.com/jqiris/kungfu/v2/base/plugin"
 	"github.com/jqiris/kungfu/v2/packet/zinx"
 	"github.com/jqiris/kungfu/v2/rpc"
 	"github.com/jqiris/kungfu/v2/utils"
@@ -18,7 +19,7 @@ import (
 )
 
 type MyConnector struct {
-	*base.ServerConnector
+	*base.ServerBase
 	conns map[int32]tcpface.IConnection
 }
 
@@ -38,11 +39,6 @@ func (b *MyConnector) HandleSelfEvent(req *rpc.MsgRpc) []byte {
 			}
 		}
 	}
-	return nil
-}
-
-func (b *MyConnector) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
-	logger.Infof("MyConnector HandleBroadcastEvent received: %+v \n", req)
 	return nil
 }
 
@@ -246,17 +242,20 @@ func (b *MyConnector) ChannelMsg(request *zinx.Request) {
 }
 func MyConnectorCreator(s *treaty.Server) (rpc.ServerEntity, error) {
 	server := &MyConnector{
-		ServerConnector: base.NewServerConnector(s),
-		conns:           make(map[int32]tcpface.IConnection),
+		ServerBase: base.NewServerBase(s),
+		conns:      make(map[int32]tcpface.IConnection),
 	}
-	server.RouteHandler = func(s tcpface.IServer) {
+	//self handler
+	server.SetSelfEventHandler(server.HandleSelfEvent)
+	//plugin
+	plug := plugin.NewServerConnector()
+	plug.RouteHandler = func(s tcpface.IServer) {
 		rs := s.GetMsgHandler()
 		router := rs.(*zinx.MsgHandle)
 		router.AddRouter(int32(treaty.MsgId_Msg_Login_Request), server.Login)
 		router.AddRouter(int32(treaty.MsgId_Msg_Channel_Request), server.ChannelMsg)
 	}
-	server.SelfEventHandler = server.HandleSelfEvent
-	server.BroadcastEventHandler = server.HandleBroadcastEvent
+	server.AddPlugin(plug)
 	return server, nil
 }
 
