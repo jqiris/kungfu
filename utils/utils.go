@@ -21,6 +21,24 @@ func StringToInt(s string) int {
 	}
 }
 
+func StringToInt32(s string) int32 {
+	if res, err := strconv.Atoi(s); err != nil {
+		logger.Error(err)
+		return 0
+	} else {
+		return int32(res)
+	}
+}
+
+func StringToInt64(s string) int64 {
+	if res, err := strconv.Atoi(s); err != nil {
+		logger.Error(err)
+		return 0
+	} else {
+		return int64(res)
+	}
+}
+
 //FindServerConfig 查找服务器配置
 func FindServerConfig(servers map[string]*treaty.Server, serverId string) *treaty.Server {
 	if server, ok := servers[serverId]; ok {
