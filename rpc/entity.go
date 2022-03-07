@@ -16,8 +16,8 @@ type ServerEntity interface {
 
 //ServerPlugin server extand
 type ServerPlugin interface {
-	Init(s *treaty.Server)      //初始化
-	AfterInit(s *treaty.Server) //初始化后执行操作
-	BeforeShutdown()            //服务关闭前操作
-	Shutdown()                  //服务关闭操作
+	Init(s *ServerBase)           //初始化
+	AfterInit(s *ServerBase)      //初始化后执行操作
+	BeforeShutdown(s *ServerBase) //服务关闭前操作
+	Shutdown(s *ServerBase)       //服务关闭操作
 }

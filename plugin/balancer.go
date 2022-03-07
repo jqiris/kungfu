@@ -27,9 +27,9 @@ func NewServerBalancer() *ServerBalancer {
 	}
 }
 
-func (b *ServerBalancer) Init(s *treaty.Server) {
+func (b *ServerBalancer) Init(s *rpc.ServerBase) {
 	//set the server
-	addr := fmt.Sprintf("%s:%d", s.ServerIp, s.ClientPort)
+	addr := fmt.Sprintf("%s:%d", s.Server.ServerIp, s.Server.ClientPort)
 	b.ClientServer = &http.Server{Addr: addr}
 	//handle the balance
 	http.HandleFunc("/balance", b.HandleBalance)
@@ -43,13 +43,13 @@ func (b *ServerBalancer) Init(s *treaty.Server) {
 	}()
 }
 
-func (b *ServerBalancer) AfterInit(s *treaty.Server) {
+func (b *ServerBalancer) AfterInit(s *rpc.ServerBase) {
 }
 
-func (b *ServerBalancer) BeforeShutdown() {
+func (b *ServerBalancer) BeforeShutdown(s *rpc.ServerBase) {
 }
 
-func (b *ServerBalancer) Shutdown() {
+func (b *ServerBalancer) Shutdown(s *rpc.ServerBase) {
 	if b.ClientServer != nil {
 		if err := b.ClientServer.Close(); err != nil {
 			logger.Error(err)

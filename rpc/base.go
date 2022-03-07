@@ -1,28 +1,27 @@
-package base
+package rpc
 
 import (
 	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/discover"
 	"github.com/jqiris/kungfu/v2/logger"
-	"github.com/jqiris/kungfu/v2/rpc"
 	"github.com/jqiris/kungfu/v2/treaty"
 )
 
 type ServerBase struct {
 	Server                *treaty.Server
-	Rpc                   rpc.ServerRpc
-	SubBuilder            *rpc.RssBuilder
-	selfEventHandler      rpc.CallbackFunc
-	broadcastEventHandler rpc.CallbackFunc
-	innerMsgHandler       rpc.MsgHandler
-	plugins               []rpc.ServerPlugin
+	Rpc                   ServerRpc
+	SubBuilder            *RssBuilder
+	selfEventHandler      CallbackFunc
+	broadcastEventHandler CallbackFunc
+	innerMsgHandler       MsgHandler
+	plugins               []ServerPlugin
 }
 
 func NewServerBase(s *treaty.Server, options ...Option) *ServerBase {
 	server := &ServerBase{
 		Server:          s,
-		innerMsgHandler: rpc.NewHandler(),
-		plugins:         make([]rpc.ServerPlugin, 0),
+		innerMsgHandler: NewHandler(),
+		plugins:         make([]ServerPlugin, 0),
 	}
 	for _, option := range options {
 		option(server)
@@ -34,19 +33,19 @@ func (s *ServerBase) Register(msgId int32, v any) {
 	s.innerMsgHandler.Register(msgId, v)
 }
 
-func (s *ServerBase) AddPlugin(plugin rpc.ServerPlugin) {
+func (s *ServerBase) AddPlugin(plugin ServerPlugin) {
 	s.plugins = append(s.plugins, plugin)
 }
 
-func (s *ServerBase) SetSelfEventHandler(handler rpc.CallbackFunc) {
+func (s *ServerBase) SetSelfEventHandler(handler CallbackFunc) {
 	s.selfEventHandler = handler
 }
 
-func (s *ServerBase) SetBroadcastEventHandler(handler rpc.CallbackFunc) {
+func (s *ServerBase) SetBroadcastEventHandler(handler CallbackFunc) {
 	s.broadcastEventHandler = handler
 }
 
-func (s *ServerBase) SetInnerMsgHandler(handler rpc.MsgHandler) {
+func (s *ServerBase) SetInnerMsgHandler(handler MsgHandler) {
 	s.innerMsgHandler = handler
 }
 
@@ -58,12 +57,12 @@ func (s *ServerBase) Init() {
 		panic("服务器基本配置信息不能为空")
 	}
 	//初始化rpc服务
-	s.Rpc = rpc.NewRpcServer(config.GetRpcConf(), s.Server)
+	s.Rpc = NewRpcServer(config.GetRpcConf(), s.Server)
 	//订阅创建
-	s.SubBuilder = rpc.NewRssBuilder(s.Server)
+	s.SubBuilder = NewRssBuilder(s.Server)
 	//plugins
 	for _, plugin := range s.plugins {
-		plugin.Init(s.Server)
+		plugin.Init(s)
 	}
 	logger.Infof("init the service,type:%v, id:%v", s.Server.ServerType, s.Server.ServerId)
 }
@@ -83,28 +82,28 @@ func (s *ServerBase) AfterInit() {
 	}
 	b := s.SubBuilder.Build()
 	//sub self event
-	if err := s.Rpc.Subscribe(b.SetCodeType(rpc.CodeTypeProto).SetCallback(s.selfEventHandler).Build()); err != nil {
+	if err := s.Rpc.Subscribe(b.SetCodeType(CodeTypeProto).SetCallback(s.selfEventHandler).Build()); err != nil {
 		panic(err)
 	}
 	//sub self json event
 	b = s.SubBuilder.Build()
-	if err := s.Rpc.Subscribe(b.SetSuffix(rpc.JsonSuffix).SetCodeType(rpc.CodeTypeJson).SetCallback(s.selfEventHandler).Build()); err != nil {
+	if err := s.Rpc.Subscribe(b.SetSuffix(JsonSuffix).SetCodeType(CodeTypeJson).SetCallback(s.selfEventHandler).Build()); err != nil {
 		panic(err)
 	}
 	//sub broadcast event
 	b = s.SubBuilder.Build()
-	if err := s.Rpc.SubscribeBroadcast(b.SetCodeType(rpc.CodeTypeProto).SetCallback(s.broadcastEventHandler).Build()); err != nil {
+	if err := s.Rpc.SubscribeBroadcast(b.SetCodeType(CodeTypeProto).SetCallback(s.broadcastEventHandler).Build()); err != nil {
 		panic(err)
 	}
 	//sub broadcast json event
 	b = s.SubBuilder.Build()
-	if err := s.Rpc.SubscribeBroadcast(b.SetSuffix(rpc.JsonSuffix).SetCodeType(rpc.CodeTypeJson).SetCallback(s.broadcastEventHandler).Build()); err != nil {
+	if err := s.Rpc.SubscribeBroadcast(b.SetSuffix(JsonSuffix).SetCodeType(CodeTypeJson).SetCallback(s.broadcastEventHandler).Build()); err != nil {
 		panic(err)
 	}
 
 	//plugins
 	for _, plugin := range s.plugins {
-		plugin.AfterInit(s.Server)
+		plugin.AfterInit(s)
 	}
 
 	//服务注册
@@ -120,21 +119,21 @@ func (s *ServerBase) BeforeShutdown() {
 	}
 	//plugins
 	for _, plugin := range s.plugins {
-		plugin.BeforeShutdown()
+		plugin.BeforeShutdown(s)
 	}
 }
 
 func (s *ServerBase) Shutdown() {
 	//plugins
 	for _, plugin := range s.plugins {
-		plugin.Shutdown()
+		plugin.Shutdown(s)
 	}
 	logger.Infof("shutdown service,type:%v,id:%v", s.Server.ServerType, s.Server.ServerId)
 }
 
-//内部事件处理
-func (s *ServerBase) HandleSelfEvent(req *rpc.MsgRpc) []byte {
-	resp, err := s.innerMsgHandler.DealMsg(rpc.CodeTypeProto, s.Rpc, req)
+// HandleSelfEvent 内部事件处理
+func (s *ServerBase) HandleSelfEvent(req *MsgRpc) []byte {
+	resp, err := s.innerMsgHandler.DealMsg(CodeTypeProto, s.Rpc, req)
 	if err != nil {
 		logger.Error(err)
 		return nil
@@ -142,8 +141,8 @@ func (s *ServerBase) HandleSelfEvent(req *rpc.MsgRpc) []byte {
 	return resp
 }
 
-func (s *ServerBase) HandleBroadcastEvent(req *rpc.MsgRpc) []byte {
-	resp, err := s.innerMsgHandler.DealMsg(rpc.CodeTypeProto, s.Rpc, req)
+func (s *ServerBase) HandleBroadcastEvent(req *MsgRpc) []byte {
+	resp, err := s.innerMsgHandler.DealMsg(CodeTypeProto, s.Rpc, req)
 	if err != nil {
 		logger.Error(err)
 		return nil

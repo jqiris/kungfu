@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/jqiris/kungfu/v2/rpc"
-	"github.com/jqiris/kungfu/v2/treaty"
 )
 
 type ServerHttp struct {
@@ -16,25 +15,25 @@ func NewServerHttp(h rpc.HttpHandler) *ServerHttp {
 		handler: h,
 	}
 }
-func (b *ServerHttp) Init(s *treaty.Server) {
+func (b *ServerHttp) Init(s *rpc.ServerBase) {
 }
 
-func (b *ServerHttp) Run(s *treaty.Server) {
+func (b *ServerHttp) Run(s *rpc.ServerBase) {
 	if b.handler == nil {
 		panic("http handler is nil")
 	}
-	addr := fmt.Sprintf(":%d", s.ClientPort)
+	addr := fmt.Sprintf(":%d", s.Server.ClientPort)
 	if err := b.handler.Run(addr); err != nil {
 		panic(err)
 	}
 }
 
-func (b *ServerHttp) AfterInit(s *treaty.Server) {
+func (b *ServerHttp) AfterInit(s *rpc.ServerBase) {
 	go b.Run(s)
 }
 
-func (b *ServerHttp) BeforeShutdown() {
+func (b *ServerHttp) BeforeShutdown(s *rpc.ServerBase) {
 }
 
-func (b *ServerHttp) Shutdown() {
+func (b *ServerHttp) Shutdown(s *rpc.ServerBase) {
 }

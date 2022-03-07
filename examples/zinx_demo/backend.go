@@ -10,12 +10,11 @@ import (
 	"github.com/jqiris/kungfu/v2/channel"
 	"github.com/jqiris/kungfu/v2/treaty"
 
-	"github.com/jqiris/kungfu/v2/base"
 	"github.com/jqiris/kungfu/v2/launch"
 )
 
 type MyBackend struct {
-	*base.ServerBase
+	*rpc.ServerBase
 	conns map[int32]*treaty.Server
 }
 
@@ -103,7 +102,7 @@ func (b *MyBackend) HandleSelfEvent(req *rpc.MsgRpc) []byte {
 
 func MyBackendCreator(s *treaty.Server) (rpc.ServerEntity, error) {
 	server := &MyBackend{
-		ServerBase: base.NewServerBase(s),
+		ServerBase: rpc.NewServerBase(s),
 		conns:      make(map[int32]*treaty.Server),
 	}
 	server.SetSelfEventHandler(server.HandleSelfEvent)

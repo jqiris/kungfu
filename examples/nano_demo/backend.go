@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jqiris/kungfu/v2/base"
 	"github.com/jqiris/kungfu/v2/launch"
 	"github.com/jqiris/kungfu/v2/rpc"
 
@@ -15,7 +14,7 @@ import (
 )
 
 type MyBackend struct {
-	*base.ServerBase
+	*rpc.ServerBase
 	connMap map[int32]*treaty.Server
 }
 
@@ -76,7 +75,7 @@ func (g *MyBackend) ChannelTest(req *treaty.ChannelMsgRequest) *treaty.ChannelMs
 
 func MyBackendCreator(s *treaty.Server) (rpc.ServerEntity, error) {
 	server := &MyBackend{
-		ServerBase: base.NewServerBase(s),
+		ServerBase: rpc.NewServerBase(s),
 		connMap:    make(map[int32]*treaty.Server),
 	}
 	server.Register(int32(treaty.RpcMsgId_RpcMsgBackendLogin), server.BackendLogin)

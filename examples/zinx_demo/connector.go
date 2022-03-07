@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/jqiris/kungfu/v2/plugin"
 
-	"github.com/jqiris/kungfu/v2/base"
-	"github.com/jqiris/kungfu/v2/base/plugin"
 	"github.com/jqiris/kungfu/v2/packet/zinx"
 	"github.com/jqiris/kungfu/v2/rpc"
 	"github.com/jqiris/kungfu/v2/utils"
@@ -19,7 +18,7 @@ import (
 )
 
 type MyConnector struct {
-	*base.ServerBase
+	*rpc.ServerBase
 	conns map[int32]tcpface.IConnection
 }
 
@@ -242,7 +241,7 @@ func (b *MyConnector) ChannelMsg(request *zinx.Request) {
 }
 func MyConnectorCreator(s *treaty.Server) (rpc.ServerEntity, error) {
 	server := &MyConnector{
-		ServerBase: base.NewServerBase(s),
+		ServerBase: rpc.NewServerBase(s),
 		conns:      make(map[int32]tcpface.IConnection),
 	}
 	//self handler
