@@ -59,6 +59,16 @@ func IntToString(val int) string {
 	return strconv.Itoa(val)
 }
 
+//Int32ToString 整数转字符串
+func Int32ToString(val int32) string {
+	return strconv.Itoa(int(val))
+}
+
+//Int64ToString 整数转字符串
+func Int64ToString(val int64) string {
+	return strconv.Itoa(int(val))
+}
+
 func SafeRun(f func()) {
 	defer func() {
 		if x := recover(); x != nil {

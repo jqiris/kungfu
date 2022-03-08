@@ -1,9 +1,11 @@
 package stores
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/go-redsync/redsync/v4"
 	"github.com/golang/protobuf/proto"
 	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/logger"
@@ -65,14 +67,15 @@ type StoreKeeper interface {
 	BLPopString(key string) (string, error)
 	BRPopString(key string) (string, error)
 	Incr(key string) (int64, error)
+	Decr(key string) (int64, error)
 	LLen(key string) int64
 	IsRedisNull(err error) bool
 	FlushDB() error
 	FlushDBAsync() error
 	FlushAll() error
 	FlushAllAsync() error
-	Lock(key string) bool
-	Unlock(key string) int64
+	Lock(key string) (*redsync.Mutex, context.Context, error)
+	Unlock(mutex *redsync.Mutex, ctx context.Context) error
 	TxPipeline() redis.Pipeliner
 	GetKey(key string) string
 }
@@ -225,16 +228,20 @@ func ZCard(key string) int64 {
 	return defStoreKeeper.ZCard(key)
 }
 
-func Lock(key string) bool {
+func Lock(key string) (*redsync.Mutex, context.Context, error) {
 	return defStoreKeeper.Lock(key)
 }
 
-func Unlock(key string) int64 {
-	return defStoreKeeper.Unlock(key)
+func Unlock(mutex *redsync.Mutex, ctx context.Context) error {
+	return defStoreKeeper.Unlock(mutex, ctx)
 }
 
 func Incr(key string) (int64, error) {
 	return defStoreKeeper.Incr(key)
+}
+
+func Decr(key string) (int64, error) {
+	return defStoreKeeper.Decr(key)
 }
 
 func TxPipeline() redis.Pipeliner {

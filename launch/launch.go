@@ -54,10 +54,14 @@ func Startup() {
 			return
 		}
 		server.Init()
-		server.AfterInit()
 		launched[cfg.ServerId] = server
 	}
 
+	for _, cfg := range launchArr {
+		if server, ok := launched[cfg.ServerId]; ok {
+			server.AfterInit()
+		}
+	}
 }
 
 //Shutdown 关闭服务器
@@ -69,6 +73,10 @@ func Shutdown() {
 	for _, cfg := range launchArr {
 		if server, ok := launched[cfg.ServerId]; ok {
 			server.BeforeShutdown()
+		}
+	}
+	for _, cfg := range launchArr {
+		if server, ok := launched[cfg.ServerId]; ok {
 			server.Shutdown()
 		}
 	}

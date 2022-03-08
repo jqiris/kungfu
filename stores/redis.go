@@ -12,6 +12,8 @@ import (
 	"sync"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v8"
 	"github.com/golang/protobuf/proto"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -32,6 +34,7 @@ type StoreRedis struct {
 	Client      *redis.Client
 	Prefix      string
 	lock        *sync.Mutex
+	rs          *redsync.Redsync
 }
 
 type StoreRedisOption func(s *StoreRedis)
@@ -81,6 +84,8 @@ func NewStoreRedis(opts ...StoreRedisOption) *StoreRedis {
 		DB:       r.DB,
 	})
 	r.Client = c
+	pool := goredis.NewPool(c)
+	r.rs = redsync.New(pool)
 	r.lock = new(sync.Mutex)
 	return r
 }
@@ -463,23 +468,26 @@ func (s *StoreRedis) Incr(key string) (int64, error) {
 	return s.Client.Incr(ctx, s.GetKey(key)).Result()
 }
 
-func (s *StoreRedis) Lock(key string) bool {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	err := s.SetNx(key, 1, 3*time.Second)
-	if err != nil {
-		logger.Error(err)
-	}
-	return err == nil
+func (s *StoreRedis) Decr(key string) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.Decr(ctx, s.GetKey(key)).Result()
 }
 
-func (s *StoreRedis) Unlock(key string) int64 {
-	num, err := s.Del(key)
-	if err != nil {
-		logger.Error(err)
-		return 0
+func (s *StoreRedis) Lock(key string) (*redsync.Mutex, context.Context, error) {
+	mutex := s.rs.NewMutex(s.GetKey(key))
+	ctx := context.Background()
+	if err := mutex.LockContext(ctx); err != nil {
+		return mutex, ctx, err
 	}
-	return num
+	return mutex, ctx, nil
+}
+
+func (s *StoreRedis) Unlock(mutex *redsync.Mutex, ctx context.Context) error {
+	if _, err := mutex.UnlockContext(ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *StoreRedis) TxPipeline() redis.Pipeliner {
