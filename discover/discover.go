@@ -37,12 +37,9 @@ type Discoverer interface {
 	GetServerList() map[string]*treaty.Server                    //获取所有服务信息
 	GetServerById(serverId string) *treaty.Server                //根据serverId获取server信息
 	GetServerByType(serverType, serverArg string) *treaty.Server //根据serverType及参数分配唯一server信息
-	GetServerByTypeLoad(serverType string) *treaty.Server        //根绝服务器最小负载量选择服务
 	GetServerTypeList(serverType string) map[string]*treaty.Server
 	RegEventHandlers(handlers ...EventHandler)
 	EventHandlerExec(ev *clientv3.Event, server *treaty.Server)
-	IncrLoad(server *treaty.Server) error //增加负载量
-	DecrLoad(server *treaty.Server) error //减少负载量
 }
 
 func Register(server *treaty.Server) error {
@@ -51,14 +48,6 @@ func Register(server *treaty.Server) error {
 
 func UnRegister(server *treaty.Server) error {
 	return defDiscoverer.UnRegister(server)
-}
-
-func IncrLoad(server *treaty.Server) error {
-	return defDiscoverer.IncrLoad(server)
-}
-
-func DecrLoad(server *treaty.Server) error {
-	return defDiscoverer.DecrLoad(server)
 }
 
 func GetServerList() map[string]*treaty.Server {
@@ -71,10 +60,6 @@ func GetServerById(serverId string) *treaty.Server {
 
 func GetServerByType(serverType, serverArg string) *treaty.Server {
 	return defDiscoverer.GetServerByType(serverType, serverArg)
-}
-
-func GetServerByTypeLoad(serverType string) *treaty.Server {
-	return defDiscoverer.GetServerByTypeLoad(serverType)
 }
 
 func GetServerTypeList(serverType string) map[string]*treaty.Server {

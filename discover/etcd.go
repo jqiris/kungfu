@@ -169,6 +169,7 @@ func (e *EtcdDiscoverer) Watcher() {
 
 func (e *EtcdDiscoverer) DumpServers() {
 	logger.Info("#####################################DUMP SERVERS BEGIN#################################")
+	logger.Info("the sever list is as follows:")
 	for typ, list := range e.ServerTypeMap {
 		logger.Info("------------------------------------------------------------------------------------")
 		for _, server := range list.List {
@@ -202,16 +203,6 @@ func (e *EtcdDiscoverer) UnRegister(server *treaty.Server) error {
 		logger.Infof("EtcdDiscoverer unregister resp:%+v", resp)
 	}
 	return nil
-}
-
-func (e *EtcdDiscoverer) IncrLoad(server *treaty.Server) error {
-	server.Load++
-	return e.Register(server)
-}
-
-func (e *EtcdDiscoverer) DecrLoad(server *treaty.Server) error {
-	server.Load--
-	return e.Register(server)
 }
 
 func (e *EtcdDiscoverer) FindServer(serverType string) []*treaty.Server {
@@ -285,22 +276,7 @@ func (e *EtcdDiscoverer) GetServerByType(serverType, serverArg string) *treaty.S
 	}
 	return nil
 }
-func (e *EtcdDiscoverer) GetServerByTypeLoad(serverType string) *treaty.Server {
-	e.ServerLock.RLock()
-	defer e.ServerLock.RUnlock()
-	if item, ok := e.ServerTypeMap[serverType]; ok {
-		var server *treaty.Server
-		for _, v := range item.List {
-			if server == nil {
-				server = v
-			} else if server.Load > v.Load {
-				server = v
-			}
-		}
-		return server
-	}
-	return nil
-}
+
 func (e *EtcdDiscoverer) GetServerTypeList(serverType string) map[string]*treaty.Server {
 	e.ServerLock.RLock()
 	defer e.ServerLock.RUnlock()
