@@ -32,14 +32,17 @@ type EventHandler func(ev *clientv3.Event, server *treaty.Server)
 
 //Discoverer find service role
 type Discoverer interface {
-	Register(server *treaty.Server) error                        //注册服务器
-	UnRegister(server *treaty.Server) error                      //注册服务器
-	GetServerList() map[string]*treaty.Server                    //获取所有服务信息
-	GetServerById(serverId string) *treaty.Server                //根据serverId获取server信息
-	GetServerByType(serverType, serverArg string) *treaty.Server //根据serverType及参数分配唯一server信息
-	GetServerTypeList(serverType string) map[string]*treaty.Server
+	Register(server *treaty.Server) error                                      //注册服务器
+	UnRegister(server *treaty.Server) error                                    //注册服务器
+	GetServerList(args ...bool) map[string]*treaty.Server                      //获取所有服务信息
+	GetServerById(serverId string, args ...bool) *treaty.Server                //根据serverId获取server信息
+	GetServerByType(serverType, serverArg string, args ...bool) *treaty.Server //根据serverType及参数分配唯一server信息
+	GetServerByTypeLoad(serverType string, args ...bool) *treaty.Server        //根绝服务器最小负载量选择服务
+	GetServerTypeList(serverType string, args ...bool) map[string]*treaty.Server
 	RegEventHandlers(handlers ...EventHandler)
 	EventHandlerExec(ev *clientv3.Event, server *treaty.Server)
+	IncrServerLoad(server *treaty.Server) error //增加负载量
+	DecrServerLoad(server *treaty.Server) error //减少负载量
 }
 
 func Register(server *treaty.Server) error {
@@ -50,20 +53,32 @@ func UnRegister(server *treaty.Server) error {
 	return defDiscoverer.UnRegister(server)
 }
 
-func GetServerList() map[string]*treaty.Server {
-	return defDiscoverer.GetServerList()
+func IncrServerLoad(server *treaty.Server) error {
+	return defDiscoverer.IncrServerLoad(server)
 }
 
-func GetServerById(serverId string) *treaty.Server {
-	return defDiscoverer.GetServerById(serverId)
+func DecrServerLoad(server *treaty.Server) error {
+	return defDiscoverer.DecrServerLoad(server)
 }
 
-func GetServerByType(serverType, serverArg string) *treaty.Server {
-	return defDiscoverer.GetServerByType(serverType, serverArg)
+func GetServerList(args ...bool) map[string]*treaty.Server {
+	return defDiscoverer.GetServerList(args...)
 }
 
-func GetServerTypeList(serverType string) map[string]*treaty.Server {
-	return defDiscoverer.GetServerTypeList(serverType)
+func GetServerById(serverId string, args ...bool) *treaty.Server {
+	return defDiscoverer.GetServerById(serverId, args...)
+}
+
+func GetServerByType(serverType, serverArg string, args ...bool) *treaty.Server {
+	return defDiscoverer.GetServerByType(serverType, serverArg, args...)
+}
+
+func GetServerByTypeLoad(serverType string, args ...bool) *treaty.Server {
+	return defDiscoverer.GetServerByTypeLoad(serverType, args...)
+}
+
+func GetServerTypeList(serverType string, args ...bool) map[string]*treaty.Server {
+	return defDiscoverer.GetServerTypeList(serverType, args...)
 }
 
 func RegEventHandlers(handlers ...EventHandler) {

@@ -2,6 +2,7 @@ package discover
 
 import (
 	"context"
+	"stathat.com/c/consistent"
 	"strings"
 	"sync"
 	"time"
@@ -117,11 +118,13 @@ func (e *EtcdDiscoverer) Watcher() {
 			if err != nil {
 				logger.Errorf("etcd watch err:%v", err)
 			}
+
 			for _, ev := range wResp.Events {
 				//logger.Infof("%s %q %q", ev.Type, ev.Kv.Key, ev.Kv.Value)
 				if !e.IsCurEvent(string(ev.Kv.Key)) {
 					continue
 				}
+				silent := false
 				switch ev.Type {
 				case clientv3.EventTypePut:
 					if server, err := treaty.RegUnSerialize(ev.Kv.Value); err == nil {
@@ -140,6 +143,7 @@ func (e *EtcdDiscoverer) Watcher() {
 						}
 						e.ServerLock.Unlock()
 						e.EventHandlerExec(ev, server)
+						silent = server.Silent
 					}
 				case clientv3.EventTypeDelete:
 					ks := strings.Split(string(ev.Kv.Key), "/")
@@ -161,7 +165,9 @@ func (e *EtcdDiscoverer) Watcher() {
 						e.ServerLock.Unlock()
 					}
 				}
-				e.DumpServers()
+				if !silent {
+					e.DumpServers()
+				}
 			}
 		}
 	}
@@ -169,7 +175,6 @@ func (e *EtcdDiscoverer) Watcher() {
 
 func (e *EtcdDiscoverer) DumpServers() {
 	logger.Info("#####################################DUMP SERVERS BEGIN#################################")
-	logger.Info("the sever list is as follows:")
 	for typ, list := range e.ServerTypeMap {
 		logger.Info("------------------------------------------------------------------------------------")
 		for _, server := range list.List {
@@ -203,6 +208,16 @@ func (e *EtcdDiscoverer) UnRegister(server *treaty.Server) error {
 		logger.Infof("EtcdDiscoverer unregister resp:%+v", resp)
 	}
 	return nil
+}
+
+func (e *EtcdDiscoverer) IncrServerLoad(server *treaty.Server) error {
+	server.Load++
+	return e.Register(server)
+}
+
+func (e *EtcdDiscoverer) DecrServerLoad(server *treaty.Server) error {
+	server.Load--
+	return e.Register(server)
 }
 
 func (e *EtcdDiscoverer) FindServer(serverType string) []*treaty.Server {
@@ -251,36 +266,109 @@ func (e *EtcdDiscoverer) FindServerList() map[string][]*treaty.Server {
 	return nil
 }
 
-func (e *EtcdDiscoverer) GetServerList() map[string]*treaty.Server {
+func (e *EtcdDiscoverer) GetServerList(args ...bool) map[string]*treaty.Server {
 	e.ServerLock.RLock()
 	defer e.ServerLock.RUnlock()
+	filterMaintain := true
+	if len(args) > 0 {
+		filterMaintain = args[0]
+	}
+	if filterMaintain {
+		list := make(map[string]*treaty.Server)
+		for k, v := range e.ServerList {
+			if filterMaintain && v.Maintained {
+				continue
+			}
+			list[k] = v
+		}
+		return list
+	}
 	return e.ServerList
 }
 
-func (e *EtcdDiscoverer) GetServerById(serverId string) *treaty.Server {
+func (e *EtcdDiscoverer) GetServerById(serverId string, args ...bool) *treaty.Server {
 	e.ServerLock.RLock()
 	defer e.ServerLock.RUnlock()
+	filterMaintain := true
+	if len(args) > 0 {
+		filterMaintain = args[0]
+	}
 	if v, ok := e.ServerList[serverId]; ok {
+		if filterMaintain && v.Maintained {
+			return nil
+		}
 		return v
 	}
 	return nil
 }
 
-func (e *EtcdDiscoverer) GetServerByType(serverType, serverArg string) *treaty.Server {
+func (e *EtcdDiscoverer) GetServerByType(serverType, serverArg string, args ...bool) *treaty.Server {
 	e.ServerLock.RLock()
 	defer e.ServerLock.RUnlock()
+	filterMaintain := true
+	if len(args) > 0 {
+		filterMaintain = args[0]
+	}
 	if item, ok := e.ServerTypeMap[serverType]; ok {
-		if sid, err := item.hash.Get(serverArg); err == nil {
-			return item.List[sid]
+		if filterMaintain {
+			cons := consistent.New()
+			for k, v := range item.List {
+				if !v.Maintained {
+					cons.Add(k)
+				}
+			}
+			if sid, err := cons.Get(serverArg); err == nil {
+				return item.List[sid]
+			}
+		} else {
+			if sid, err := item.hash.Get(serverArg); err == nil {
+				return item.List[sid]
+			}
 		}
+
 	}
 	return nil
 }
-
-func (e *EtcdDiscoverer) GetServerTypeList(serverType string) map[string]*treaty.Server {
+func (e *EtcdDiscoverer) GetServerByTypeLoad(serverType string, args ...bool) *treaty.Server {
 	e.ServerLock.RLock()
 	defer e.ServerLock.RUnlock()
+	filterMaintain := true
+	if len(args) > 0 {
+		filterMaintain = args[0]
+	}
 	if item, ok := e.ServerTypeMap[serverType]; ok {
+		var server *treaty.Server
+		for _, v := range item.List {
+			if filterMaintain && v.Maintained {
+				continue
+			}
+			if server == nil {
+				server = v
+			} else if server.Load > v.Load {
+				server = v
+			}
+		}
+		return server
+	}
+	return nil
+}
+func (e *EtcdDiscoverer) GetServerTypeList(serverType string, args ...bool) map[string]*treaty.Server {
+	e.ServerLock.RLock()
+	defer e.ServerLock.RUnlock()
+	filterMaintain := true
+	if len(args) > 0 {
+		filterMaintain = args[0]
+	}
+	if item, ok := e.ServerTypeMap[serverType]; ok {
+		if filterMaintain {
+			list := make(map[string]*treaty.Server)
+			for k, v := range item.List {
+				if !v.Maintained {
+					list[k] = v
+				}
+			}
+			return list
+		}
 		return item.List
 	}
 	return nil
