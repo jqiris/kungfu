@@ -46,7 +46,6 @@ func (b *ServerSocket) Run(s *rpc.ServerBase) {
 	once.Do(func() {
 		http.Handle("/socket.io/", b.sc)
 	})
-	http.Handle("/socket.io/", b.sc)
 	logger.Infof("socket server start at:%v", s.Server.ClientPort)
 	if err := http.ListenAndServe(fmt.Sprintf(":%v", s.Server.ClientPort), nil); err != nil {
 		logger.Fatal(err)
