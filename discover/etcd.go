@@ -194,7 +194,9 @@ func (e *EtcdDiscoverer) Register(server *treaty.Server) error {
 	if err != nil {
 		return err
 	}
-	logger.Infof("discover Register server,k=>v,%s=>%s,resp:%v", key, val, resp.Header)
+	if !server.Silent {
+		logger.Infof("discover Register server,k=>v,%s=>%s,resp:%v", key, val, resp.Header)
+	}
 	return nil
 }
 
@@ -204,7 +206,7 @@ func (e *EtcdDiscoverer) UnRegister(server *treaty.Server) error {
 	defer cancel()
 	if resp, err := kv.Delete(ctx, e.Prefix+treaty.RegSeverItem(server), clientv3.WithPrevKV()); err != nil {
 		return err
-	} else {
+	} else if !server.Silent {
 		logger.Infof("EtcdDiscoverer unregister resp:%+v", resp)
 	}
 	return nil
@@ -301,21 +303,28 @@ func (e *EtcdDiscoverer) GetServerByType(serverType, serverArg string, args ...b
 	}
 	if item, ok := e.ServerTypeMap[serverType]; ok {
 		if filterMaintain {
-			cons := consistent.New()
+			var srvs []string
+			hasMaintained := false
 			for k, v := range item.List {
 				if !v.Maintained {
-					cons.Add(k)
+					srvs = append(srvs, k)
+				} else {
+					hasMaintained = true
 				}
 			}
-			if sid, err := cons.Get(serverArg); err == nil {
-				return item.List[sid]
-			}
-		} else {
-			if sid, err := item.hash.Get(serverArg); err == nil {
-				return item.List[sid]
+			if hasMaintained {
+				cons := consistent.New()
+				cons.Set(srvs)
+				if sid, err := cons.Get(serverArg); err == nil {
+					return item.List[sid]
+				} else {
+					return nil
+				}
 			}
 		}
-
+		if sid, err := item.hash.Get(serverArg); err == nil {
+			return item.List[sid]
+		}
 	}
 	return nil
 }
