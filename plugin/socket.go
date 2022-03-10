@@ -7,11 +7,6 @@ import (
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/rpc"
 	"net/http"
-	"sync"
-)
-
-var (
-	once sync.Once
 )
 
 type ServerSocket struct {
@@ -43,9 +38,8 @@ func (b *ServerSocket) OnError(f func(socketio.Conn, error)) {
 func (b *ServerSocket) Run(s *rpc.ServerBase) {
 	go b.sc.Serve()
 	defer b.sc.Close()
-	once.Do(func() {
-		http.Handle("/socket.io/", b.sc)
-	})
+	scAddr := "/" + s.Server.ServerId + "/"
+	http.Handle(scAddr, b.sc)
 	logger.Infof("socket server start at:%v", s.Server.ClientPort)
 	if err := http.ListenAndServe(fmt.Sprintf(":%v", s.Server.ClientPort), nil); err != nil {
 		logger.Fatal(err)
