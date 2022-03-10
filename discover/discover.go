@@ -41,8 +41,6 @@ type Discoverer interface {
 	GetServerTypeList(serverType string, args ...bool) map[string]*treaty.Server
 	RegEventHandlers(handlers ...EventHandler)
 	EventHandlerExec(ev *clientv3.Event, server *treaty.Server)
-	IncrServerLoad(server *treaty.Server) error //增加负载量
-	DecrServerLoad(server *treaty.Server) error //减少负载量
 }
 
 func Register(server *treaty.Server) error {
@@ -51,14 +49,6 @@ func Register(server *treaty.Server) error {
 
 func UnRegister(server *treaty.Server) error {
 	return defDiscoverer.UnRegister(server)
-}
-
-func IncrServerLoad(server *treaty.Server) error {
-	return defDiscoverer.IncrServerLoad(server)
-}
-
-func DecrServerLoad(server *treaty.Server) error {
-	return defDiscoverer.DecrServerLoad(server)
 }
 
 func GetServerList(args ...bool) map[string]*treaty.Server {

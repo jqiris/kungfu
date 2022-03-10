@@ -210,16 +210,6 @@ func (e *EtcdDiscoverer) UnRegister(server *treaty.Server) error {
 	return nil
 }
 
-func (e *EtcdDiscoverer) IncrServerLoad(server *treaty.Server) error {
-	server.Load++
-	return e.Register(server)
-}
-
-func (e *EtcdDiscoverer) DecrServerLoad(server *treaty.Server) error {
-	server.Load--
-	return e.Register(server)
-}
-
 func (e *EtcdDiscoverer) FindServer(serverType string) []*treaty.Server {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
