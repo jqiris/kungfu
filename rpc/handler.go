@@ -50,9 +50,9 @@ func (h *Handler) Register(msgId int32, v any) {
 		logger.Errorf("not suit handler:%+v", v)
 		return
 	}
-	msgType := MessageType(Publish)
+	msgType := MessageType(MsgTypePublish)
 	if tf.NumOut() == 1 {
-		msgType = Request
+		msgType = MsgTypeRequest
 	}
 	h.handlers[msgId] = HandlerItem{
 		MsgType: msgType,
@@ -74,7 +74,7 @@ func (h *Handler) DealMsg(codeType string, server ServerRpc, req *MsgRpc) ([]byt
 		}
 		args := []reflect.Value{reflect.ValueOf(inElem)}
 		resp := handler.Func.Call(args)
-		if handler.MsgType == Request && len(resp) > 0 {
+		if handler.MsgType == MsgTypeRequest && len(resp) > 0 {
 			outItem := resp[0].Interface()
 			return server.Response(codeType, outItem), nil
 		}

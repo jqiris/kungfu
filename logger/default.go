@@ -51,3 +51,11 @@ func Debug(txt ...any) {
 func Debugf(txt string, args ...any) {
 	defLogger.Debugf(txt, args...)
 }
+
+func Report(txt ...any) {
+	defLogger.Report(txt...)
+}
+
+func Reportf(txt string, args ...any) {
+	defLogger.Reportf(txt, args...)
+}

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"runtime"
@@ -40,6 +42,8 @@ type Logger struct {
 	zipStart    time.Time     //zip压缩开始
 	zipEnd      time.Time     //zip压缩结束
 	tickTime    time.Duration //检查间隔
+	reportUrl   string        //上报地址
+	reportUser  string        //上报用户
 }
 
 func NewLogger(options ...Option) (*Logger, context.CancelFunc) {
@@ -312,4 +316,29 @@ func PathExists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+func (l *Logger) Report(txt ...any) {
+	item := l.NewLogItem(ERROR, txt...)
+	l.reportItem(item)
+	l.logChan <- item
+}
+
+func (l *Logger) Reportf(tmp string, args ...any) {
+	txt := fmt.Sprintf(tmp, args...)
+	l.Report(txt)
+}
+
+func (l *Logger) reportItem(item *LogItem) {
+	content := l.logFormat(item)
+	if len(content) > 0 {
+		data := url.Values{"title": {content}, "wx": {"1"},
+			"wxUser": {l.reportUser}}
+		resp, err := http.Post(l.reportUrl, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
+		if err != nil {
+			l.Error(err)
+			return
+		}
+		resp.Body.Close()
+	}
 }

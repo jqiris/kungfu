@@ -196,7 +196,7 @@ func (r *NatsRpc) Request(s ReqBuilder) error {
 	var msg *nats.Msg
 	var err error
 	var data []byte
-	data, err = r.EncodeMsg(coder, Request, s.msgId, s.req)
+	data, err = r.EncodeMsg(coder, MsgTypeRequest, s.msgId, s.req)
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func (r *NatsRpc) QueueRequest(s ReqBuilder) error {
 	var msg *nats.Msg
 	var err error
 	var data []byte
-	data, err = r.EncodeMsg(coder, Request, s.msgId, s.req)
+	data, err = r.EncodeMsg(coder, MsgTypeRequest, s.msgId, s.req)
 	if err != nil {
 		return err
 	}
@@ -242,7 +242,7 @@ func (r *NatsRpc) Publish(s ReqBuilder) error {
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
 	}
-	data, err := r.EncodeMsg(coder, Publish, s.msgId, s.req)
+	data, err := r.EncodeMsg(coder, MsgTypePublish, s.msgId, s.req)
 	if err != nil {
 		return err
 	}
@@ -258,7 +258,7 @@ func (r *NatsRpc) QueuePublish(s ReqBuilder) error {
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
 	}
-	data, err := r.EncodeMsg(coder, Publish, s.msgId, s.req)
+	data, err := r.EncodeMsg(coder, MsgTypePublish, s.msgId, s.req)
 	if err != nil {
 		return err
 	}
@@ -274,7 +274,7 @@ func (r *NatsRpc) PublishBroadcast(s ReqBuilder) error {
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
 	}
-	data, err := r.EncodeMsg(coder, Publish, s.msgId, s.req)
+	data, err := r.EncodeMsg(coder, MsgTypePublish, s.msgId, s.req)
 	if err != nil {
 		return err
 	}

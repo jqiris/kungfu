@@ -1,6 +1,9 @@
 package logger
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Option func(l *Logger)
 
@@ -69,5 +72,18 @@ func WithZipDuration(d time.Duration) Option {
 func WithTickTime(t time.Duration) Option {
 	return func(l *Logger) {
 		l.tickTime = t
+	}
+}
+
+func WithReportUrl(url string) Option {
+	return func(l *Logger) {
+		l.reportUrl = url
+	}
+}
+
+func WithReportUser(user []string) Option {
+	return func(l *Logger) {
+		bs, _ := json.Marshal(user)
+		l.reportUser = string(bs)
 	}
 }

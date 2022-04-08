@@ -38,6 +38,14 @@ func StringToInt64(s string) int64 {
 		return int64(res)
 	}
 }
+func StringToUint(s string) uint {
+	if res, err := strconv.Atoi(s); err != nil {
+		logger.Error(err)
+		return 0
+	} else {
+		return uint(res)
+	}
+}
 
 //FindServerConfig 查找服务器配置
 func FindServerConfig(servers map[string]*treaty.Server, serverId string) *treaty.Server {

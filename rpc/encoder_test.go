@@ -1,16 +1,17 @@
 package rpc
 
 import (
+	"testing"
+
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/serialize"
 	"github.com/jqiris/kungfu/v2/treaty"
-	"testing"
 )
 
 func TestRpcEncoder(t *testing.T) {
 	coder := NewRpcEncoder(serialize.NewJsonSerializer())
 	eData, err := coder.Encode(&MsgRpc{
-		MsgType: Publish,
+		MsgType: MsgTypePublish,
 		MsgId:   int32(treaty.MsgId_Msg_Login_Request),
 		MsgData: &treaty.LoginRequest{
 			Uid:      1001,

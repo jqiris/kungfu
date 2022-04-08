@@ -50,6 +50,9 @@ func (s *ServerBase) SetInnerMsgHandler(handler MsgHandler) {
 }
 
 func (s *ServerBase) Init() {
+	//init default rpc
+	defRpcInit()
+	//init current server
 	if s.Server == nil {
 		panic("服务配置信息不能为空")
 	}

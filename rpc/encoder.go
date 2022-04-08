@@ -12,9 +12,9 @@ type MessageType byte
 
 // Message types
 const (
-	Request  MessageType = 0x00
-	Publish              = 0x01
-	Response             = 0x02
+	MsgTypeRequest  MessageType = 0x00
+	MsgTypePublish              = 0x01
+	MsgTypeResponse             = 0x02
 )
 const (
 	msgHeadLength = 0x08
@@ -108,7 +108,7 @@ func (r *DefaultRpcEncoder) DecodeMsg(data []byte, v any) error {
 
 func (r *DefaultRpcEncoder) Response(v any) []byte {
 	rpcMsg := &MsgRpc{
-		MsgType: Response,
+		MsgType: MsgTypeResponse,
 		MsgId:   0,
 		MsgData: v,
 	}
