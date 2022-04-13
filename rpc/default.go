@@ -17,6 +17,11 @@ func defRpcInit() {
 	})
 }
 
+//公用调用方法
+func DefRpcInit() {
+	defRpcInit()
+}
+
 func Publish(s ReqBuilder) error {
 	return defRpc.Publish(s)
 }

@@ -46,18 +46,38 @@ func GetDiscoverConf() DiscoverConf {
 	return config.Discover
 }
 
+func SetDiscoverConf(cfg DiscoverConf) {
+	config.Discover = cfg
+}
+
 func GetRpcConf() RpcConf {
 	return config.Rpc
+}
+
+func SetRpcConf(cfg RpcConf) {
+	config.Rpc = cfg
 }
 
 func GetStoresConf() StoresConf {
 	return config.Stores
 }
 
+func SetStoresConf(cfg StoresConf) {
+	config.Stores = cfg
+}
+
 func GetConnectorConf() ConnectorConf {
 	return config.Connector
 }
 
+func SetConnectorConf(cfg ConnectorConf) {
+	config.Connector = cfg
+}
+
 func GetServersConf() map[string]*treaty.Server {
 	return config.Servers
+}
+
+func SetServersConf(cfg map[string]*treaty.Server) {
+	config.Servers = cfg
 }
