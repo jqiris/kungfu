@@ -2,10 +2,11 @@ package jobs
 
 import (
 	"fmt"
-	"github.com/jqiris/kungfu/v2/logger"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/jqiris/kungfu/v2/logger"
 )
 
 type JobTest struct {
@@ -68,5 +69,11 @@ func TestJobs(t *testing.T) {
 
 	job5 := &JobTest{name: "任务5"}
 	keeper.AddJob(0, job5)
+	select {}
+}
+
+func TestDefJob(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+	keeper.AddJob(3*time.Second, NewJob(func() { logger.Warn("welcome") }, WithRepeat(2)), true)
 	select {}
 }

@@ -36,6 +36,7 @@ type JobItem struct {
 	AddTime   int64     //添加时间
 	StartTime int64     //开始时间
 	Worker    JobWorker //任务对象
+	Debug     bool      //是否调试
 }
 
 func (s *JobItem) ExecJob() {
@@ -63,25 +64,32 @@ func (s *JobItem) FinishJob() {
 		return
 	}
 	worker.JobFinish()
-	finishTime := time.Now().Unix()
-	logger.Infof(
-		"job finished,name:%v,addtime:%v,starttime:%v,endtime:%v, total:%v秒, deal:%v秒",
-		worker.Name(),
-		s.AddTime,
-		s.StartTime,
-		finishTime,
-		finishTime-s.AddTime,
-		finishTime-s.StartTime,
-	)
+	if s.Debug {
+		finishTime := time.Now().Unix()
+		logger.Infof(
+			"job finished,name:%v,addtime:%v,starttime:%v,endtime:%v, total:%v秒, deal:%v秒",
+			worker.Name(),
+			s.AddTime,
+			s.StartTime,
+			finishTime,
+			finishTime-s.AddTime,
+			finishTime-s.StartTime,
+		)
+	}
 }
 
-func NewJobItem(delay time.Duration, worker JobWorker) *JobItem {
+func NewJobItem(delay time.Duration, worker JobWorker, args ...bool) *JobItem {
+	debug := false
+	if len(args) > 0 {
+		debug = true
+	}
 	nowTime := time.Now()
 	startTime := nowTime.Add(delay)
 	return &JobItem{
 		AddTime:   nowTime.Unix(),
 		StartTime: startTime.Unix(),
 		Worker:    worker,
+		Debug:     debug,
 	}
 }
 
@@ -143,8 +151,8 @@ func NewJobKeeper() *JobKeeper {
 	}
 }
 
-func (k *JobKeeper) AddJob(delay time.Duration, job JobWorker) {
-	jobItem := NewJobItem(delay, job)
+func (k *JobKeeper) AddJob(delay time.Duration, job JobWorker, args ...bool) {
+	jobItem := NewJobItem(delay, job, args...)
 	k.AddChan <- jobItem
 }
 
