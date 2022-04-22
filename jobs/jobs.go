@@ -19,8 +19,12 @@ func init() {
 	keeper.ExecJob()
 }
 
-func AddJob(delay time.Duration, job JobWorker) {
-	go keeper.AddJob(delay, job)
+func AddJob(delay time.Duration, job JobWorker, options ...ItemOption) {
+	go keeper.AddJob(delay, job, options...)
+}
+
+func DelJob(id int64) {
+	keeper.DelJob(id)
 }
 
 type JobWorker interface {
@@ -33,6 +37,7 @@ type JobWorker interface {
 }
 
 type JobItem struct {
+	JobId     int64     //任务标识
 	AddTime   int64     //添加时间
 	StartTime int64     //开始时间
 	Worker    JobWorker //任务对象
@@ -78,19 +83,18 @@ func (s *JobItem) FinishJob() {
 	}
 }
 
-func NewJobItem(delay time.Duration, worker JobWorker, args ...bool) *JobItem {
-	debug := false
-	if len(args) > 0 {
-		debug = true
-	}
+func NewJobItem(delay time.Duration, worker JobWorker, options ...ItemOption) *JobItem {
 	nowTime := time.Now()
 	startTime := nowTime.Add(delay)
-	return &JobItem{
+	job := &JobItem{
 		AddTime:   nowTime.Unix(),
 		StartTime: startTime.Unix(),
 		Worker:    worker,
-		Debug:     debug,
 	}
+	for _, option := range options {
+		option(job)
+	}
+	return job
 }
 
 type JobQueue struct {
@@ -117,17 +121,25 @@ func (s *JobQueue) ExeJob() {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	s.JobItems.RangePop(func(item any) bool {
-		if job, ok := item.(*JobItem); ok {
-			if job != nil {
-				go utils.SafeRun(func() {
-					if job.Worker != nil {
-						job.Worker.BeforeExec()
-					}
-					job.ExecJob()
-				})
-			}
+		if job, ok := item.(*JobItem); ok && job != nil {
+			go utils.SafeRun(func() {
+				if job.Worker != nil {
+					job.Worker.BeforeExec()
+				}
+				job.ExecJob()
+			})
 		}
 		return true
+	})
+}
+func (s *JobQueue) DelJob(delId int64) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	s.JobItems.RangePop(func(item any) bool {
+		if job, ok := item.(*JobItem); ok && job != nil {
+			return job.JobId == delId
+		}
+		return false
 	})
 }
 
@@ -141,19 +153,26 @@ type JobKeeper struct {
 	List    JobQueues
 	Index   map[int64]*JobQueue
 	AddChan chan *JobItem
+	IdList  map[int64]map[int64]int
+	DelChan chan int64 //删除id任务
 }
 
 func NewJobKeeper() *JobKeeper {
 	return &JobKeeper{
 		List:    make(JobQueues, 0),
 		Index:   make(map[int64]*JobQueue),
+		IdList:  make(map[int64]map[int64]int),
 		AddChan: make(chan *JobItem, 20),
+		DelChan: make(chan int64, 20),
 	}
 }
 
-func (k *JobKeeper) AddJob(delay time.Duration, job JobWorker, args ...bool) {
-	jobItem := NewJobItem(delay, job, args...)
+func (k *JobKeeper) AddJob(delay time.Duration, job JobWorker, options ...ItemOption) {
+	jobItem := NewJobItem(delay, job, options...)
 	k.AddChan <- jobItem
+}
+func (k *JobKeeper) DelJob(id int64) {
+	k.DelChan <- id
 }
 
 func (k *JobKeeper) ExecJob() {
@@ -188,6 +207,20 @@ func (k *JobKeeper) ExecJob() {
 					k.Index[sTime] = qs
 					k.List = append(k.List, qs)
 					sort.Sort(k.List)
+				}
+				if jobItem.JobId > 0 {
+					if _, ok := k.IdList[jobItem.JobId]; !ok {
+						k.IdList[jobItem.JobId] = make(map[int64]int)
+					}
+					k.IdList[jobItem.JobId][sTime]++
+				}
+			case delId := <-k.DelChan:
+				if list, ok := k.IdList[delId]; ok {
+					for sTime := range list {
+						if q, ok := k.Index[sTime]; ok {
+							q.DelJob(delId)
+						}
+					}
 				}
 			}
 		}

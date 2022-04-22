@@ -74,6 +74,14 @@ func TestJobs(t *testing.T) {
 
 func TestDefJob(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
-	keeper.AddJob(3*time.Second, NewJob(func() { logger.Warn("welcome") }, WithRepeat(2)), true)
+	AddJob(3*time.Second, NewJob(func() { logger.Warn("welcome") }, WithRepeat(2), WithName("test job")), WithItemDebug(true), WithItemId(126))
+	a := []string{"a", "b", "c"}
+	for _, v := range a {
+		item := v
+		AddJob(3*time.Second, NewJob(func() { logger.Info(item) }))
+	}
+	time.AfterFunc(1*time.Second, func() {
+		// DelJob(126)
+	})
 	select {}
 }

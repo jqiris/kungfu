@@ -5,6 +5,7 @@ import (
 )
 
 type Job struct {
+	name     string        //任务名称
 	interval time.Duration //任务间隔
 	repeat   int           //重复次数
 	count    int           //尝试次数
@@ -16,6 +17,7 @@ func NewJob(worker func(), options ...Option) *Job {
 		worker: worker,
 		count:  0,
 		repeat: 1,
+		name:   "job",
 	}
 	for _, option := range options {
 		option(job)
@@ -27,7 +29,7 @@ func NewJob(worker func(), options ...Option) *Job {
 }
 
 func (j *Job) Name() string {
-	return "job"
+	return j.name
 }
 
 func (j *Job) BeforeExec() {

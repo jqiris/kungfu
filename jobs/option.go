@@ -18,3 +18,22 @@ func WithRepeat(repeat int) Option {
 		j.repeat = repeat
 	}
 }
+
+func WithName(name string) Option {
+	return func(j *Job) {
+		j.name = name
+	}
+}
+
+type ItemOption func(j *JobItem)
+
+func WithItemId(id int64) ItemOption {
+	return func(j *JobItem) {
+		j.JobId = id
+	}
+}
+func WithItemDebug(debug bool) ItemOption {
+	return func(j *JobItem) {
+		j.Debug = debug
+	}
+}
