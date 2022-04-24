@@ -24,7 +24,7 @@ func AddJob(delay time.Duration, job JobWorker, options ...ItemOption) {
 }
 
 func DelJob(id int64) {
-	keeper.DelJob(id)
+	go keeper.DelJob(id)
 }
 
 type JobWorker interface {
@@ -137,7 +137,11 @@ func (s *JobQueue) DelJob(delId int64) {
 	defer s.mutex.RUnlock()
 	s.JobItems.RangePop(func(item any) bool {
 		if job, ok := item.(*JobItem); ok && job != nil {
-			return job.JobId == delId
+			canDelete := job.JobId == delId
+			if canDelete && job.Debug {
+				logger.Infof("delete job %+v", job)
+			}
+			return canDelete
 		}
 		return false
 	})
@@ -222,6 +226,7 @@ func (k *JobKeeper) ExecJob() {
 						}
 					}
 				}
+				delete(k.IdList, delId)
 			}
 		}
 	}()
