@@ -70,9 +70,9 @@ func (s *JobItem) FinishJob() {
 	}
 	worker.JobFinish()
 	if s.Debug {
-		finishTime := time.Now().Unix()
+		finishTime := time.Now().UnixMilli()
 		logger.Infof(
-			"job finished,name:%v,addtime:%v,starttime:%v,endtime:%v, total:%v秒, deal:%v秒",
+			"job finished,name:%v,addtime:%v,starttime:%v,endtime:%v, total:%v毫秒, deal:%v毫秒",
 			worker.Name(),
 			s.AddTime,
 			s.StartTime,
@@ -87,8 +87,8 @@ func NewJobItem(delay time.Duration, worker JobWorker, options ...ItemOption) *J
 	nowTime := time.Now()
 	startTime := nowTime.Add(delay)
 	job := &JobItem{
-		AddTime:   nowTime.Unix(),
-		StartTime: startTime.Unix(),
+		AddTime:   nowTime.UnixMilli(),
+		StartTime: startTime.UnixMilli(),
 		Worker:    worker,
 	}
 	for _, option := range options {
@@ -115,6 +115,9 @@ func (s *JobQueue) AddJob(job *JobItem) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.JobItems.Push(job)
+	if job.Debug {
+		logger.Infof("add job %+v", job)
+	}
 }
 
 func (s *JobQueue) ExeJob() {
@@ -183,8 +186,8 @@ func (k *JobKeeper) ExecJob() {
 	go func() {
 		for {
 			select {
-			case <-time.After(1 * time.Second):
-				nowUnix := time.Now().Unix()
+			case now := <-time.After(100 * time.Millisecond):
+				nowUnix := now.UnixMilli()
 				var jobQueue *JobQueue
 				index, left := -1, false
 				for index, jobQueue = range k.List {
