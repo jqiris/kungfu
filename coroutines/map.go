@@ -34,74 +34,60 @@ func (m *NumberMap[K, V]) UnmarshalJSON(data []byte) error {
 	return utils.JsonUnmarshal(data, &m.data)
 }
 
-func (m *NumberMap[K, V]) getLock(args ...bool) bool {
-	lock := true
-	if len(args) > 0 {
-		lock = args[0]
-	}
-	return lock
-}
-
-func (m *NumberMap[K, V]) Load(k K, args ...bool) V {
-	if m.getLock(args...) {
-		m.lock.RLock()
-		defer m.lock.RUnlock()
-	}
+func (m *NumberMap[K, V]) Load(k K) V {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
 	return m.data[k]
 }
 
-func (m *NumberMap[K, V]) LoadOk(k K, args ...bool) (V, bool) {
-	if m.getLock(args...) {
-		m.lock.RLock()
-		defer m.lock.RUnlock()
-	}
+func (m *NumberMap[K, V]) LoadOk(k K) (V, bool) {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
 	v, ok := m.data[k]
 	return v, ok
 }
 
-func (m *NumberMap[K, V]) Store(k K, v V, args ...bool) {
-	if m.getLock(args...) {
-		m.lock.Lock()
-		defer m.lock.Unlock()
-	}
+func (m *NumberMap[K, V]) Store(k K, v V) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	m.data[k] = v
 }
 
-func (m *NumberMap[K, V]) Incre(k K, increment V, args ...bool) {
-	if m.getLock(args...) {
-		m.lock.Lock()
-		defer m.lock.Unlock()
-	}
+func (m *NumberMap[K, V]) Incre(k K, increment V) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	m.data[k] += increment
 }
-func (m *NumberMap[K, V]) IncreOne(k K, args ...bool) {
-	if m.getLock(args...) {
-		m.lock.Lock()
-		defer m.lock.Unlock()
-	}
+func (m *NumberMap[K, V]) IncreOne(k K) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	m.data[k] += 1
 }
 
-func (m *NumberMap[K, V]) Decre(k K, decrement V, args ...bool) {
-	if m.getLock(args...) {
-		m.lock.Lock()
-		defer m.lock.Unlock()
-	}
+func (m *NumberMap[K, V]) Decre(k K, decrement V) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	m.data[k] -= decrement
 }
 
-func (m *NumberMap[K, V]) DecreOne(k K, args ...bool) {
-	if m.getLock(args...) {
-		m.lock.Lock()
-		defer m.lock.Unlock()
-	}
+func (m *NumberMap[K, V]) DecreOne(k K) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	m.data[k] -= 1
+}
+func (m *NumberMap[K, V]) clone() map[K]V {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	data := make(map[K]V)
+	for k, v := range m.data {
+		data[k] = v
+	}
+	return data
 }
 
 func (m *NumberMap[K, V]) Range(visit func(k K, v V) bool) {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-	for k, v := range m.data {
+	data := m.clone()
+	for k, v := range data {
 		if !visit(k, v) {
 			break
 		}
