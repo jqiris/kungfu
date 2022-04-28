@@ -10,6 +10,11 @@ import (
 
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/treaty"
+	jsoniter "github.com/json-iterator/go"
+)
+
+var (
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 func StringToInt(s string) int {
@@ -113,4 +118,20 @@ func RangeRand(min, max int) int {
 		panic("param is wrong!")
 	}
 	return rand.Intn(max-min+1) + min
+}
+
+func Stringify(data any) string {
+	bs, err := json.Marshal(data)
+	if err != nil {
+		logger.Error(err)
+	}
+	return string(bs)
+}
+
+func JsonMarshal(data any) ([]byte, error) {
+	return json.Marshal(data)
+}
+
+func JsonUnmarshal(data []byte, v any) error {
+	return json.Unmarshal(data, v)
 }
