@@ -14,7 +14,7 @@ type JobTest struct {
 	times int
 }
 
-func (j *JobTest) Name() string {
+func (j *JobTest) String() string {
 	return "测试任务:" + j.name
 }
 
@@ -74,14 +74,14 @@ func TestJobs(t *testing.T) {
 
 func TestDefJob(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
-	AddJob(3*time.Second, NewJob(func() { logger.Warn("welcome") }, WithRepeat(2), WithName("test job")), WithItemDebug(true), WithItemId(126))
+	AddJob(3*time.Second, NewJob(func() { logger.Warn("welcome") }, WithRepeat(2), WithName("test job"), WithInterval(2*time.Second)), WithItemDebug(true), WithItemId(126))
 	a := []string{"a", "b", "c"}
 	for _, v := range a {
 		item := v
 		AddJob(3*time.Second, NewJob(func() { logger.Info(item) }))
 	}
-	// time.AfterFunc(3*time.Second, func() {
-	// 	DelJob(126)
-	// })
+	time.AfterFunc(4*time.Second, func() {
+		DelJob(126)
+	})
 	select {}
 }

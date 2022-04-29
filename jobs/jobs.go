@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jqiris/kungfu/v2/ds"
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/utils"
@@ -24,11 +25,11 @@ func AddJob(delay time.Duration, job JobWorker, options ...ItemOption) {
 }
 
 func DelJob(id int64) {
-	go keeper.DelJob(id)
+	keeper.DelJob(id)
 }
 
 type JobWorker interface {
-	Name() string                    //任务名称
+	String() string                  //任务名称
 	BeforeExec()                     //任务执行前操作
 	CanExec() bool                   //是否可以执行
 	JobExec() bool                   //执行任务,返回执行是否完成
@@ -39,9 +40,11 @@ type JobWorker interface {
 type JobItem struct {
 	JobId     int64     //任务标识
 	AddTime   int64     //添加时间
-	StartTime int64     //开始时间
+	BeginTime int64     //开始时间
 	Worker    JobWorker //任务对象
+	StartTime int64     //开始时间
 	Debug     bool      //是否调试
+	Id        string    //任务唯一标识
 }
 
 func (s *JobItem) ExecJob() {
@@ -54,7 +57,8 @@ func (s *JobItem) ExecJob() {
 			s.FinishJob()
 		} else {
 			if next, delay := worker.FailNext(); next {
-				time.AfterFunc(delay, s.ExecJob)
+				s.StartTime = time.Now().Add(delay).UnixMilli()
+				keeper.AddChan <- s
 			} else {
 				s.FinishJob()
 			}
@@ -72,14 +76,15 @@ func (s *JobItem) FinishJob() {
 	if s.Debug {
 		finishTime := time.Now().UnixMilli()
 		logger.Infof(
-			"job finished,jobId:%v,name:%v,addtime:%v,starttime:%v,endtime:%v, total:%v毫秒, deal:%v毫秒",
+			"job finished,JobId:%v, AddTime:%v, BeginTime:%v, Worker:%v, EndTime:%v, Total:%v毫秒, Deal:%v毫秒, Id:%v",
 			s.JobId,
-			worker.Name(),
 			s.AddTime,
-			s.StartTime,
+			s.BeginTime,
+			worker,
 			finishTime,
 			finishTime-s.AddTime,
-			finishTime-s.StartTime,
+			finishTime-s.BeginTime,
+			s.Id,
 		)
 	}
 }
@@ -88,8 +93,10 @@ func NewJobItem(delay time.Duration, worker JobWorker, options ...ItemOption) *J
 	nowTime := time.Now()
 	startTime := nowTime.Add(delay)
 	job := &JobItem{
+		Id:        uuid.NewString(),
 		AddTime:   nowTime.UnixMilli(),
 		StartTime: startTime.UnixMilli(),
+		BeginTime: startTime.UnixMilli(),
 		Worker:    worker,
 	}
 	for _, option := range options {
@@ -162,7 +169,7 @@ type JobKeeper struct {
 	Index   map[int64]*JobQueue
 	AddChan chan *JobItem
 	IdList  map[int64]map[int64]int
-	DelChan chan int64 //删除id任务
+	IdLock  *sync.Mutex
 }
 
 func NewJobKeeper() *JobKeeper {
@@ -171,7 +178,7 @@ func NewJobKeeper() *JobKeeper {
 		Index:   make(map[int64]*JobQueue),
 		IdList:  make(map[int64]map[int64]int),
 		AddChan: make(chan *JobItem, 20),
-		DelChan: make(chan int64, 20),
+		IdLock:  new(sync.Mutex),
 	}
 }
 
@@ -179,8 +186,17 @@ func (k *JobKeeper) AddJob(delay time.Duration, job JobWorker, options ...ItemOp
 	jobItem := NewJobItem(delay, job, options...)
 	k.AddChan <- jobItem
 }
-func (k *JobKeeper) DelJob(id int64) {
-	k.DelChan <- id
+func (k *JobKeeper) DelJob(delId int64) {
+	k.IdLock.Lock()
+	defer k.IdLock.Unlock()
+	if list, ok := k.IdList[delId]; ok {
+		for sTime := range list {
+			if q, ok := k.Index[sTime]; ok {
+				q.DelJob(delId)
+			}
+		}
+	}
+	delete(k.IdList, delId)
 }
 
 func (k *JobKeeper) ExecJob() {
@@ -217,20 +233,13 @@ func (k *JobKeeper) ExecJob() {
 					sort.Sort(k.List)
 				}
 				if jobItem.JobId > 0 {
+					k.IdLock.Lock()
 					if _, ok := k.IdList[jobItem.JobId]; !ok {
 						k.IdList[jobItem.JobId] = make(map[int64]int)
 					}
 					k.IdList[jobItem.JobId][sTime]++
+					k.IdLock.Unlock()
 				}
-			case delId := <-k.DelChan:
-				if list, ok := k.IdList[delId]; ok {
-					for sTime := range list {
-						if q, ok := k.Index[sTime]; ok {
-							q.DelJob(delId)
-						}
-					}
-				}
-				delete(k.IdList, delId)
 			}
 		}
 	}()
