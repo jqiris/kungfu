@@ -22,6 +22,10 @@ func NewNumberMap[k comparable, v Number]() *NumberMap[k, v] {
 	}
 }
 
+func (m *NumberMap[K, V]) String() string {
+	return utils.Stringify(m.data)
+}
+
 func (m *NumberMap[K, V]) MarshalJSON() ([]byte, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()

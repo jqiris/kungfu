@@ -28,6 +28,10 @@ func NewJob(worker func(), options ...Option) *Job {
 	return job
 }
 
+func (j *Job) String() string {
+	return j.name
+}
+
 func (j *Job) Name() string {
 	return j.name
 }
