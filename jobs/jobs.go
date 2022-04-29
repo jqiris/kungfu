@@ -72,7 +72,8 @@ func (s *JobItem) FinishJob() {
 	if s.Debug {
 		finishTime := time.Now().UnixMilli()
 		logger.Infof(
-			"job finished,name:%v,addtime:%v,starttime:%v,endtime:%v, total:%v毫秒, deal:%v毫秒",
+			"job finished,jobId:%v,name:%v,addtime:%v,starttime:%v,endtime:%v, total:%v毫秒, deal:%v毫秒",
+			s.JobId,
 			worker.Name(),
 			s.AddTime,
 			s.StartTime,

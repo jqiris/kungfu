@@ -80,8 +80,8 @@ func TestDefJob(t *testing.T) {
 		item := v
 		AddJob(3*time.Second, NewJob(func() { logger.Info(item) }))
 	}
-	time.AfterFunc(3*time.Second, func() {
-		DelJob(126)
-	})
+	// time.AfterFunc(3*time.Second, func() {
+	// 	DelJob(126)
+	// })
 	select {}
 }
