@@ -19,7 +19,7 @@ var (
 
 func StringToInt(s string) int {
 	if res, err := strconv.Atoi(s); err != nil {
-		logger.Error(err)
+		logger.Debug(err)
 		return 0
 	} else {
 		return res
@@ -28,7 +28,7 @@ func StringToInt(s string) int {
 
 func StringToInt32(s string) int32 {
 	if res, err := strconv.Atoi(s); err != nil {
-		logger.Error(err)
+		logger.Debug(err)
 		return 0
 	} else {
 		return int32(res)
@@ -37,7 +37,7 @@ func StringToInt32(s string) int32 {
 
 func StringToInt64(s string) int64 {
 	if res, err := strconv.Atoi(s); err != nil {
-		logger.Error(err)
+		logger.Debug(err)
 		return 0
 	} else {
 		return int64(res)
@@ -45,7 +45,7 @@ func StringToInt64(s string) int64 {
 }
 func StringToUint(s string) uint {
 	if res, err := strconv.Atoi(s); err != nil {
-		logger.Error(err)
+		logger.Debug(err)
 		return 0
 	} else {
 		return uint(res)
