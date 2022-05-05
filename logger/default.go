@@ -1,12 +1,10 @@
 package logger
 
-import "context"
-
 var (
 	defLogger = NewLogger()
 )
 
-func SetLogger(l *Logger, cancel context.CancelFunc) {
+func SetLogger(l *Logger) {
 	defLogger = l
 }
 
