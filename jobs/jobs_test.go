@@ -78,7 +78,7 @@ func TestDefJob(t *testing.T) {
 	a := []string{"a", "b", "c"}
 	for _, v := range a {
 		item := v
-		AddJob(3*time.Second, NewJob(func() { logger.Info(item) }))
+		AddJob(5*time.Second, NewJob(func() { logger.Info(item) }))
 	}
 	time.AfterFunc(4*time.Second, func() {
 		DelJob(126)

@@ -12,7 +12,9 @@ func TestLoggerColor(t *testing.T) {
 	//	t.Fatal(err)
 	//}
 
-	Fatal("hello world")
+	Info("hello world")
+	n := defLogger.WithPrefix("welcome")
+	n.Info("hello world2")
 	select {}
 
 }

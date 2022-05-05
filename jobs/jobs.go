@@ -183,8 +183,8 @@ type JobKeeper struct {
 	List    JobQueues
 	Index   map[int64]*JobQueue
 	AddChan chan *JobItem
+	DelChan chan int64
 	IdList  map[int64]map[int64]int
-	IdLock  *sync.Mutex
 }
 
 func NewJobKeeper() *JobKeeper {
@@ -193,7 +193,7 @@ func NewJobKeeper() *JobKeeper {
 		Index:   make(map[int64]*JobQueue),
 		IdList:  make(map[int64]map[int64]int),
 		AddChan: make(chan *JobItem, 20),
-		IdLock:  new(sync.Mutex),
+		DelChan: make(chan int64, 20),
 	}
 }
 
@@ -201,9 +201,12 @@ func (k *JobKeeper) AddJob(delay time.Duration, job JobWorker, options ...ItemOp
 	jobItem := NewJobItem(delay, job, options...)
 	k.AddChan <- jobItem
 }
+
 func (k *JobKeeper) DelJob(delId int64) {
-	k.IdLock.Lock()
-	defer k.IdLock.Unlock()
+	k.DelChan <- delId
+}
+
+func (k *JobKeeper) delJob(delId int64) {
 	if list, ok := k.IdList[delId]; ok {
 		for sTime := range list {
 			if q, ok := k.Index[sTime]; ok {
@@ -218,6 +221,8 @@ func (k *JobKeeper) ExecJob() {
 	go func() {
 		for {
 			select {
+			case delId := <-k.DelChan:
+				k.delJob(delId)
 			case now := <-time.After(100 * time.Millisecond):
 				nowUnix := now.UnixMilli()
 				var jobQueue *JobQueue
@@ -235,8 +240,16 @@ func (k *JobKeeper) ExecJob() {
 				} else {
 					k.List = []*JobQueue{}
 				}
-
 			case jobItem := <-k.AddChan:
+			priority:
+				for {
+					select {
+					case delId := <-k.DelChan:
+						k.delJob(delId)
+					default:
+						break priority
+					}
+				}
 				sTime := jobItem.StartTime
 				if q, ok := k.Index[sTime]; ok {
 					q.AddJob(jobItem)
@@ -248,12 +261,10 @@ func (k *JobKeeper) ExecJob() {
 					sort.Sort(k.List)
 				}
 				if jobItem.JobId > 0 {
-					k.IdLock.Lock()
 					if _, ok := k.IdList[jobItem.JobId]; !ok {
 						k.IdList[jobItem.JobId] = make(map[int64]int)
 					}
 					k.IdList[jobItem.JobId][sTime]++
-					k.IdLock.Unlock()
 				}
 			}
 		}

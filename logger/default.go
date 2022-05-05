@@ -3,13 +3,15 @@ package logger
 import "context"
 
 var (
-	defLogger, defCancel = NewLogger()
+	defLogger = NewLogger()
 )
 
 func SetLogger(l *Logger, cancel context.CancelFunc) {
 	defLogger = l
-	defCancel()
-	defCancel = cancel
+}
+
+func WithPrefix(prefix string) *Logger {
+	return defLogger.WithPrefix(prefix)
 }
 
 func Fatal(txt ...any) {
