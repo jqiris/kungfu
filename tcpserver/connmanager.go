@@ -2,8 +2,9 @@ package tcpserver
 
 import (
 	"errors"
-	"github.com/jqiris/kungfu/v2/logger"
 	"sync"
+
+	"github.com/jqiris/kungfu/v2/logger"
 
 	tcpface "github.com/jqiris/kungfu/v2/tcpface"
 )
@@ -56,6 +57,17 @@ func (connMgr *ConnManager) Get(connID int) (tcpface.IConnection, error) {
 	}
 }
 
+//获取所有连接
+func (connMgr *ConnManager) GetAll() map[int]tcpface.IConnection {
+	connMgr.connLock.RLock()
+	defer connMgr.connLock.RUnlock()
+	list := make(map[int]tcpface.IConnection)
+	for k, v := range connMgr.connections {
+		list[k] = v
+	}
+	return list
+}
+
 // Len 获取当前连接
 func (connMgr *ConnManager) Len() int {
 	return len(connMgr.connections)
@@ -64,19 +76,14 @@ func (connMgr *ConnManager) Len() int {
 // ClearConn 清除并停止所有连接
 func (connMgr *ConnManager) ClearConn() {
 	//保护共享资源Map 加写锁
-	connMgr.connLock.Lock()
-	defer connMgr.connLock.Unlock()
-
+	list := connMgr.GetAll()
 	//停止并删除全部的连接信息
-	for connID, conn := range connMgr.connections {
+	for _, conn := range list {
 		//停止
 		err := conn.Close()
 		if err != nil {
 			logger.Error(err)
 		}
-		//删除
-		delete(connMgr.connections, connID)
 	}
-
 	logger.Info("Clear All Connections successfully: conn num = ", connMgr.Len())
 }
