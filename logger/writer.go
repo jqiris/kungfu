@@ -28,6 +28,7 @@ type Writer struct {
 	zipEnd      time.Time     //zip压缩结束
 	tickTime    time.Duration //检查间隔
 	logChan     chan *LogItem
+	stopChan    chan struct{} //关闭chan
 }
 
 func newWriter() *Writer {
@@ -43,6 +44,7 @@ func newWriter() *Writer {
 		tickTime:    10 * time.Minute,
 		fileLock:    new(sync.Mutex),
 		logChan:     make(chan *LogItem, 100),
+		stopChan:    make(chan struct{}, 1),
 	}
 	go w.logWriting()
 	return w
@@ -144,6 +146,9 @@ func (w *Writer) logWriting() {
 			}
 		case <-time.After(w.tickTime):
 			w.checkDump() //每隔10分钟检查下转储
+		case <-w.stopChan:
+			fmt.Println("关闭日志写入器")
+			return
 		}
 	}
 }

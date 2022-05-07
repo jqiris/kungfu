@@ -80,4 +80,6 @@ func Shutdown() {
 			server.Shutdown()
 		}
 	}
+	//stop logger writer
+	logger.Shutdown()
 }
