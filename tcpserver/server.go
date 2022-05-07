@@ -95,7 +95,7 @@ func (s *Server) ListenAndServe(msgHandler tcpface.IMsgHandle, connHandler tcpfa
 	msgHandler.StartWorkerPool()
 
 	//1 获取一个TCP的Addr
-	addr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
+	addr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf(":%d", s.Port))
 	if err != nil {
 		logger.Info("resolve tcp addr err: ", err)
 		return
@@ -143,7 +143,7 @@ func (s *Server) ListenAndServeWs(msgHandler tcpface.IMsgHandle, connHandler tcp
 	msgHandler.StartWorkerPool()
 
 	//1 获取一个TCP的Addr
-	addr := fmt.Sprintf("%s:%d", s.IP, s.Port)
+	addr := fmt.Sprintf(":%d", s.Port)
 
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
