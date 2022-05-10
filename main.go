@@ -128,7 +128,7 @@ func main() {
 }
 
 func buildServer(cfg string, server *treaty.Server) ([]byte, error) {
-	args := []string{"build", "--build-arg", fmt.Sprintf("config_file=%v", cfg), "--build-arg", fmt.Sprintf("build_server=%v", server.ServerId), "--build-arg", fmt.Sprintf(`client_port=%v`, server.ClientPort), "-t", server.ServerName, "."}
+	args := []string{"build", "--build-arg", fmt.Sprintf("config_file=%v", cfg), "--build-arg", fmt.Sprintf("run_server=%v", server.ServerId), "--build-arg", fmt.Sprintf(`client_port=%v`, server.ClientPort), "-t", server.ServerName, "."}
 	cmd := exec.Command("docker", args...)
 	logger.Info(cmd.String())
 	return cmd.Output()
