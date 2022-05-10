@@ -13,14 +13,10 @@ ARG client_port
 ENV TZ Asia/Shanghai
 ENV run_mode = docker
 ENV run_server = ${run_server}
-
 COPY --from=builder /src/server /app
-
 WORKDIR /app
-
 EXPOSE ${client_port}
 VOLUME /data/conf
 VOLUME /data/logs
 COPY ${config_file} /data/conf/config.json
 ENTRYPOINT ["/app/server", "-conf", "/data/conf/config.json"]	
-	

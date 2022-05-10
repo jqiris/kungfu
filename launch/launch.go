@@ -35,7 +35,7 @@ func RegisterCreator(typ string, creator rpc.ServerCreator) {
 func Startup() {
 	//run servers
 	servers := config.GetServersConf()
-	runMode, runServer := viper.GetString("run_mode"), viper.GetString("run_server")
+	runMode, runServer := viper.GetString("RUN_MODE"), viper.GetString("RUN_SERVER")
 	logger.Infof("Startup, runMode:%v,runServer:%v", runMode, runServer)
 	if runMode == "docker" {
 		if runServer == "" {
