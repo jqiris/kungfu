@@ -7,6 +7,7 @@ import (
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/rpc"
 	"github.com/jqiris/kungfu/v2/treaty"
+	"github.com/spf13/viper"
 )
 
 //服务器集群管理
@@ -34,6 +35,41 @@ func RegisterCreator(typ string, creator rpc.ServerCreator) {
 func Startup() {
 	//run servers
 	servers := config.GetServersConf()
+	runMode, runServer := viper.GetString("run_mode"), viper.GetString("run_server")
+	logger.Infof("Startup, runMode:%v,runServer:%v", runMode, runServer)
+	if runMode == "docker" {
+		if runServer == "" {
+			logger.Fatal("请指定编译服务器")
+		}
+		if server, ok := servers[runServer]; ok {
+			StartUpServer(server)
+		} else {
+			logger.Fatalf("找不到编译服务器:%v", runServer)
+		}
+	} else {
+		StartUpAll(servers)
+	}
+
+}
+
+func StartUpServer(cfg *treaty.Server) {
+	launchArr = append(launchArr, cfg)
+	creator := creators[cfg.ServerType]
+	if creator == nil {
+		logger.Fatalf("创建者为空，配置:%+v", cfg)
+		return
+	}
+	server, err := creator(cfg)
+	if err != nil {
+		logger.Fatalf("创建服务失败，配置:%+v", cfg)
+		return
+	}
+	server.Init()
+	launched[cfg.ServerId] = server
+	StartUpAfterInit()
+}
+
+func StartUpAll(servers map[string]*treaty.Server) {
 	for _, cfg := range servers {
 		if cfg.IsLaunch {
 			launchArr = append(launchArr, cfg)
@@ -56,7 +92,10 @@ func Startup() {
 		server.Init()
 		launched[cfg.ServerId] = server
 	}
+	StartUpAfterInit()
+}
 
+func StartUpAfterInit() {
 	for _, cfg := range launchArr {
 		if server, ok := launched[cfg.ServerId]; ok {
 			server.AfterInit()
