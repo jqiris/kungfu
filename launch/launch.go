@@ -7,7 +7,7 @@ import (
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/rpc"
 	"github.com/jqiris/kungfu/v2/treaty"
-	"github.com/spf13/viper"
+	"github.com/jqiris/kungfu/v2/utils"
 )
 
 //服务器集群管理
@@ -35,7 +35,7 @@ func RegisterCreator(typ string, creator rpc.ServerCreator) {
 func Startup() {
 	//run servers
 	servers := config.GetServersConf()
-	runMode, runServer := viper.GetString("RUN_MODE"), viper.GetString("RUN_SERVER")
+	runMode, runServer := utils.GetEnvDefault("run_mode", "normal"), utils.GetEnvDefault("run_server", "")
 	logger.Infof("Startup, runMode:%v,runServer:%v", runMode, runServer)
 	if runMode == "docker" {
 		if runServer == "" {
