@@ -17,21 +17,38 @@ func main() {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "data",
-				Aliases: []string{"c"},
+				Aliases: []string{"d"},
 				Usage:   "set the data dir",
+			},
+			&cli.StringFlag{
+				Name:    "config",
+				Aliases: []string{"c"},
+				Usage:   "set the config file",
 			},
 			&cli.StringFlag{
 				Name:    "version",
 				Aliases: []string{"v"},
 				Usage:   "build version",
 			},
+			&cli.StringFlag{
+				Name:    "network",
+				Aliases: []string{"n"},
+				Usage:   "run network",
+			},
 		},
 		Commands: []*cli.Command{
 			{
 				Name:  "data",
-				Usage: "set data dir",
+				Usage: "view or set data dir",
 				Action: func(c *cli.Context) error {
 					return service.workDir(c)
+				},
+			},
+			{
+				Name:  "config",
+				Usage: "view or set config path",
+				Action: func(c *cli.Context) error {
+					return service.config(c)
 				},
 			},
 			{
@@ -39,6 +56,13 @@ func main() {
 				Usage: "view or set build version",
 				Action: func(c *cli.Context) error {
 					return service.version(c)
+				},
+			},
+			{
+				Name:  "network",
+				Usage: "view or set network",
+				Action: func(c *cli.Context) error {
+					return service.netView(c)
 				},
 			},
 			{
