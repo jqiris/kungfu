@@ -26,3 +26,4 @@ deploy/nats/streaming3/log/
 /logs/
 examples/nano_demo/logs/
 .lh/
+.ini
