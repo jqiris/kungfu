@@ -19,15 +19,16 @@ import (
 )
 
 var (
-	Null          = "null"
-	storePath     = ".ini"
-	dockerVer     = "DockerVer"
-	dockerPrefix  = "DockerPrefix"
-	dockerData    = "DockerData"
-	dockerConfig  = "DockerConfig"
-	dockerNetwork = "DockerNetwork"
-	dockerPath    = "Dockerfile"
-	dockerTml     = `
+	Null           = "null"
+	storePath      = ".ini"
+	dockerVer      = "DockerVer"
+	dockerPrefix   = "DockerPrefix"
+	dockerData     = "DockerData"
+	dockerConfig   = "DockerConfig"
+	dockerNetwork  = "DockerNetwork"
+	dockerPath     = "Dockerfile"
+	dockerRegistry = "DockerRegistry"
+	dockerTml      = `
 FROM golang:1.18.1 AS builder
 
 COPY . /src
@@ -63,6 +64,7 @@ type MicroApp struct {
 	cfg     string
 	network string
 	prefix  string
+	depot   string
 	store   *ini.File
 }
 
@@ -237,6 +239,79 @@ func (m *MicroApp) start(c *cli.Context) error {
 			}
 		} else {
 			log.Fatalf("can't find the start server: %v", specialServer)
+		}
+	}
+	return nil
+}
+
+func (m *MicroApp) registryBefore(c *cli.Context) error {
+	cfg, err := ini.Load(storePath)
+	if err != nil {
+		return err
+	}
+	registry := m.getRegistry(cfg, c)
+	if len(registry) == 0 {
+		return errors.New("未设置仓库地址")
+	}
+	m.depot = registry
+	return nil
+}
+
+func (m *MicroApp) registryPush(c *cli.Context) error {
+	if err := m.prepare(c); err != nil {
+		return err
+	}
+	servers := config.GetServersConf()
+	specialServer := c.Args().Get(0)
+	if len(specialServer) < 1 {
+		for _, server := range servers {
+			if server.IsLaunch {
+				if bs, err := m.pushServer(m.depot, m.prefix, m.ver, server); err != nil {
+					return err
+				} else {
+					fmt.Printf("registry push result:%v\n", string(bs))
+				}
+			}
+		}
+	} else {
+		if server, ok := servers[specialServer]; ok {
+			if bs, err := m.pushServer(m.depot, m.prefix, m.ver, server); err != nil {
+				return err
+			} else {
+				fmt.Printf("registry push result:%v\n", string(bs))
+			}
+		} else {
+			log.Fatalf("can't find the registry push server: %v", specialServer)
+		}
+	}
+	return nil
+}
+
+func (m *MicroApp) registryPull(c *cli.Context) error {
+	if err := m.prepare(c); err != nil {
+		return err
+	}
+	servers := config.GetServersConf()
+	specialServer := c.Args().Get(0)
+	if len(specialServer) < 1 {
+		for _, server := range servers {
+			if server.IsLaunch {
+				if bs, err := m.pullServer(m.depot, m.prefix, m.ver, server); err != nil {
+					return err
+				} else {
+					fmt.Printf("registry pull result:%v\n", string(bs))
+				}
+			}
+		}
+	} else {
+		if server, ok := servers[specialServer]; ok {
+			if bs, err := m.pullServer(m.depot, m.prefix, m.ver, server); err != nil {
+				return err
+			} else {
+				fmt.Printf("registry pull result:%v\n", string(bs))
+			}
+		} else {
+			log.Fatalf("can't find the registry pull server: %v", specialServer)
 		}
 	}
 	return nil
@@ -443,6 +518,26 @@ func (m *MicroApp) config(c *cli.Context) error {
 	return nil
 }
 
+func (m *MicroApp) registry(c *cli.Context) error {
+	cfg, err := ini.Load(storePath)
+	if err != nil {
+		return err
+	}
+	configure := c.Args().Get(0)
+	if len(configure) > 0 {
+		m.setIniVar(cfg, dockerRegistry, configure)
+		fmt.Println("远程仓库地址设置成功")
+	} else {
+		configure = m.getIniVar(cfg, dockerRegistry)
+		if len(configure) == 0 {
+			fmt.Println("未设置远程仓库地址")
+		} else {
+			fmt.Printf("当前远程仓库地址为:%v\n", configure)
+		}
+	}
+	return nil
+}
+
 func (m *MicroApp) netView(c *cli.Context) error {
 	cfg, err := ini.Load(storePath)
 	if err != nil {
@@ -487,6 +582,11 @@ func (m *MicroApp) runImage(prefix, ver string, server *treaty.Server) string {
 	}
 	return fmt.Sprintf("%v_%v:%v", prefix, server.ServerId, ver)
 }
+
+func (m *MicroApp) runRemoteImage(depot, prefix, ver string, server *treaty.Server) string {
+	return fmt.Sprintf("%v/%v", depot, m.runImage(prefix, ver, server))
+}
+
 func (m *MicroApp) saveName(prefix, ver string, list []string) string {
 	item := strings.Join(list, "-")
 	if len(prefix) == 0 {
@@ -537,6 +637,65 @@ func (m *MicroApp) rmiServer(prefix, ver string, server *treaty.Server) ([]byte,
 	return cmd.Output()
 }
 
+func (m *MicroApp) pushServer(depot, prefix, ver string, server *treaty.Server) ([]byte, error) {
+	bs, err := m.imageTag(depot, prefix, ver, server)
+	if err != nil {
+		return bs, err
+	}
+	bs, err = m.imagePush(depot, prefix, ver, server)
+	if err != nil {
+		return bs, err
+	}
+	return m.imageRemoteClear(depot, prefix, ver, server)
+}
+
+func (m *MicroApp) pullServer(depot, prefix, ver string, server *treaty.Server) ([]byte, error) {
+	bs, err := m.imagePull(depot, prefix, ver, server)
+	if err != nil {
+		return bs, err
+	}
+	bs, err = m.imageUnTag(depot, prefix, ver, server)
+	if err != nil {
+		return bs, err
+	}
+	return m.imageRemoteClear(depot, prefix, ver, server)
+}
+
+func (m *MicroApp) imageTag(depot, prefix, ver string, server *treaty.Server) ([]byte, error) {
+	args := []string{"tag", m.runImage(prefix, ver, server), m.runRemoteImage(depot, prefix, ver, server)}
+	cmd := exec.Command("docker", args...)
+	fmt.Println(cmd.String())
+	return cmd.Output()
+}
+
+func (m *MicroApp) imagePush(depot, prefix, ver string, server *treaty.Server) ([]byte, error) {
+	args := []string{"push", m.runRemoteImage(depot, prefix, ver, server)}
+	cmd := exec.Command("docker", args...)
+	fmt.Println(cmd.String())
+	return cmd.Output()
+}
+
+func (m *MicroApp) imagePull(depot, prefix, ver string, server *treaty.Server) ([]byte, error) {
+	args := []string{"pull", m.runRemoteImage(depot, prefix, ver, server)}
+	cmd := exec.Command("docker", args...)
+	fmt.Println(cmd.String())
+	return cmd.Output()
+}
+
+func (m *MicroApp) imageUnTag(depot, prefix, ver string, server *treaty.Server) ([]byte, error) {
+	args := []string{"tag", m.runRemoteImage(depot, prefix, ver, server), m.runImage(prefix, ver, server)}
+	cmd := exec.Command("docker", args...)
+	fmt.Println(cmd.String())
+	return cmd.Output()
+}
+
+func (m *MicroApp) imageRemoteClear(depot, prefix, ver string, server *treaty.Server) ([]byte, error) {
+	args := []string{"rmi", m.runRemoteImage(depot, prefix, ver, server)}
+	cmd := exec.Command("docker", args...)
+	fmt.Println(cmd.String())
+	return cmd.Output()
+}
+
 func (m *MicroApp) clearServer(prefix, ver string, server *treaty.Server) {
 	bs, err := m.stopServer(prefix, ver, server)
 	fmt.Printf("stop server:%v, result,res:%v,err:%v \n", server.ServerId, string(bs), err)
@@ -576,6 +735,14 @@ func (m *MicroApp) getNetwork(cfg *ini.File, c *cli.Context) string {
 		network = tmp
 	}
 	return network
+}
+
+func (m *MicroApp) getRegistry(cfg *ini.File, c *cli.Context) string {
+	registry := m.getIniVar(cfg, dockerRegistry)
+	if tmp := c.String("registry"); len(tmp) > 0 {
+		registry = tmp
+	}
+	return registry
 }
 
 func (m *MicroApp) getPrefix(cfg *ini.File, c *cli.Context) string {

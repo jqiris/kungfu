@@ -40,6 +40,11 @@ func main() {
 				Aliases: []string{"p"},
 				Usage:   "run prefix",
 			},
+			&cli.StringFlag{
+				Name:    "registry",
+				Aliases: []string{"r"},
+				Usage:   "run prefix",
+			},
 		},
 		Commands: []*cli.Command{
 			{
@@ -54,6 +59,13 @@ func main() {
 				Usage: "view or set config path",
 				Action: func(c *cli.Context) error {
 					return service.config(c)
+				},
+			},
+			{
+				Name:  "registry",
+				Usage: "view or set registry addr",
+				Action: func(c *cli.Context) error {
+					return service.registry(c)
 				},
 			},
 			{
@@ -138,6 +150,29 @@ func main() {
 				Usage: "clear servers",
 				Action: func(c *cli.Context) error {
 					return service.clear(c)
+				},
+			},
+			{
+				Name:  "remote",
+				Usage: "remote registry operate",
+				Before: func(c *cli.Context) error {
+					return service.registryBefore(c)
+				},
+				Subcommands: []*cli.Command{
+					{
+						Name:  "push",
+						Usage: "push local images to registry",
+						Action: func(c *cli.Context) error {
+							return service.registryPush(c)
+						},
+					},
+					{
+						Name:  "pull",
+						Usage: "pull registry images to local",
+						Action: func(c *cli.Context) error {
+							return service.registryPull(c)
+						},
+					},
 				},
 			},
 		}}
