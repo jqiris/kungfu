@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 
 	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/logger"
@@ -18,8 +19,10 @@ import (
 )
 
 var (
+	Null          = "null"
 	storePath     = ".ini"
 	dockerVer     = "DockerVer"
+	dockerPrefix  = "DockerPrefix"
 	dockerData    = "DockerData"
 	dockerConfig  = "DockerConfig"
 	dockerNetwork = "DockerNetwork"
@@ -35,7 +38,12 @@ RUN GOPROXY=https://goproxy.cn CGO_ENABLED=0 GOOS=linux go build -a -installsuff
 FROM alpine
 ARG run_server
 ARG client_port
+# 时区控制
 ENV TZ Asia/Shanghai
+RUN echo "http://mirrors.aliyun.com/alpine/v3.4/main/" > /etc/apk/repositories \
+    && apk --no-cache add tzdata zeromq \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+    && echo '$TZ' > /etc/timezone
 ENV run_mode docker
 ENV run_server ${run_server}
 
@@ -54,6 +62,7 @@ type MicroApp struct {
 	data    string
 	cfg     string
 	network string
+	prefix  string
 	store   *ini.File
 }
 
@@ -70,12 +79,12 @@ func (m *MicroApp) clear(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				m.clearServer(m.ver, server)
+				m.clearServer(m.prefix, m.ver, server)
 			}
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			m.clearServer(m.ver, server)
+			m.clearServer(m.prefix, m.ver, server)
 		} else {
 			log.Fatalf("can't find the server: %v\n", specialServer)
 		}
@@ -92,7 +101,7 @@ func (m *MicroApp) rmi(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.rmiServer(m.ver, server); err != nil {
+				if bs, err := m.rmiServer(m.prefix, m.ver, server); err != nil {
 					return err
 				} else {
 					fmt.Printf("image rm result:%v\n", string(bs))
@@ -101,7 +110,7 @@ func (m *MicroApp) rmi(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.rmiServer(m.ver, server); err != nil {
+			if bs, err := m.rmiServer(m.prefix, m.ver, server); err != nil {
 				return err
 			} else {
 				fmt.Printf("image rm result:%v\n", string(bs))
@@ -122,7 +131,7 @@ func (m *MicroApp) rm(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.rmServer(m.ver, server); err != nil {
+				if bs, err := m.rmServer(m.prefix, m.ver, server); err != nil {
 					return err
 				} else {
 					fmt.Printf("server rm result:%v\n", string(bs))
@@ -131,7 +140,7 @@ func (m *MicroApp) rm(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.rmServer(m.ver, server); err != nil {
+			if bs, err := m.rmServer(m.prefix, m.ver, server); err != nil {
 				return err
 			} else {
 				fmt.Printf("server rm result:%v\n", string(bs))
@@ -151,7 +160,7 @@ func (m *MicroApp) stop(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.stopServer(m.ver, server); err != nil {
+				if bs, err := m.stopServer(m.prefix, m.ver, server); err != nil {
 					return err
 				} else {
 					fmt.Printf("server stop result:%v\n", string(bs))
@@ -160,7 +169,7 @@ func (m *MicroApp) stop(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.stopServer(m.ver, server); err != nil {
+			if bs, err := m.stopServer(m.prefix, m.ver, server); err != nil {
 				return err
 			} else {
 				fmt.Printf("server stop result:%v\n", string(bs))
@@ -182,7 +191,7 @@ func (m *MicroApp) run(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.runServer(m.data, m.ver, m.network, server); err != nil {
+				if bs, err := m.runServer(m.data, m.network, m.prefix, m.ver, server); err != nil {
 					return err
 				} else {
 					fmt.Printf("server run result:%v\n", string(bs))
@@ -191,7 +200,7 @@ func (m *MicroApp) run(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.runServer(m.data, m.ver, m.network, server); err != nil {
+			if bs, err := m.runServer(m.data, m.network, m.prefix, m.ver, server); err != nil {
 				return err
 			} else {
 				fmt.Printf("server run result:%v\n", string(bs))
@@ -212,7 +221,7 @@ func (m *MicroApp) start(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.startServer(m.ver, server); err != nil {
+				if bs, err := m.startServer(m.prefix, m.ver, server); err != nil {
 					return err
 				} else {
 					fmt.Printf("server start result:%v\n", string(bs))
@@ -221,7 +230,7 @@ func (m *MicroApp) start(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.startServer(m.ver, server); err != nil {
+			if bs, err := m.startServer(m.prefix, m.ver, server); err != nil {
 				return err
 			} else {
 				fmt.Printf("server start result:%v\n", string(bs))
@@ -232,6 +241,59 @@ func (m *MicroApp) start(c *cli.Context) error {
 	}
 	return nil
 }
+
+func (m *MicroApp) save(c *cli.Context) error {
+	if err := m.prepare(c); err != nil {
+		return err
+	}
+	servers := config.GetServersConf()
+	specialServer := c.Args().Get(0)
+	saveList, imageList := []string{}, []string{}
+	if len(specialServer) < 1 {
+		for _, server := range servers {
+			if server.IsLaunch {
+				saveList = append(saveList, server.ServerId)
+				imageList = append(imageList, m.runImage(m.prefix, m.ver, server))
+			}
+		}
+	} else {
+		if server, ok := servers[specialServer]; ok {
+			saveList = append(saveList, server.ServerId)
+			imageList = append(imageList, m.runImage(m.prefix, m.ver, server))
+		} else {
+			log.Fatalf("can't find the start server: %v", specialServer)
+		}
+	}
+	saveName := m.saveName(m.prefix, m.ver, saveList)
+	args := append([]string{"save", "-o", saveName}, imageList...)
+	cmd := exec.Command("docker", args...)
+	fmt.Println(cmd.String())
+	bs, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(bs))
+	return nil
+}
+
+func (m *MicroApp) load(c *cli.Context) error {
+	if err := m.prepare(c); err != nil {
+		return err
+	}
+	loadTar := c.Args().Get(0)
+	if len(loadTar) == 0 || !strings.HasSuffix(loadTar, ".tar") {
+		return errors.New("请输入正确加载镜像目录")
+	}
+	cmd := exec.Command("docker", "load", "-i", loadTar)
+	fmt.Println(cmd.String())
+	bs, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(bs))
+	return nil
+}
+
 func (m *MicroApp) build(c *cli.Context) error {
 	if err := m.prepare(c); err != nil {
 		return err
@@ -253,7 +315,7 @@ func (m *MicroApp) build(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.buildServer(m.ver, server); err != nil {
+				if bs, err := m.buildServer(m.prefix, m.ver, server); err != nil {
 					return err
 				} else {
 					fmt.Printf("server build result:%v\n", string(bs))
@@ -262,7 +324,7 @@ func (m *MicroApp) build(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.buildServer(m.ver, server); err != nil {
+			if bs, err := m.buildServer(m.prefix, m.ver, server); err != nil {
 				return err
 			} else {
 				fmt.Printf("server build result:%v\n", string(bs))
@@ -296,8 +358,9 @@ func (m *MicroApp) prepare(c *cli.Context) error {
 		return errors.New("can't find data dir")
 	}
 	m.readConf(data, cfg)
-	m.store, m.ver, m.data, m.cfg, m.network = store, version, data, cfg, network
-	fmt.Printf("ver:%v,data:%v,cfg:%v,network:%v \n", version, data, cfg, network)
+	prefix := m.getPrefix(store, c)
+	m.store, m.ver, m.data, m.cfg, m.network, m.prefix = store, version, data, cfg, network, prefix
+	fmt.Printf("ver:%v,data:%v,cfg:%v,network:%v,prefix:%v \n", version, data, cfg, network, prefix)
 	return nil
 }
 
@@ -336,6 +399,25 @@ func (m *MicroApp) workDir(c *cli.Context) error {
 			fmt.Println("未设置工作目录")
 		} else {
 			fmt.Printf("当前工作目录为:%v\n", dir)
+		}
+	}
+	return nil
+}
+func (m *MicroApp) runPrefix(c *cli.Context) error {
+	cfg, err := ini.Load(storePath)
+	if err != nil {
+		return err
+	}
+	prefix := c.Args().Get(0)
+	if len(prefix) > 0 {
+		m.setIniVar(cfg, dockerPrefix, prefix)
+		fmt.Println("运行前缀设置成功")
+	} else {
+		prefix = m.getIniVar(cfg, dockerPrefix)
+		if len(prefix) == 0 {
+			fmt.Println("未设置运行前缀")
+		} else {
+			fmt.Printf("当前运行前缀为:%v\n", prefix)
 		}
 	}
 	return nil
@@ -392,54 +474,75 @@ func (m *MicroApp) before() error {
 	return nil
 }
 
-func (m *MicroApp) buildServer(ver string, server *treaty.Server) ([]byte, error) {
-	args := []string{"build", "--build-arg", fmt.Sprintf("run_server=%v", server.ServerId), "--build-arg", fmt.Sprintf(`client_port=%v`, server.ClientPort), "-t", fmt.Sprintf("%v:%v", server.ServerId, ver), "."}
+func (m *MicroApp) runName(prefix, ver string, server *treaty.Server) string {
+	if len(prefix) == 0 {
+		return server.ServerId
+	}
+	return prefix + "_" + server.ServerId
+}
+
+func (m *MicroApp) runImage(prefix, ver string, server *treaty.Server) string {
+	if len(prefix) == 0 {
+		return fmt.Sprintf("%v:%v", server.ServerId, ver)
+	}
+	return fmt.Sprintf("%v_%v:%v", prefix, server.ServerId, ver)
+}
+func (m *MicroApp) saveName(prefix, ver string, list []string) string {
+	item := strings.Join(list, "-")
+	if len(prefix) == 0 {
+		return fmt.Sprintf("%v_%v.tar", item, ver)
+	}
+	return fmt.Sprintf("%v_%v_%v.tar", prefix, item, ver)
+}
+
+func (m *MicroApp) buildServer(prefix, ver string, server *treaty.Server) ([]byte, error) {
+	args := []string{"build", "--build-arg", fmt.Sprintf("run_server=%v", server.ServerId), "--build-arg", fmt.Sprintf(`client_port=%v`, server.ClientPort), "-t", m.runImage(prefix, ver, server), "."}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	return cmd.Output()
 }
 
-func (m *MicroApp) runServer(data, ver, network string, server *treaty.Server) ([]byte, error) {
-	args := []string{"run", "-d", "-v", fmt.Sprintf("%v:/data", data), "-p", fmt.Sprintf("%v:%v", server.ClientPort, server.ClientPort), fmt.Sprintf("--network=%s", network), fmt.Sprintf("--name=%v", server.ServerId), fmt.Sprintf("%v:%v", server.ServerId, ver)}
+func (m *MicroApp) runServer(data, network, prefix, ver string, server *treaty.Server) ([]byte, error) {
+	args := []string{"run", "-d", "-v", fmt.Sprintf("%v:/data", data), "-p", fmt.Sprintf("%v:%v", server.ClientPort, server.ClientPort), fmt.Sprintf("--network=%s", network), fmt.Sprintf("--name=%v", m.runName(prefix, ver, server)), m.runImage(prefix, ver, server)}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	return cmd.Output()
 }
 
-func (m *MicroApp) startServer(ver string, server *treaty.Server) ([]byte, error) {
-	args := []string{"start", server.ServerId}
+func (m *MicroApp) startServer(prefix, ver string, server *treaty.Server) ([]byte, error) {
+	args := []string{"start", m.runName(prefix, ver, server)}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	return cmd.Output()
 }
 
-func (m *MicroApp) stopServer(ver string, server *treaty.Server) ([]byte, error) {
-	args := []string{"stop", server.ServerId}
+func (m *MicroApp) stopServer(prefix, ver string, server *treaty.Server) ([]byte, error) {
+	args := []string{"stop", m.runName(prefix, ver, server)}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	return cmd.Output()
 }
 
-func (m *MicroApp) rmServer(ver string, server *treaty.Server) ([]byte, error) {
-	args := []string{"rm", server.ServerId}
+func (m *MicroApp) rmServer(prefix, ver string, server *treaty.Server) ([]byte, error) {
+	args := []string{"rm", m.runName(prefix, ver, server)}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	return cmd.Output()
 }
 
-func (m *MicroApp) rmiServer(ver string, server *treaty.Server) ([]byte, error) {
-	args := []string{"rmi", fmt.Sprintf("%v:%v", server.ServerId, ver)}
+func (m *MicroApp) rmiServer(prefix, ver string, server *treaty.Server) ([]byte, error) {
+	args := []string{"rmi", m.runImage(prefix, ver, server)}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	return cmd.Output()
 }
 
-func (m *MicroApp) clearServer(ver string, server *treaty.Server) {
-	bs, err := m.stopServer(ver, server)
+func (m *MicroApp) clearServer(prefix, ver string, server *treaty.Server) {
+	bs, err := m.stopServer(prefix, ver, server)
 	fmt.Printf("stop server:%v, result,res:%v,err:%v \n", server.ServerId, string(bs), err)
-	bs, err = m.rmServer(ver, server)
+	bs, err = m.rmServer(prefix, ver, server)
 	fmt.Printf("rm server:%v, result,res:%v,err:%v \n", server.ServerId, string(bs), err)
-	bs, err = m.rmiServer(ver, server)
+	bs, err = m.rmiServer(prefix, ver, server)
 	fmt.Printf("rmi server:%v, result,res:%v,err:%v \n", server.ServerId, string(bs), err)
 }
 
@@ -475,11 +578,25 @@ func (m *MicroApp) getNetwork(cfg *ini.File, c *cli.Context) string {
 	return network
 }
 
+func (m *MicroApp) getPrefix(cfg *ini.File, c *cli.Context) string {
+	prefix := m.getIniVar(cfg, dockerPrefix)
+	if tmp := c.String("prefix"); len(tmp) > 0 {
+		prefix = tmp
+		if prefix == Null {
+			prefix = ""
+		}
+	}
+	return prefix
+}
+
 func (m *MicroApp) getIniVar(cfg *ini.File, key string) string {
 	return cfg.Section("").Key(key).String()
 }
 
 func (m *MicroApp) setIniVar(cfg *ini.File, key, val string) {
+	if val == Null {
+		val = ""
+	}
 	cfg.Section("").Key(key).SetValue(val)
 	cfg.SaveTo(storePath)
 }

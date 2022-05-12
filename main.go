@@ -35,6 +35,11 @@ func main() {
 				Aliases: []string{"n"},
 				Usage:   "run network",
 			},
+			&cli.StringFlag{
+				Name:    "prefix",
+				Aliases: []string{"p"},
+				Usage:   "run prefix",
+			},
 		},
 		Commands: []*cli.Command{
 			{
@@ -66,10 +71,31 @@ func main() {
 				},
 			},
 			{
+				Name:  "prefix",
+				Usage: "run prefix",
+				Action: func(c *cli.Context) error {
+					return service.runPrefix(c)
+				},
+			},
+			{
 				Name:  "build",
 				Usage: "build servers",
 				Action: func(c *cli.Context) error {
 					return service.build(c)
+				},
+			},
+			{
+				Name:  "save",
+				Usage: "save images",
+				Action: func(c *cli.Context) error {
+					return service.save(c)
+				},
+			},
+			{
+				Name:  "load",
+				Usage: "load images",
+				Action: func(c *cli.Context) error {
+					return service.load(c)
 				},
 			},
 			{
