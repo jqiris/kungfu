@@ -93,7 +93,7 @@ func main() {
 			&cli.StringFlag{
 				Name:    "registry",
 				Aliases: []string{"r"},
-				Usage:   "run prefix",
+				Usage:   "remote registry",
 			},
 		},
 		Commands: []*cli.Command{
