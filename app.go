@@ -19,16 +19,23 @@ import (
 )
 
 var (
-	Null           = "null"
-	storePath      = ".ini"
-	dockerVer      = "DockerVer"
-	dockerPrefix   = "DockerPrefix"
-	dockerData     = "DockerData"
-	dockerConfig   = "DockerConfig"
-	dockerNetwork  = "DockerNetwork"
-	dockerPath     = "Dockerfile"
-	dockerRegistry = "DockerRegistry"
-	dockerTml      = `
+	Null                = "null"
+	storePath           = ".ini"
+	dockerVer           = "DockerVer"
+	dockerPrefix        = "DockerPrefix"
+	dockerData          = "DockerData"
+	dockerConfig        = "DockerConfig"
+	dockerRemoteConfig  = "DockerRemoteConfig"
+	dockerNetwork       = "DockerNetwork"
+	dockerPath          = "Dockerfile"
+	dockerRegistry      = "DockerRegistry"
+	dockerProject       = "DockerProject"
+	defaultProject      = "default"
+	labelAuthor         = "LabelAuthor"
+	defaultLabelAuthor  = "jqiris"
+	labelVersion        = "LabelVersion"
+	defaultLabelVersion = "1.0.0"
+	dockerTml           = `
 FROM golang:1.18.1 AS builder
 
 COPY . /src
@@ -37,6 +44,8 @@ WORKDIR /src
 RUN GOPROXY=https://goproxy.cn CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server
 
 FROM alpine
+MAINTAINER %s
+LABEL VERSION="%s"
 ARG run_server
 ARG client_port
 # 时区控制
@@ -59,13 +68,17 @@ ENTRYPOINT ["/app/server", "-conf", "/data/%s"]
 )
 
 type MicroApp struct {
-	ver     string
-	data    string
-	cfg     string
-	network string
-	prefix  string
-	depot   string
-	store   *ini.File
+	ver          string
+	data         string
+	cfg          string
+	remoteCfg    string
+	network      string
+	prefix       string
+	depot        string
+	project      string
+	labelAuthor  string
+	labelVersion string
+	store        *ini.File
 }
 
 func newMicroApp() *MicroApp {
@@ -81,12 +94,12 @@ func (m *MicroApp) clear(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				m.clearServer(m.prefix, m.ver, server)
+				m.clearServer(server)
 			}
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			m.clearServer(m.prefix, m.ver, server)
+			m.clearServer(server)
 		} else {
 			log.Fatalf("can't find the server: %v\n", specialServer)
 		}
@@ -103,7 +116,7 @@ func (m *MicroApp) rmi(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.rmiServer(m.prefix, m.ver, server); err != nil {
+				if bs, err := m.rmiServer(server); err != nil {
 					return err
 				} else {
 					fmt.Printf("image rm result:%v\n", string(bs))
@@ -112,7 +125,7 @@ func (m *MicroApp) rmi(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.rmiServer(m.prefix, m.ver, server); err != nil {
+			if bs, err := m.rmiServer(server); err != nil {
 				return err
 			} else {
 				fmt.Printf("image rm result:%v\n", string(bs))
@@ -133,7 +146,7 @@ func (m *MicroApp) rm(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.rmServer(m.prefix, m.ver, server); err != nil {
+				if bs, err := m.rmServer(server); err != nil {
 					return err
 				} else {
 					fmt.Printf("server rm result:%v\n", string(bs))
@@ -142,7 +155,7 @@ func (m *MicroApp) rm(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.rmServer(m.prefix, m.ver, server); err != nil {
+			if bs, err := m.rmServer(server); err != nil {
 				return err
 			} else {
 				fmt.Printf("server rm result:%v\n", string(bs))
@@ -162,7 +175,7 @@ func (m *MicroApp) stop(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.stopServer(m.prefix, m.ver, server); err != nil {
+				if bs, err := m.stopServer(server); err != nil {
 					return err
 				} else {
 					fmt.Printf("server stop result:%v\n", string(bs))
@@ -171,7 +184,7 @@ func (m *MicroApp) stop(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.stopServer(m.prefix, m.ver, server); err != nil {
+			if bs, err := m.stopServer(server); err != nil {
 				return err
 			} else {
 				fmt.Printf("server stop result:%v\n", string(bs))
@@ -190,10 +203,12 @@ func (m *MicroApp) run(c *cli.Context) error {
 	}
 	servers := config.GetServersConf()
 	specialServer := c.Args().Get(0)
+	mem, memSwap, memKernel := c.String("memory"), c.String("memory-swap"), c.String("kernel-memory")
+	cpu, cpuSet := c.String("cpus"), c.String("cpuset-cpus")
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.runServer(m.data, m.network, m.prefix, m.ver, server); err != nil {
+				if bs, err := m.runServer(mem, memSwap, memKernel, cpu, cpuSet, server); err != nil {
 					return err
 				} else {
 					fmt.Printf("server run result:%v\n", string(bs))
@@ -202,7 +217,7 @@ func (m *MicroApp) run(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.runServer(m.data, m.network, m.prefix, m.ver, server); err != nil {
+			if bs, err := m.runServer(mem, memSwap, memKernel, cpu, cpuSet, server); err != nil {
 				return err
 			} else {
 				fmt.Printf("server run result:%v\n", string(bs))
@@ -223,7 +238,7 @@ func (m *MicroApp) start(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.startServer(m.prefix, m.ver, server); err != nil {
+				if bs, err := m.startServer(server); err != nil {
 					return err
 				} else {
 					fmt.Printf("server start result:%v\n", string(bs))
@@ -232,7 +247,7 @@ func (m *MicroApp) start(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.startServer(m.prefix, m.ver, server); err != nil {
+			if bs, err := m.startServer(server); err != nil {
 				return err
 			} else {
 				fmt.Printf("server start result:%v\n", string(bs))
@@ -266,7 +281,7 @@ func (m *MicroApp) registryPush(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.pushServer(m.depot, m.prefix, m.ver, server); err != nil {
+				if bs, err := m.pushServer(server); err != nil {
 					return err
 				} else {
 					fmt.Printf("registry push result:%v\n", string(bs))
@@ -275,7 +290,7 @@ func (m *MicroApp) registryPush(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.pushServer(m.depot, m.prefix, m.ver, server); err != nil {
+			if bs, err := m.pushServer(server); err != nil {
 				return err
 			} else {
 				fmt.Printf("registry push result:%v\n", string(bs))
@@ -296,7 +311,7 @@ func (m *MicroApp) registryPull(c *cli.Context) error {
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.pullServer(m.depot, m.prefix, m.ver, server); err != nil {
+				if bs, err := m.pullServer(server); err != nil {
 					return err
 				} else {
 					fmt.Printf("registry pull result:%v\n", string(bs))
@@ -305,7 +320,7 @@ func (m *MicroApp) registryPull(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.pullServer(m.depot, m.prefix, m.ver, server); err != nil {
+			if bs, err := m.pullServer(server); err != nil {
 				return err
 			} else {
 				fmt.Printf("registry pull result:%v\n", string(bs))
@@ -369,6 +384,13 @@ func (m *MicroApp) load(c *cli.Context) error {
 	return nil
 }
 
+func (m *MicroApp) removeDockerFile() {
+	err := os.Remove(dockerPath)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func (m *MicroApp) build(c *cli.Context) error {
 	if err := m.prepare(c); err != nil {
 		return err
@@ -379,18 +401,22 @@ func (m *MicroApp) build(c *cli.Context) error {
 			return err
 		}
 		defer fp.Close()
-		dockerFile := fmt.Sprintf(dockerTml, m.cfg)
+		dockerFile := fmt.Sprintf(dockerTml, m.labelAuthor, m.labelVersion, m.remoteCfg)
 		_, err = fp.Write([]byte(dockerFile))
 		if err != nil {
 			return err
 		}
+	}
+	buildPath := "."
+	if v := c.String("buildPath"); len(v) > 0 {
+		buildPath = v
 	}
 	servers := config.GetServersConf()
 	specialServer := c.Args().Get(0)
 	if len(specialServer) < 1 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.buildServer(m.prefix, m.ver, server); err != nil {
+				if bs, err := m.buildServer(buildPath, server); err != nil {
 					return err
 				} else {
 					fmt.Printf("server build result:%v\n", string(bs))
@@ -399,7 +425,7 @@ func (m *MicroApp) build(c *cli.Context) error {
 		}
 	} else {
 		if server, ok := servers[specialServer]; ok {
-			if bs, err := m.buildServer(m.prefix, m.ver, server); err != nil {
+			if bs, err := m.buildServer(buildPath, server); err != nil {
 				return err
 			} else {
 				fmt.Printf("server build result:%v\n", string(bs))
@@ -416,6 +442,10 @@ func (m *MicroApp) prepare(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	project := m.getProject(store, c)
+	if len(project) < 1 {
+		return errors.New("please set the project first")
+	}
 	version := m.getVersion(store, c)
 	if len(version) < 1 {
 		return errors.New("please set the version first")
@@ -423,6 +453,10 @@ func (m *MicroApp) prepare(c *cli.Context) error {
 	cfg := m.getConfig(store, c)
 	if len(cfg) < 1 {
 		return errors.New("can't find config path")
+	}
+	remoteCfg := m.getRemoteConfig(store, c)
+	if len(remoteCfg) < 1 {
+		return errors.New("can't find remote config path")
 	}
 	network := m.getNetwork(store, c)
 	if len(network) < 1 {
@@ -434,8 +468,10 @@ func (m *MicroApp) prepare(c *cli.Context) error {
 	}
 	m.readConf(data, cfg)
 	prefix := m.getPrefix(store, c)
-	m.store, m.ver, m.data, m.cfg, m.network, m.prefix = store, version, data, cfg, network, prefix
-	fmt.Printf("ver:%v,data:%v,cfg:%v,network:%v,prefix:%v \n", version, data, cfg, network, prefix)
+	la := m.getLabelAuthor(store, c)
+	lv := m.getLabelVersion(store, c)
+	m.store, m.ver, m.data, m.cfg, m.network, m.prefix, m.remoteCfg, m.project, m.labelAuthor, m.labelVersion = store, version, data, cfg, network, prefix, remoteCfg, project, la, lv
+	fmt.Printf("project:%v,ver:%v,data:%v,cfg:%v,remoteCfg:%v,network:%v,labelAuthor:%v,labelVersion:%v,prefix:%v \n", project, version, data, cfg, remoteCfg, network, la, lv, prefix)
 	return nil
 }
 
@@ -446,10 +482,10 @@ func (m *MicroApp) version(c *cli.Context) error {
 	}
 	ver := c.Args().Get(0)
 	if len(ver) > 0 {
-		m.setIniVar(cfg, dockerVer, ver)
+		m.setProjectVar(cfg, c, dockerVer, ver)
 		fmt.Println("版本设置成功")
 	} else {
-		ver = m.getIniVar(cfg, dockerVer)
+		ver = m.getProjectVar(cfg, c, dockerVer)
 		if len(ver) == 0 {
 			fmt.Println("未设置版本")
 		} else {
@@ -466,10 +502,10 @@ func (m *MicroApp) workDir(c *cli.Context) error {
 	}
 	dir := c.Args().Get(0)
 	if len(dir) > 0 {
-		m.setIniVar(cfg, dockerData, dir)
+		m.setProjectVar(cfg, c, dockerData, dir)
 		fmt.Println("工作目录设置成功")
 	} else {
-		dir = m.getIniVar(cfg, dockerData)
+		dir = m.getProjectVar(cfg, c, dockerData)
 		if len(dir) == 0 {
 			fmt.Println("未设置工作目录")
 		} else {
@@ -485,10 +521,10 @@ func (m *MicroApp) runPrefix(c *cli.Context) error {
 	}
 	prefix := c.Args().Get(0)
 	if len(prefix) > 0 {
-		m.setIniVar(cfg, dockerPrefix, prefix)
+		m.setProjectVar(cfg, c, dockerPrefix, prefix)
 		fmt.Println("运行前缀设置成功")
 	} else {
-		prefix = m.getIniVar(cfg, dockerPrefix)
+		prefix = m.getProjectVar(cfg, c, dockerPrefix)
 		if len(prefix) == 0 {
 			fmt.Println("未设置运行前缀")
 		} else {
@@ -505,15 +541,94 @@ func (m *MicroApp) config(c *cli.Context) error {
 	}
 	configure := c.Args().Get(0)
 	if len(configure) > 0 {
-		m.setIniVar(cfg, dockerConfig, configure)
+		m.setProjectVar(cfg, c, dockerConfig, configure)
+		m.removeDockerFile()
 		fmt.Println("工作目录下配置文件位置设置成功")
 	} else {
-		configure = m.getIniVar(cfg, dockerConfig)
+		configure = m.getProjectVar(cfg, c, dockerConfig)
 		if len(configure) == 0 {
 			fmt.Println("工作目录下未设置配置文件位置")
 		} else {
 			fmt.Printf("当前工作目录下配置文件位置为:%v\n", configure)
 		}
+	}
+	return nil
+}
+
+func (m *MicroApp) remoteConfig(c *cli.Context) error {
+	cfg, err := ini.Load(storePath)
+	if err != nil {
+		return err
+	}
+	configure := c.Args().Get(0)
+	if len(configure) > 0 {
+		m.setProjectVar(cfg, c, dockerRemoteConfig, configure)
+		m.removeDockerFile()
+		fmt.Println("远程配置文件位置设置成功")
+	} else {
+		configure = m.getProjectVar(cfg, c, dockerRemoteConfig)
+		if len(configure) == 0 {
+			fmt.Println("未设置远程配置文件位置")
+		} else {
+			fmt.Printf("当前远程配置文件位置为:%v\n", configure)
+		}
+	}
+	return nil
+}
+
+func (m *MicroApp) projectSet(c *cli.Context) error {
+	cfg, err := ini.Load(storePath)
+	if err != nil {
+		return err
+	}
+	project := c.Args().Get(0)
+	if len(project) > 0 {
+		m.setGlobalVar(cfg, dockerProject, project)
+		fmt.Println("项目设置成功")
+	} else {
+		project = m.getGlobalVar(cfg, dockerProject)
+		if len(project) == 0 {
+			project = defaultProject
+		}
+		fmt.Printf("当前项目为:%v\n", project)
+	}
+	return nil
+}
+func (m *MicroApp) labelAuthorSet(c *cli.Context) error {
+	cfg, err := ini.Load(storePath)
+	if err != nil {
+		return err
+	}
+	author := c.Args().Get(0)
+	if len(author) > 0 {
+		m.setGlobalVar(cfg, labelAuthor, author)
+		m.removeDockerFile()
+		fmt.Println("项目维护者设置成功")
+	} else {
+		author = m.getGlobalVar(cfg, labelAuthor)
+		if len(author) == 0 {
+			author = defaultLabelAuthor
+		}
+		fmt.Printf("当前项目维护者为:%v\n", author)
+	}
+	return nil
+}
+func (m *MicroApp) labelVersionSet(c *cli.Context) error {
+	cfg, err := ini.Load(storePath)
+	if err != nil {
+		return err
+	}
+	version := c.Args().Get(0)
+	if len(version) > 0 {
+		m.setGlobalVar(cfg, labelVersion, version)
+		m.removeDockerFile()
+		fmt.Println("docker版本设置成功")
+	} else {
+		version = m.getGlobalVar(cfg, labelVersion)
+		if len(version) == 0 {
+			version = defaultLabelVersion
+		}
+		fmt.Printf("当前docker版本为:%v\n", version)
 	}
 	return nil
 }
@@ -525,10 +640,10 @@ func (m *MicroApp) registry(c *cli.Context) error {
 	}
 	configure := c.Args().Get(0)
 	if len(configure) > 0 {
-		m.setIniVar(cfg, dockerRegistry, configure)
+		m.setGlobalVar(cfg, dockerRegistry, configure)
 		fmt.Println("远程仓库地址设置成功")
 	} else {
-		configure = m.getIniVar(cfg, dockerRegistry)
+		configure = m.getGlobalVar(cfg, dockerRegistry)
 		if len(configure) == 0 {
 			fmt.Println("未设置远程仓库地址")
 		} else {
@@ -545,10 +660,10 @@ func (m *MicroApp) netView(c *cli.Context) error {
 	}
 	network := c.Args().Get(0)
 	if len(network) > 0 {
-		m.setIniVar(cfg, dockerNetwork, network)
+		m.setProjectVar(cfg, c, dockerNetwork, network)
 		fmt.Println("运行网络设置成功")
 	} else {
-		network = m.getIniVar(cfg, dockerNetwork)
+		network = m.getProjectVar(cfg, c, dockerNetwork)
 		if len(network) == 0 {
 			fmt.Println("未设置运行网络")
 		} else {
@@ -595,70 +710,86 @@ func (m *MicroApp) saveName(prefix, ver string, list []string) string {
 	return fmt.Sprintf("%v_%v_%v.tar", prefix, item, ver)
 }
 
-func (m *MicroApp) buildServer(prefix, ver string, server *treaty.Server) ([]byte, error) {
-	args := []string{"build", "--build-arg", fmt.Sprintf("run_server=%v", server.ServerId), "--build-arg", fmt.Sprintf(`client_port=%v`, server.ClientPort), "-t", m.runImage(prefix, ver, server), "."}
+func (m *MicroApp) buildServer(buildPath string, server *treaty.Server) ([]byte, error) {
+	args := []string{"build", "--build-arg", fmt.Sprintf("run_server=%v", server.ServerId), "--build-arg", fmt.Sprintf(`client_port=%v`, server.ClientPort), "-t", m.runImage(m.prefix, m.ver, server), buildPath}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	return cmd.Output()
 }
 
-func (m *MicroApp) runServer(data, network, prefix, ver string, server *treaty.Server) ([]byte, error) {
-	args := []string{"run", "-d", "-v", fmt.Sprintf("%v:/data", data), "-p", fmt.Sprintf("%v:%v", server.ClientPort, server.ClientPort), fmt.Sprintf("--network=%s", network), fmt.Sprintf("--name=%v", m.runName(prefix, ver, server)), m.runImage(prefix, ver, server)}
+func (m *MicroApp) runServer(mem, memSwap, memKernel, cpu, cpuSet string, server *treaty.Server) ([]byte, error) {
+	args := []string{"run", "-d", "-v", fmt.Sprintf("%v:/data", m.data), "-p", fmt.Sprintf("%v:%v", server.ClientPort, server.ClientPort), fmt.Sprintf("--network=%s", m.network)}
+	if len(mem) > 0 {
+		args = append(args, fmt.Sprintf("--memory=%v", mem))
+	}
+	if len(memSwap) > 0 {
+		args = append(args, fmt.Sprintf("--memory-swap=%v", memSwap))
+	}
+	if len(memKernel) > 0 {
+		args = append(args, fmt.Sprintf("--kernel-memory=%v", memKernel))
+	}
+	if len(cpu) > 0 {
+		args = append(args, fmt.Sprintf("--cpus=%v", cpu))
+	}
+	if len(cpuSet) > 0 {
+		args = append(args, fmt.Sprintf("--cpuset-cpus=%v", cpuSet))
+	}
+	args = append(args, fmt.Sprintf("--name=%v", m.runName(m.prefix, m.ver, server)), m.runImage(m.prefix, m.ver, server))
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	return cmd.Output()
 }
 
-func (m *MicroApp) startServer(prefix, ver string, server *treaty.Server) ([]byte, error) {
-	args := []string{"start", m.runName(prefix, ver, server)}
+func (m *MicroApp) startServer(server *treaty.Server) ([]byte, error) {
+	args := []string{"start", m.runName(m.prefix, m.ver, server)}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	return cmd.Output()
 }
 
-func (m *MicroApp) stopServer(prefix, ver string, server *treaty.Server) ([]byte, error) {
-	args := []string{"stop", m.runName(prefix, ver, server)}
+func (m *MicroApp) stopServer(server *treaty.Server) ([]byte, error) {
+	args := []string{"stop", m.runName(m.prefix, m.ver, server)}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	return cmd.Output()
 }
 
-func (m *MicroApp) rmServer(prefix, ver string, server *treaty.Server) ([]byte, error) {
-	args := []string{"rm", m.runName(prefix, ver, server)}
+func (m *MicroApp) rmServer(server *treaty.Server) ([]byte, error) {
+	args := []string{"rm", m.runName(m.prefix, m.ver, server)}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	return cmd.Output()
 }
 
-func (m *MicroApp) rmiServer(prefix, ver string, server *treaty.Server) ([]byte, error) {
-	args := []string{"rmi", m.runImage(prefix, ver, server)}
+func (m *MicroApp) rmiServer(server *treaty.Server) ([]byte, error) {
+	args := []string{"rmi", m.runImage(m.prefix, m.ver, server)}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	return cmd.Output()
 }
 
-func (m *MicroApp) pushServer(depot, prefix, ver string, server *treaty.Server) ([]byte, error) {
-	bs, err := m.imageTag(depot, prefix, ver, server)
+func (m *MicroApp) pushServer(server *treaty.Server) ([]byte, error) {
+	bs, err := m.imageTag(m.depot, m.prefix, m.ver, server)
 	if err != nil {
 		return bs, err
 	}
-	bs, err = m.imagePush(depot, prefix, ver, server)
+	bs, err = m.imagePush(m.depot, m.prefix, m.ver, server)
 	if err != nil {
 		return bs, err
 	}
-	return m.imageRemoteClear(depot, prefix, ver, server)
+	return m.imageRemoteClear(m.depot, m.prefix, m.ver, server)
 }
 
-func (m *MicroApp) pullServer(depot, prefix, ver string, server *treaty.Server) ([]byte, error) {
-	bs, err := m.imagePull(depot, prefix, ver, server)
+func (m *MicroApp) pullServer(server *treaty.Server) ([]byte, error) {
+	bs, err := m.imagePull(m.depot, m.prefix, m.ver, server)
 	if err != nil {
 		return bs, err
 	}
-	bs, err = m.imageUnTag(depot, prefix, ver, server)
+	bs, err = m.imageUnTag(m.depot, m.prefix, m.ver, server)
 	if err != nil {
 		return bs, err
 	}
-	return m.imageRemoteClear(depot, prefix, ver, server)
+	return m.imageRemoteClear(m.depot, m.prefix, m.ver, server)
 }
 
 func (m *MicroApp) imageTag(depot, prefix, ver string, server *treaty.Server) ([]byte, error) {
@@ -696,17 +827,17 @@ func (m *MicroApp) imageRemoteClear(depot, prefix, ver string, server *treaty.Se
 	return cmd.Output()
 }
 
-func (m *MicroApp) clearServer(prefix, ver string, server *treaty.Server) {
-	bs, err := m.stopServer(prefix, ver, server)
+func (m *MicroApp) clearServer(server *treaty.Server) {
+	bs, err := m.stopServer(server)
 	fmt.Printf("stop server:%v, result,res:%v,err:%v \n", server.ServerId, string(bs), err)
-	bs, err = m.rmServer(prefix, ver, server)
+	bs, err = m.rmServer(server)
 	fmt.Printf("rm server:%v, result,res:%v,err:%v \n", server.ServerId, string(bs), err)
-	bs, err = m.rmiServer(prefix, ver, server)
+	bs, err = m.rmiServer(server)
 	fmt.Printf("rmi server:%v, result,res:%v,err:%v \n", server.ServerId, string(bs), err)
 }
 
 func (m *MicroApp) getVersion(cfg *ini.File, c *cli.Context) string {
-	version := m.getIniVar(cfg, dockerVer)
+	version := m.getProjectVar(cfg, c, dockerVer)
 	if ver := c.String("version"); len(ver) > 0 {
 		version = ver
 	}
@@ -714,7 +845,7 @@ func (m *MicroApp) getVersion(cfg *ini.File, c *cli.Context) string {
 }
 
 func (m *MicroApp) getData(cfg *ini.File, c *cli.Context) string {
-	dir := m.getIniVar(cfg, dockerData)
+	dir := m.getProjectVar(cfg, c, dockerData)
 	if tmp := c.String("data"); len(tmp) > 0 {
 		dir = tmp
 	}
@@ -722,15 +853,58 @@ func (m *MicroApp) getData(cfg *ini.File, c *cli.Context) string {
 }
 
 func (m *MicroApp) getConfig(cfg *ini.File, c *cli.Context) string {
-	configure := m.getIniVar(cfg, dockerConfig)
+	configure := m.getProjectVar(cfg, c, dockerConfig)
 	if tmp := c.String("config"); len(tmp) > 0 {
 		configure = tmp
 	}
 	return configure
 }
 
+func (m *MicroApp) getRemoteConfig(cfg *ini.File, c *cli.Context) string {
+	configure := m.getProjectVar(cfg, c, dockerRemoteConfig)
+	if tmp := c.String("remoteConfig"); len(tmp) > 0 {
+		configure = tmp
+	}
+	if len(configure) == 0 {
+		configure = m.getConfig(cfg, c)
+	}
+	return configure
+}
+
+func (m *MicroApp) getProject(cfg *ini.File, c *cli.Context) string {
+	project := m.getGlobalVar(cfg, dockerProject)
+	if tmp := c.String("project"); len(tmp) > 0 {
+		project = tmp
+	}
+	if len(project) == 0 {
+		project = defaultProject
+	}
+	return project
+}
+
+func (m *MicroApp) getLabelAuthor(cfg *ini.File, c *cli.Context) string {
+	author := m.getGlobalVar(cfg, labelAuthor)
+	if tmp := c.String("labelAuthor"); len(tmp) > 0 {
+		author = tmp
+	}
+	if len(author) == 0 {
+		author = defaultLabelAuthor
+	}
+	return author
+}
+func (m *MicroApp) getLabelVersion(cfg *ini.File, c *cli.Context) string {
+	version := m.getGlobalVar(cfg, labelVersion)
+	if tmp := c.String("labelVersion"); len(tmp) > 0 {
+		version = tmp
+	}
+	if len(version) == 0 {
+		version = defaultLabelVersion
+	}
+	return version
+}
+
 func (m *MicroApp) getNetwork(cfg *ini.File, c *cli.Context) string {
-	network := m.getIniVar(cfg, dockerNetwork)
+	network := m.getProjectVar(cfg, c, dockerNetwork)
 	if tmp := c.String("network"); len(tmp) > 0 {
 		network = tmp
 	}
@@ -738,7 +912,7 @@ func (m *MicroApp) getNetwork(cfg *ini.File, c *cli.Context) string {
 }
 
 func (m *MicroApp) getRegistry(cfg *ini.File, c *cli.Context) string {
-	registry := m.getIniVar(cfg, dockerRegistry)
+	registry := m.getGlobalVar(cfg, dockerRegistry)
 	if tmp := c.String("registry"); len(tmp) > 0 {
 		registry = tmp
 	}
@@ -746,7 +920,7 @@ func (m *MicroApp) getRegistry(cfg *ini.File, c *cli.Context) string {
 }
 
 func (m *MicroApp) getPrefix(cfg *ini.File, c *cli.Context) string {
-	prefix := m.getIniVar(cfg, dockerPrefix)
+	prefix := m.getProjectVar(cfg, c, dockerPrefix)
 	if tmp := c.String("prefix"); len(tmp) > 0 {
 		prefix = tmp
 		if prefix == Null {
@@ -756,11 +930,25 @@ func (m *MicroApp) getPrefix(cfg *ini.File, c *cli.Context) string {
 	return prefix
 }
 
-func (m *MicroApp) getIniVar(cfg *ini.File, key string) string {
+func (m *MicroApp) getProjectVar(cfg *ini.File, c *cli.Context, key string) string {
+	project := m.getProject(cfg, c)
+	return cfg.Section(project).Key(key).String()
+}
+
+func (m *MicroApp) setProjectVar(cfg *ini.File, c *cli.Context, key, val string) {
+	if val == Null {
+		val = ""
+	}
+	project := m.getProject(cfg, c)
+	cfg.Section(project).Key(key).SetValue(val)
+	cfg.SaveTo(storePath)
+}
+
+func (m *MicroApp) getGlobalVar(cfg *ini.File, key string) string {
 	return cfg.Section("").Key(key).String()
 }
 
-func (m *MicroApp) setIniVar(cfg *ini.File, key, val string) {
+func (m *MicroApp) setGlobalVar(cfg *ini.File, key, val string) {
 	if val == Null {
 		val = ""
 	}

@@ -21,9 +21,59 @@ func main() {
 				Usage:   "set the data dir",
 			},
 			&cli.StringFlag{
+				Name:    "labelAuthor",
+				Aliases: []string{"la"},
+				Usage:   "set the label author",
+			},
+			&cli.StringFlag{
+				Name:    "labelVersion",
+				Aliases: []string{"lv"},
+				Usage:   "set the label docker version",
+			},
+			&cli.StringFlag{
 				Name:    "config",
 				Aliases: []string{"c"},
 				Usage:   "set the config file",
+			},
+			&cli.StringFlag{
+				Name:    "remoteConfig",
+				Aliases: []string{"rc"},
+				Usage:   "set the remote config file",
+			},
+			&cli.StringFlag{
+				Name:    "buildPath",
+				Aliases: []string{"bp"},
+				Usage:   "set the build path",
+			},
+			&cli.StringFlag{
+				Name:    "project",
+				Aliases: []string{"p"},
+				Usage:   "set the project",
+			},
+			&cli.StringFlag{
+				Name:    "memory",
+				Aliases: []string{"m"},
+				Usage:   "set the run memory",
+			},
+			&cli.StringFlag{
+				Name:    "memory-swap",
+				Aliases: []string{"ms"},
+				Usage:   "set the run memory-swap",
+			},
+			&cli.StringFlag{
+				Name:    "kernel-memory",
+				Aliases: []string{"mk"},
+				Usage:   "set the run kernel-memory",
+			},
+			&cli.StringFlag{
+				Name:    "cpus",
+				Aliases: []string{"cp"},
+				Usage:   "set the run cpu num",
+			},
+			&cli.StringFlag{
+				Name:    "cpuset-cpus",
+				Aliases: []string{"cps"},
+				Usage:   "set the run cpuset-cpus",
 			},
 			&cli.StringFlag{
 				Name:    "version",
@@ -37,7 +87,7 @@ func main() {
 			},
 			&cli.StringFlag{
 				Name:    "prefix",
-				Aliases: []string{"p"},
+				Aliases: []string{"pf"},
 				Usage:   "run prefix",
 			},
 			&cli.StringFlag{
@@ -59,6 +109,34 @@ func main() {
 				Usage: "view or set config path",
 				Action: func(c *cli.Context) error {
 					return service.config(c)
+				},
+			},
+			{
+				Name:  "remoteConfig",
+				Usage: "view or set remote config path",
+				Action: func(c *cli.Context) error {
+					return service.remoteConfig(c)
+				},
+			},
+			{
+				Name:  "project",
+				Usage: "view or set project",
+				Action: func(c *cli.Context) error {
+					return service.projectSet(c)
+				},
+			},
+			{
+				Name:  "labelAuthor",
+				Usage: "view or set label author",
+				Action: func(c *cli.Context) error {
+					return service.labelAuthorSet(c)
+				},
+			},
+			{
+				Name:  "labelVersion",
+				Usage: "view or set label docker version",
+				Action: func(c *cli.Context) error {
+					return service.labelVersionSet(c)
 				},
 			},
 			{
