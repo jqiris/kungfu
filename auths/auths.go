@@ -22,16 +22,26 @@ func NewEncipherer(options ...Option) *Encipherer {
 	return encipherer
 }
 
-func (e *Encipherer) RsaPrikeyEncrypt(data []byte) ([]byte, error) {
-	return gorsa.RSA.PriKeyENCTYPT(data)
+func (e *Encipherer) RsaPrikeyEncrypt(data []byte) (string, error) {
+	rsaData, err := gorsa.RSA.PriKeyENCTYPT(data)
+	if err != nil {
+		return "", err
+	}
+	bsData := base64.StdEncoding.EncodeToString(rsaData)
+	return bsData, nil
 }
 
 func (e *Encipherer) RsaPrikeyDecrypt(data []byte) ([]byte, error) {
 	return gorsa.RSA.PriKeyDECRYPT(data)
 }
 
-func (e *Encipherer) RsaPubkeyEncrypt(data []byte) ([]byte, error) {
-	return gorsa.RSA.PubKeyENCTYPT(data)
+func (e *Encipherer) RsaPubkeyEncrypt(data []byte) (string, error) {
+	rsaData, err := gorsa.RSA.PubKeyENCTYPT(data)
+	if err != nil {
+		return "", err
+	}
+	bsData := base64.StdEncoding.EncodeToString(rsaData)
+	return bsData, nil
 }
 
 func (e *Encipherer) RsaPubkeyDecrypt(data []byte) ([]byte, error) {
@@ -46,13 +56,13 @@ func (e *Encipherer) AesCbcDecrypt(data []byte) ([]byte, error) {
 	return goEncrypt.AesCbcDecrypt(bs, e.aesKey, e.aesIv)
 }
 
-func (e *Encipherer) AesCbcEncrypt(data []byte) ([]byte, error) {
+func (e *Encipherer) AesCbcEncrypt(data []byte) (string, error) {
 	aesData, err := goEncrypt.AesCbcEncrypt(data, e.aesKey, e.aesIv)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	bsData := base64.StdEncoding.EncodeToString(aesData)
-	return []byte(bsData), nil
+	return bsData, nil
 }
 
 func (e *Encipherer) GetAesSecretKey() (string, string) {
