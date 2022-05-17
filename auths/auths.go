@@ -31,8 +31,12 @@ func (e *Encipherer) RsaPrikeyEncrypt(data []byte) (string, error) {
 	return bsData, nil
 }
 
-func (e *Encipherer) RsaPrikeyDecrypt(data []byte) ([]byte, error) {
-	return gorsa.RSA.PriKeyDECRYPT(data)
+func (e *Encipherer) RsaPrikeyDecrypt(data string) ([]byte, error) {
+	bs, err := base64.StdEncoding.DecodeString(data)
+	if err != nil {
+		return nil, err
+	}
+	return gorsa.RSA.PriKeyDECRYPT(bs)
 }
 
 func (e *Encipherer) RsaPubkeyEncrypt(data []byte) (string, error) {
@@ -44,12 +48,16 @@ func (e *Encipherer) RsaPubkeyEncrypt(data []byte) (string, error) {
 	return bsData, nil
 }
 
-func (e *Encipherer) RsaPubkeyDecrypt(data []byte) ([]byte, error) {
-	return gorsa.RSA.PubKeyDECRYPT(data)
+func (e *Encipherer) RsaPubkeyDecrypt(data string) ([]byte, error) {
+	bs, err := base64.StdEncoding.DecodeString(data)
+	if err != nil {
+		return nil, err
+	}
+	return gorsa.RSA.PubKeyDECRYPT(bs)
 }
 
-func (e *Encipherer) AesCbcDecrypt(data []byte) ([]byte, error) {
-	bs, err := base64.StdEncoding.DecodeString(string(data))
+func (e *Encipherer) AesCbcDecrypt(data string) ([]byte, error) {
+	bs, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
 		return nil, err
 	}
