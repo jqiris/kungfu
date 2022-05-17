@@ -36,7 +36,7 @@ var (
 	labelVersion        = "LabelVersion"
 	defaultLabelVersion = "1.0.0"
 	dockerTml           = `
-FROM golang:1.18.1 AS builder
+FROM golang:1.18.2 AS builder
 
 COPY . /src
 WORKDIR /src
