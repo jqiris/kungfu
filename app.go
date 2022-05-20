@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/jqiris/kungfu/v2/config"
@@ -144,13 +145,20 @@ func (m *MicroApp) rm(c *cli.Context) error {
 	servers := config.GetServersConf()
 	specialServer := c.Args().Get(0)
 	if len(specialServer) < 1 {
-		for _, server := range servers {
-			if server.IsLaunch {
-				if bs, err := m.rmServer(server); err != nil {
-					return err
-				} else {
-					fmt.Printf("server rm result:%v\n", string(bs))
-				}
+		var launchArr []*treaty.Server
+		for _, cfg := range servers {
+			if cfg.IsLaunch {
+				launchArr = append(launchArr, cfg)
+			}
+		}
+		sort.Slice(launchArr, func(i, j int) bool {
+			return launchArr[i].ShutWeight < launchArr[j].ShutWeight
+		})
+		for _, server := range launchArr {
+			if bs, err := m.rmServer(server); err != nil {
+				return err
+			} else {
+				fmt.Printf("server rm result:%v\n", string(bs))
 			}
 		}
 	} else {
@@ -173,13 +181,20 @@ func (m *MicroApp) stop(c *cli.Context) error {
 	servers := config.GetServersConf()
 	specialServer := c.Args().Get(0)
 	if len(specialServer) < 1 {
-		for _, server := range servers {
-			if server.IsLaunch {
-				if bs, err := m.stopServer(server); err != nil {
-					return err
-				} else {
-					fmt.Printf("server stop result:%v\n", string(bs))
-				}
+		var launchArr []*treaty.Server
+		for _, cfg := range servers {
+			if cfg.IsLaunch {
+				launchArr = append(launchArr, cfg)
+			}
+		}
+		sort.Slice(launchArr, func(i, j int) bool {
+			return launchArr[i].ShutWeight < launchArr[j].ShutWeight
+		})
+		for _, server := range launchArr {
+			if bs, err := m.stopServer(server); err != nil {
+				return err
+			} else {
+				fmt.Printf("server stop result:%v\n", string(bs))
 			}
 		}
 	} else {
@@ -206,13 +221,20 @@ func (m *MicroApp) run(c *cli.Context) error {
 	mem, memSwap, memKernel := c.String("memory"), c.String("memory-swap"), c.String("kernel-memory")
 	cpu, cpuSet := c.String("cpus"), c.String("cpuset-cpus")
 	if len(specialServer) < 1 {
-		for _, server := range servers {
-			if server.IsLaunch {
-				if bs, err := m.runServer(mem, memSwap, memKernel, cpu, cpuSet, server); err != nil {
-					return err
-				} else {
-					fmt.Printf("server run result:%v\n", string(bs))
-				}
+		var launchArr []*treaty.Server
+		for _, cfg := range servers {
+			if cfg.IsLaunch {
+				launchArr = append(launchArr, cfg)
+			}
+		}
+		sort.Slice(launchArr, func(i, j int) bool {
+			return launchArr[i].LaunchWeight < launchArr[j].LaunchWeight
+		})
+		for _, server := range launchArr {
+			if bs, err := m.runServer(mem, memSwap, memKernel, cpu, cpuSet, server); err != nil {
+				return err
+			} else {
+				fmt.Printf("server run result:%v\n", string(bs))
 			}
 		}
 	} else {
@@ -236,13 +258,20 @@ func (m *MicroApp) start(c *cli.Context) error {
 	servers := config.GetServersConf()
 	specialServer := c.Args().Get(0)
 	if len(specialServer) < 1 {
-		for _, server := range servers {
-			if server.IsLaunch {
-				if bs, err := m.startServer(server); err != nil {
-					return err
-				} else {
-					fmt.Printf("server start result:%v\n", string(bs))
-				}
+		var launchArr []*treaty.Server
+		for _, cfg := range servers {
+			if cfg.IsLaunch {
+				launchArr = append(launchArr, cfg)
+			}
+		}
+		sort.Slice(launchArr, func(i, j int) bool {
+			return launchArr[i].LaunchWeight < launchArr[j].LaunchWeight
+		})
+		for _, server := range launchArr {
+			if bs, err := m.startServer(server); err != nil {
+				return err
+			} else {
+				fmt.Printf("server start result:%v\n", string(bs))
 			}
 		}
 	} else {
