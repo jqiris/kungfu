@@ -59,7 +59,3 @@ func Report(txt ...any) {
 func Reportf(txt string, args ...any) {
 	defLogger.Reportf(txt, args...)
 }
-
-func Shutdown() {
-	writer.stopChan <- struct{}{}
-}

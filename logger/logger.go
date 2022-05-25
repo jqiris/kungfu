@@ -2,8 +2,6 @@ package logger
 
 import (
 	"fmt"
-	"net/http"
-	"net/url"
 	"runtime"
 	"strings"
 	"time"
@@ -48,11 +46,10 @@ func (l *LogItem) logFormat() string {
 
 type Logger struct {
 	logLevel   LogLevel
-	logRuntime bool   //是否记录运行时信息
-	timeFormat string //日期显示格式
-	reportUrl  string //上报地址
-	reportUser string //上报用户
-	logPrefix  string //日志前缀
+	logRuntime bool     //是否记录运行时信息
+	timeFormat string   //日期显示格式
+	reporter   Reporter //上报者
+	logPrefix  string   //日志前缀
 }
 
 func NewLogger(options ...Option) *Logger {
@@ -74,8 +71,7 @@ func (l *Logger) WithPrefix(prefix string) *Logger {
 		logLevel:   l.logLevel,
 		logRuntime: l.logRuntime,
 		timeFormat: l.timeFormat,
-		reportUrl:  l.reportUrl,
-		reportUser: l.reportUser,
+		reporter:   l.reporter,
 		logPrefix:  prefix,
 	}
 }
@@ -160,7 +156,7 @@ func (l *Logger) Debugf(tmp string, args ...any) {
 }
 
 func (l *Logger) Report(txt ...any) {
-	item := l.NewLogItem(ERROR, txt...)
+	item := l.NewLogItem(WARN, txt...)
 	l.reportItem(item)
 	writer.logChan <- item
 }
@@ -172,14 +168,7 @@ func (l *Logger) Reportf(tmp string, args ...any) {
 
 func (l *Logger) reportItem(item *LogItem) {
 	content := item.logFormat()
-	if len(content) > 0 {
-		data := url.Values{"title": {content}, "wx": {"1"},
-			"wxUser": {l.reportUser}}
-		resp, err := http.Post(l.reportUrl, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
-		if err != nil {
-			l.Error(err)
-			return
-		}
-		resp.Body.Close()
+	if len(content) > 0 && l.reporter != nil {
+		l.reporter(content)
 	}
 }

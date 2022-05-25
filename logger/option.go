@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"encoding/json"
 	"time"
 )
 
@@ -27,16 +26,9 @@ func WithTimeFormat(format string) Option {
 	}
 }
 
-func WithReportUrl(url string) Option {
+func WithReporter(reporter Reporter) Option {
 	return func(l *Logger) {
-		l.reportUrl = url
-	}
-}
-
-func WithReportUser(user []string) Option {
-	return func(l *Logger) {
-		bs, _ := json.Marshal(user)
-		l.reportUser = string(bs)
+		l.reporter = reporter
 	}
 }
 

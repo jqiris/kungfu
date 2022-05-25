@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -28,7 +29,6 @@ type Writer struct {
 	zipEnd      time.Time     //zip压缩结束
 	tickTime    time.Duration //检查间隔
 	logChan     chan *LogItem
-	stopChan    chan struct{} //关闭chan
 }
 
 func newWriter() *Writer {
@@ -44,7 +44,6 @@ func newWriter() *Writer {
 		tickTime:    10 * time.Minute,
 		fileLock:    new(sync.Mutex),
 		logChan:     make(chan *LogItem, 100),
-		stopChan:    make(chan struct{}, 1),
 	}
 	go w.logWriting()
 	return w
@@ -128,6 +127,8 @@ func (w *Writer) OutFile(txt string) {
 }
 
 func (w *Writer) logWriting() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	for {
 		select {
 		case item := <-w.logChan:
@@ -146,7 +147,7 @@ func (w *Writer) logWriting() {
 			}
 		case <-time.After(w.tickTime):
 			w.checkDump() //每隔10分钟检查下转储
-		case <-w.stopChan:
+		case <-ctx.Done():
 			fmt.Println("关闭日志写入器")
 			return
 		}

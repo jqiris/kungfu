@@ -85,14 +85,15 @@ func Int64ToString(val int64) string {
 func SafeRun(f func()) {
 	defer func() {
 		if x := recover(); x != nil {
-			logger.Errorf("SafeRun panic recover stack : %+v", x)
+			txt := fmt.Sprintf("SafeRun panic recover stack : %+v\n", x)
 			i := 0
 			funcName, file, line, ok := runtime.Caller(i)
 			for ok {
-				logger.Errorf("SafeRun panic frame %v:[func:%v,file:%v,line:%v]\n", i, runtime.FuncForPC(funcName).Name(), file, line)
+				txt += fmt.Sprintf("SafeRun panic frame %v:[func:%v,file:%v,line:%v]\n", i, runtime.FuncForPC(funcName).Name(), file, line)
 				i++
 				funcName, file, line, ok = runtime.Caller(i)
 			}
+			logger.Report(txt)
 		}
 	}()
 

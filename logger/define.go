@@ -1,8 +1,9 @@
 package logger
 
 import (
-	"github.com/fatih/color"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 type LogLevel int
@@ -59,3 +60,5 @@ var (
 		DEBUG: color.New(color.FgHiCyan),    //青蓝色
 	}
 )
+
+type Reporter func(ctx string)
