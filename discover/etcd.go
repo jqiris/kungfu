@@ -2,13 +2,15 @@ package discover
 
 import (
 	"context"
-	"stathat.com/c/consistent"
 	"strings"
 	"sync"
 	"time"
 
+	"stathat.com/c/consistent"
+
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/treaty"
+	"github.com/jqiris/kungfu/v2/utils"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -65,9 +67,7 @@ func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 }
 
 func (e *EtcdDiscoverer) RegEventHandlers(handlers ...EventHandler) {
-	for _, handler := range handlers {
-		e.EventHandlerList = append(e.EventHandlerList, handler)
-	}
+	e.EventHandlerList = append(e.EventHandlerList, handlers...)
 }
 
 func (e *EtcdDiscoverer) EventHandlerExec(ev *clientv3.Event, server *treaty.Server) {
@@ -79,7 +79,9 @@ func (e *EtcdDiscoverer) EventHandlerExec(ev *clientv3.Event, server *treaty.Ser
 // Init init
 func (e *EtcdDiscoverer) Init() {
 	//监听服务器变化
-	go e.Watcher()
+	go utils.SafeRun(func() {
+		e.Watcher()
+	})
 	//统计所有服务器
 	list := e.FindServerList()
 	if len(list) > 0 {

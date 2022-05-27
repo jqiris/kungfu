@@ -28,22 +28,27 @@ func NewServerBalancer() *ServerBalancer {
 }
 
 func (b *ServerBalancer) Init(s *rpc.ServerBase) {
+
+	//run the server
+	go utils.SafeRun(func() {
+		b.Run(s)
+	})
+}
+func (b *ServerBalancer) Run(s *rpc.ServerBase) {
 	//set the server
 	addr := fmt.Sprintf("%s:%d", s.Server.ServerIp, s.Server.ClientPort)
 	b.ClientServer = &http.Server{Addr: addr}
 	//handle the balance
 	http.HandleFunc("/balance", b.HandleBalance)
-	//run the server
-	go func() {
-		logger.Warnf("ServerBalancer start at:%v", addr)
-		err := b.ClientServer.ListenAndServe()
-		if err != nil {
-			logger.Error(err.Error())
-		}
-	}()
+	logger.Warnf("ServerBalancer start at:%v", addr)
+	err := b.ClientServer.ListenAndServe()
+	if err != nil {
+		logger.Error(err.Error())
+	}
 }
 
 func (b *ServerBalancer) AfterInit(s *rpc.ServerBase) {
+
 }
 
 func (b *ServerBalancer) BeforeShutdown(s *rpc.ServerBase) {

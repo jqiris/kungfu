@@ -1,8 +1,12 @@
 package coroutines
 
-import "sync"
+import (
+	"sync"
 
-type CoroutineHandler func(wg *sync.WaitGroup)
+	"github.com/jqiris/kungfu/v2/utils"
+)
+
+type CoroutineHandler func()
 
 type WaitCoroutines struct {
 	wg   *sync.WaitGroup
@@ -23,8 +27,12 @@ func (w *WaitCoroutines) AddCoroutine(handler CoroutineHandler) {
 func (w *WaitCoroutines) Wait() {
 	n := len(w.list)
 	w.wg.Add(n)
-	for _, handler := range w.list {
-		go handler(w.wg)
+	for i := 0; i < len(w.list); i++ {
+		handler := w.list[i]
+		go utils.SafeRun(func() {
+			defer w.wg.Done()
+			handler()
+		})
 	}
 	w.wg.Wait()
 }

@@ -36,7 +36,7 @@ func TestNumberMap(t *testing.T) {
 				num++
 				if num == 2 {
 					data.Range(func(k, v int) bool {
-						data.Incre(k, rand.Intn(300), false)
+						data.Incre(k, rand.Intn(300))
 						fmt.Println(k, v)
 						return true
 					})

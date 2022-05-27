@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jqiris/kungfu/v2/rpc"
+	"github.com/jqiris/kungfu/v2/utils"
 )
 
 type ServerHttp struct {
@@ -19,9 +20,6 @@ func (b *ServerHttp) Init(s *rpc.ServerBase) {
 }
 
 func (b *ServerHttp) Run(s *rpc.ServerBase) {
-	if b.handler == nil {
-		panic("http handler is nil")
-	}
 	addr := fmt.Sprintf(":%d", s.Server.ClientPort)
 	if err := b.handler.Run(addr); err != nil {
 		panic(err)
@@ -29,7 +27,12 @@ func (b *ServerHttp) Run(s *rpc.ServerBase) {
 }
 
 func (b *ServerHttp) AfterInit(s *rpc.ServerBase) {
-	go b.Run(s)
+	if b.handler == nil {
+		panic("http handler is nil")
+	}
+	go utils.SafeRun(func() {
+		b.Run(s)
+	})
 }
 
 func (b *ServerHttp) BeforeShutdown(s *rpc.ServerBase) {

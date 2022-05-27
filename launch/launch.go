@@ -1,11 +1,7 @@
 package launch
 
 import (
-	"fmt"
-	"os"
-	"runtime"
 	"sort"
-	"syscall"
 
 	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/logger"
@@ -36,22 +32,7 @@ func RegisterCreator(typ string, creator rpc.ServerCreator) {
 }
 
 //Startup 启动服务器
-func Startup(sg chan os.Signal) {
-	defer func() {
-		if x := recover(); x != nil {
-			txt := fmt.Sprintf("service panic stop stack : %+v\n", x)
-			i := 0
-			funcName, file, line, ok := runtime.Caller(i)
-			for ok {
-				txt += fmt.Sprintf("service panic frame %v:[func:%v,file:%v,line:%v]\n", i, runtime.FuncForPC(funcName).Name(), file, line)
-				i++
-				funcName, file, line, ok = runtime.Caller(i)
-			}
-			logger.Report(txt)
-			//服务关闭
-			sg <- syscall.SIGTERM
-		}
-	}()
+func Startup() {
 	//run servers
 	servers := config.GetServersConf()
 	runMode, runServer := utils.GetEnvDefault("run_mode", "normal"), utils.GetEnvDefault("run_server", "")

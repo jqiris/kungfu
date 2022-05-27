@@ -218,7 +218,7 @@ func (k *JobKeeper) delJob(delId int64) {
 }
 
 func (k *JobKeeper) ExecJob() {
-	go func() {
+	go utils.SafeRun(func() {
 		for {
 			select {
 			case delId := <-k.DelChan:
@@ -268,5 +268,5 @@ func (k *JobKeeper) ExecJob() {
 				}
 			}
 		}
-	}()
+	})
 }

@@ -2,11 +2,13 @@ package plugin
 
 import (
 	"fmt"
+	"net/http"
+
 	socketio "github.com/googollee/go-socket.io"
 	"github.com/googollee/go-socket.io/engineio"
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/rpc"
-	"net/http"
+	"github.com/jqiris/kungfu/v2/utils"
 )
 
 type ServerSocket struct {
@@ -36,8 +38,10 @@ func (b *ServerSocket) OnError(f func(socketio.Conn, error)) {
 }
 
 func (b *ServerSocket) Run(s *rpc.ServerBase) {
-	go b.sc.Serve()
-	defer b.sc.Close()
+	go utils.SafeRun(func() {
+		defer b.sc.Close()
+		b.sc.Serve()
+	})
 	scAddr := "/" + s.Server.ServerId + "/"
 	http.Handle(scAddr, b.sc)
 	logger.Infof("socket server start at:%v", s.Server.ClientPort)
@@ -50,7 +54,9 @@ func (b *ServerSocket) Init(s *rpc.ServerBase) {
 }
 
 func (b *ServerSocket) AfterInit(s *rpc.ServerBase) {
-	go b.Run(s)
+	go utils.SafeRun(func() {
+		b.Run(s)
+	})
 }
 
 func (b *ServerSocket) BeforeShutdown(s *rpc.ServerBase) {

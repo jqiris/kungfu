@@ -102,6 +102,20 @@ func SafeRun(f func()) {
 	}
 }
 
+func Recovery() {
+	if x := recover(); x != nil {
+		txt := fmt.Sprintf("service panic stop stack : %+v\n", x)
+		i := 0
+		funcName, file, line, ok := runtime.Caller(i)
+		for ok {
+			txt += fmt.Sprintf("service panic frame %v:[func:%v,file:%v,line:%v]\n", i, runtime.FuncForPC(funcName).Name(), file, line)
+			i++
+			funcName, file, line, ok = runtime.Caller(i)
+		}
+		logger.Report(txt)
+	}
+}
+
 func PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
