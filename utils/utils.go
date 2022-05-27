@@ -14,8 +14,13 @@ import (
 )
 
 var (
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
+	json       = jsoniter.ConfigCompatibleWithStandardLibrary
+	QuickCrash = false
 )
+
+func SetQuickCrash(crash bool) {
+	QuickCrash = crash
+}
 
 func StringToInt(s string) int {
 	if res, err := strconv.Atoi(s); err != nil {
@@ -84,6 +89,9 @@ func Int64ToString(val int64) string {
 
 func SafeRun(f func()) {
 	defer func() {
+		if QuickCrash {
+			return
+		}
 		if x := recover(); x != nil {
 			txt := fmt.Sprintf("SafeRun panic recover stack : %+v\n", x)
 			i := 0
@@ -104,6 +112,9 @@ func SafeRun(f func()) {
 
 func Recovery() {
 	if x := recover(); x != nil {
+		if QuickCrash {
+			return
+		}
 		txt := fmt.Sprintf("service panic stop stack : %+v\n", x)
 		i := 0
 		funcName, file, line, ok := runtime.Caller(i)

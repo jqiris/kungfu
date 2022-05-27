@@ -12,18 +12,12 @@ import (
 )
 
 var (
-	keeper     *JobKeeper
-	quickCrash bool
+	keeper *JobKeeper
 )
 
 func init() {
 	keeper = NewJobKeeper()
 	keeper.ExecJob()
-	quickCrash = false
-}
-
-func SetQuickCrash(crash bool) {
-	quickCrash = crash
 }
 
 func AddJob(delay time.Duration, job JobWorker, options ...ItemOption) {
@@ -139,7 +133,7 @@ func (s *JobQueue) ExeJob() {
 	defer s.mutex.RUnlock()
 	s.JobItems.RangePop(func(item any) bool {
 		if job, ok := item.(*JobItem); ok && job != nil {
-			if !quickCrash {
+			if !utils.QuickCrash {
 				go utils.SafeRun(func() {
 					if job.Worker != nil {
 						job.Worker.BeforeExec()
