@@ -133,21 +133,12 @@ func (s *JobQueue) ExeJob() {
 	defer s.mutex.RUnlock()
 	s.JobItems.RangePop(func(item any) bool {
 		if job, ok := item.(*JobItem); ok && job != nil {
-			if !utils.QuickCrash {
-				go utils.SafeRun(func() {
-					if job.Worker != nil {
-						job.Worker.BeforeExec()
-					}
-					job.ExecJob()
-				})
-			} else {
-				go func() {
-					if job.Worker != nil {
-						job.Worker.BeforeExec()
-					}
-					job.ExecJob()
-				}()
-			}
+			go utils.SafeRun(func() {
+				if job.Worker != nil {
+					job.Worker.BeforeExec()
+				}
+				job.ExecJob()
+			})
 		}
 		return true
 	})

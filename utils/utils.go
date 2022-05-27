@@ -15,11 +15,11 @@ import (
 
 var (
 	json       = jsoniter.ConfigCompatibleWithStandardLibrary
-	QuickCrash = false
+	quickCrash = false
 )
 
 func SetQuickCrash(crash bool) {
-	QuickCrash = crash
+	quickCrash = crash
 }
 
 func StringToInt(s string) int {
@@ -89,7 +89,7 @@ func Int64ToString(val int64) string {
 
 func SafeRun(f func()) {
 	defer func() {
-		if QuickCrash {
+		if quickCrash {
 			return
 		}
 		if x := recover(); x != nil {
@@ -111,7 +111,7 @@ func SafeRun(f func()) {
 }
 
 func Recovery() {
-	if QuickCrash {
+	if quickCrash {
 		return
 	}
 	if x := recover(); x != nil {
