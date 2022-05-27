@@ -111,10 +111,10 @@ func SafeRun(f func()) {
 }
 
 func Recovery() {
+	if QuickCrash {
+		return
+	}
 	if x := recover(); x != nil {
-		if QuickCrash {
-			return
-		}
 		txt := fmt.Sprintf("service panic stop stack : %+v\n", x)
 		i := 0
 		funcName, file, line, ok := runtime.Caller(i)
