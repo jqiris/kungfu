@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"go.uber.org/ratelimit"
 )
 
 var rule = regexp.MustCompile(`.*\/(.+\/.+\.go)`)
@@ -90,4 +92,16 @@ func abc(a any) {
 func TestGenericType(t *testing.T) {
 	abc(31)
 	abc("welcome")
+}
+
+func TestRateLimit(t *testing.T) {
+	rl := ratelimit.New(100) // per second
+
+	prev := time.Now()
+	for i := 0; i < 10; i++ {
+		now := rl.Take()
+		fmt.Println(i, now.Sub(prev))
+		prev = now
+	}
+
 }

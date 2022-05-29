@@ -17,11 +17,13 @@ require (
 	github.com/spf13/viper v1.11.0
 	github.com/urfave/cli/v2 v2.6.0
 	go.etcd.io/etcd/client/v3 v3.5.0-alpha.0
+	go.uber.org/ratelimit v0.2.0
 	google.golang.org/protobuf v1.28.0
 	stathat.com/c/consistent v1.0.0
 )
 
 require (
+	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect
