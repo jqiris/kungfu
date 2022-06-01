@@ -75,7 +75,7 @@ func (wrc *WgRand) calibrateWeights() {
 }
 
 func NewWgRand(choicePop bool, arguments ...int) WgRand {
-	var precision = 100
+	var precision = 1000
 	if len(arguments) > 0 {
 		precision = arguments[0]
 	}
