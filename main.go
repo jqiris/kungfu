@@ -224,6 +224,13 @@ func main() {
 				},
 			},
 			{
+				Name:  "rmiNone",
+				Usage: "rm none images",
+				Action: func(c *cli.Context) error {
+					return service.rmiNone(c)
+				},
+			},
+			{
 				Name:  "clear",
 				Usage: "clear servers",
 				Action: func(c *cli.Context) error {
