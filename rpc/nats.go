@@ -187,6 +187,12 @@ func (r *NatsRpc) DealMsg(msg *nats.Msg, callback CallbackFunc, coder EncoderRpc
 		logger.Infof("DealMsg,msgType: %v, msgId: %v", req.MsgType, req.MsgId)
 	}
 }
+func (r *NatsRpc) dialTimeout(s ReqBuilder) time.Duration {
+	if s.dialTimeout > 0 {
+		return s.dialTimeout
+	}
+	return r.DialTimeout
+}
 
 func (r *NatsRpc) Request(s ReqBuilder) error {
 	coder := r.RpcCoder[s.codeType]
@@ -201,7 +207,7 @@ func (r *NatsRpc) Request(s ReqBuilder) error {
 		return err
 	}
 	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
-	if msg, err = r.Client.Request(sub, data, r.DialTimeout); err == nil {
+	if msg, err = r.Client.Request(sub, data, r.dialTimeout(s)); err == nil {
 		respMsg := &MsgRpc{MsgData: s.resp}
 		err = coder.Decode(msg.Data, respMsg)
 		if err != nil {
@@ -225,7 +231,7 @@ func (r *NatsRpc) QueueRequest(s ReqBuilder) error {
 		return err
 	}
 	sub := path.Join(r.Prefix, treaty.RegSeverQueue(s.serverType, s.queue), s.suffix)
-	if msg, err = r.Client.Request(sub, data, r.DialTimeout); err == nil {
+	if msg, err = r.Client.Request(sub, data, r.dialTimeout(s)); err == nil {
 		respMsg := &MsgRpc{MsgData: s.resp}
 		err = coder.Decode(msg.Data, respMsg)
 		if err != nil {

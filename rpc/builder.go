@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"time"
+
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/treaty"
 )
@@ -72,14 +74,15 @@ func (r *RssBuilder) Build() RssBuilder {
 }
 
 type ReqBuilder struct {
-	queue      string
-	codeType   string
-	suffix     string
-	server     *treaty.Server
-	msgId      int32
-	req        any
-	resp       any
-	serverType string
+	queue       string
+	codeType    string
+	suffix      string
+	server      *treaty.Server
+	msgId       int32
+	req         any
+	resp        any
+	serverType  string
+	dialTimeout time.Duration
 }
 
 func NewReqBuilder(server *treaty.Server) *ReqBuilder {
@@ -135,16 +138,21 @@ func (r *ReqBuilder) SetServerType(serverType string) *ReqBuilder {
 	r.serverType = serverType
 	return r
 }
+func (r *ReqBuilder) SetDialTimeout(d time.Duration) *ReqBuilder {
+	r.dialTimeout = d
+	return r
+}
 
 func (r *ReqBuilder) Build() ReqBuilder {
 	return ReqBuilder{
-		queue:      r.queue,
-		codeType:   r.codeType,
-		suffix:     r.suffix,
-		server:     r.server,
-		msgId:      r.msgId,
-		req:        r.req,
-		resp:       r.resp,
-		serverType: r.serverType,
+		queue:       r.queue,
+		codeType:    r.codeType,
+		suffix:      r.suffix,
+		server:      r.server,
+		msgId:       r.msgId,
+		req:         r.req,
+		resp:        r.resp,
+		serverType:  r.serverType,
+		dialTimeout: r.dialTimeout,
 	}
 }

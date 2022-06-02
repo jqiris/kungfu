@@ -1,7 +1,9 @@
 package rpc
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/serialize"
@@ -36,4 +38,9 @@ func TestRpcEncoder(t *testing.T) {
 		t.Fatal(err)
 	}
 	logger.Infof("the req is: %#v", req)
+}
+
+func TestDuration(t *testing.T) {
+	var a time.Duration
+	fmt.Println(a > 0)
 }
