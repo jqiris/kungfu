@@ -138,7 +138,7 @@ func (m *MicroApp) rmi(c *cli.Context) error {
 	return nil
 }
 func (m *MicroApp) rmiNone(c *cli.Context) error {
-	args := []string{"rmi", "$(docker", "images", "-f", "dangling=true", "-q)"}
+	args := []string{"rmi", "$(docker", "images", "-f", `"dangling=true"`, "-q)"}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	out, err := cmd.Output()
