@@ -40,32 +40,29 @@ func (r *RateLimiter) setLimiter(rate int) ratelimit.Limiter {
 	return v
 }
 
-func (r *RateLimiter) Take() (bool, int, time.Time) {
-	var takeTime time.Time
+func (r *RateLimiter) Take() (bool, int, time.Duration) {
+	before := time.Now()
 	isOpen, rate := viper.GetBool(r.switchName), viper.GetInt(r.rateName)
 	if !isOpen {
-		return false, rate, takeTime
+		return false, rate, 0
 	}
 	v, ok := r.getLimiter(rate)
 	if !ok {
 		v = r.setLimiter(rate)
 	}
-	takeTime = v.Take()
-	return true, rate, takeTime
+	after := v.Take()
+	return true, rate, after.Sub(before)
 }
 
 func GinRateLimit(switchName, rateName string) gin.HandlerFunc {
-	isOpen, rate := false, 0
-	var before, after time.Time
 	limiter := NewRateLimiter(switchName, rateName)
 	return func(c *gin.Context) {
-		before = time.Now()
-		isOpen, rate, after = limiter.Take()
+		isOpen, rate, consume := limiter.Take()
 		if !isOpen {
 			c.Next()
 			return
 		}
-		logger.Warnf("rate limit rate: %v,cosume:%v", rate, after.Sub(before))
+		logger.Debugf("rate limit rate: %v,cosume:%v", rate, consume)
 		c.Next()
 	}
 }
