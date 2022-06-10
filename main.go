@@ -224,10 +224,10 @@ func main() {
 				},
 			},
 			{
-				Name:  "rmiNone",
+				Name:  "prune",
 				Usage: "rm none images",
 				Action: func(c *cli.Context) error {
-					return service.rmiNone(c)
+					return service.prune(c)
 				},
 			},
 			{
