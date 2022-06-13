@@ -16,34 +16,32 @@ var (
 )
 
 type Writer struct {
-	outType     OutType
-	logDir      string
-	logName     string
-	logDump     bool   //是否转储
-	dumpDate    string //转储日期
-	logFile     *os.File
-	stdColor    bool //是否标准输出显示彩色
-	fileLock    *sync.Mutex
-	zipDuration time.Duration //zip压缩时长
-	zipStart    time.Time     //zip压缩开始
-	zipEnd      time.Time     //zip压缩结束
-	tickTime    time.Duration //检查间隔
-	logChan     chan *LogItem
+	outType  OutType
+	logDir   string
+	logName  string
+	logDump  bool   //是否转储
+	dumpDate string //转储日期
+	logFile  *os.File
+	stdColor bool //是否标准输出显示彩色
+	fileLock *sync.Mutex
+	zipDay   int       //zip转储天数
+	zipStart time.Time //zip开始时间
+	zipTime  time.Time //zip转储时间
+	logChan  chan *LogItem
 }
 
 func newWriter() *Writer {
 	nowTime := time.Now()
 	w := &Writer{
-		outType:     OutStd,
-		logDump:     false,
-		logFile:     &os.File{},
-		stdColor:    false,
-		zipDuration: defZipDuration,
-		zipStart:    nowTime,
-		zipEnd:      nowTime.Add(defZipDuration), //zip时间
-		tickTime:    10 * time.Minute,
-		fileLock:    new(sync.Mutex),
-		logChan:     make(chan *LogItem, 100),
+		outType:  OutStd,
+		logDump:  false,
+		logFile:  &os.File{},
+		stdColor: false,
+		zipStart: nowTime,
+		zipTime:  nowTime,
+		fileLock: new(sync.Mutex),
+		logChan:  make(chan *LogItem, 300),
+		zipDay:   7,
 	}
 	go w.logWriting()
 	return w
@@ -57,6 +55,21 @@ func (w *Writer) initLogger() {
 	case OutAll:
 		w.OpenFile()
 	}
+}
+func (w *Writer) getZipTime() <-chan time.Time {
+	now := w.zipTime
+	next := now.Add(time.Hour * 24 * time.Duration(w.zipDay))
+	next = time.Date(next.Year(), next.Month(), next.Day(), 0, 0, 0, 1, next.Location())
+	w.zipStart = now
+	w.zipTime = next
+	return time.After(next.Sub(now))
+}
+
+func (w *Writer) getDumpTime() <-chan time.Time {
+	now := time.Now()
+	next := now.Add(time.Hour * 24)
+	next = time.Date(next.Year(), next.Month(), next.Day(), 0, 0, 0, 1, next.Location())
+	return time.After(next.Sub(now))
 }
 
 func (w *Writer) OpenFile() {
@@ -145,8 +158,10 @@ func (w *Writer) logWriting() {
 			if item.logLevel == FATAL {
 				os.Exit(1)
 			}
-		case <-time.After(w.tickTime):
-			w.checkDump() //每隔10分钟检查下转储
+		case <-w.getZipTime():
+			w.zipFile() //压缩文件
+		case <-w.getDumpTime():
+			w.dumpFile() //转储文件
 		case <-ctx.Done():
 			fmt.Println("关闭日志写入器")
 			return
@@ -154,45 +169,50 @@ func (w *Writer) logWriting() {
 	}
 }
 
-func (w *Writer) checkDump() {
-	if w.outType > OutStd && w.logDump {
-		nowTime := time.Now()
-		nowDate := nowTime.Format("20060102")
-		if w.dumpDate != nowDate {
-			w.OpenFile()
-			w.dumpDate = nowDate
+func (w *Writer) zipFile() {
+	if w.outType <= OutStd || !w.logDump {
+		return
+	}
+	nowTime := time.Now()
+	nowDate := nowTime.Format("20060102")
+	zipFiles := make([]*os.File, 0)
+	start, end := w.zipStart, w.zipTime
+	for s := start; s.Before(end); s = s.Add(defDayDuration) {
+		if s.Format("20060102") == nowDate {
+			continue
 		}
-		if nowTime.After(w.zipEnd) {
-			//过了zip压缩时间,进行压缩
-			start, end := w.zipStart, w.zipEnd
-			w.zipStart, w.zipEnd = nowTime, nowTime.Add(w.zipDuration)
-			zipFiles := make([]*os.File, 0)
-			for s := start; s.Before(end); s = s.Add(defDayDuration) {
-				if s.Format("20060102") == nowDate {
-					continue
-				}
-				if file, err := w.getLogFileByTime(s); err == nil {
-					zipFiles = append(zipFiles, file)
-				}
-			}
-			if len(zipFiles) > 0 {
-				dest := w.getZipFileName(start, end)
-				if exist, _ := PathExists(dest); exist {
-					dest = strings.TrimSuffix(dest, zipSuffix) + "_" + nowTime.Format("20060102150405") + zipSuffix
-				}
-				if err := Compress(zipFiles, dest); err != nil {
+		if file, err := w.getLogFileByTime(s); err == nil {
+			zipFiles = append(zipFiles, file)
+		}
+	}
+	if len(zipFiles) > 0 {
+		dest := w.getZipFileName(start, end)
+		if exist, _ := PathExists(dest); exist {
+			dest = strings.TrimSuffix(dest, zipSuffix) + "_" + nowTime.Format("20060102150405") + zipSuffix
+		}
+		if err := Compress(zipFiles, dest); err != nil {
+			fmt.Println(err)
+		} else {
+			//删除压缩文件
+			for _, file := range zipFiles {
+				_ = file.Close()
+				if err = os.Remove(file.Name()); err != nil {
 					fmt.Println(err)
-				} else {
-					//删除压缩文件
-					for _, file := range zipFiles {
-						_ = file.Close()
-						if err = os.Remove(file.Name()); err != nil {
-							fmt.Println(err)
-						}
-					}
 				}
 			}
 		}
+	}
+}
+
+func (w *Writer) dumpFile() {
+	if w.outType <= OutStd || !w.logDump {
+		return
+	}
+	nowTime := time.Now()
+	nowDate := nowTime.Format("20060102")
+	if w.dumpDate != nowDate {
+		w.OpenFile()
+		w.dumpDate = nowDate
 	}
 }
 
