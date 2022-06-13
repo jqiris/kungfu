@@ -1,5 +1,7 @@
 package logger
 
+import "time"
+
 type Option func(l *Logger)
 
 func WithLogLevel(level string) Option {
@@ -64,5 +66,6 @@ func WithStdColor(show bool) Option {
 func WithZipDay(d int) Option {
 	return func(l *Logger) {
 		writer.zipDay = d
+		writer.nextZipTime(time.Now())
 	}
 }
