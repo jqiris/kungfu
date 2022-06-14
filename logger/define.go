@@ -24,9 +24,17 @@ const (
 	OutAll                 //2-文件和标准都输出
 )
 
+type ChangChanType int
+
+const (
+	ChangChanZip  ChangChanType = iota //改变zip chan
+	ChangChanDump                      // 改变dump chan
+)
+
 const (
 	logSuffix      = ".log"
 	zipSuffix      = ".zip"
+	lockSuffix     = ".lock"
 	defZipDuration = 744 * time.Hour //31天
 	defDayDuration = 24 * time.Hour  //1天
 

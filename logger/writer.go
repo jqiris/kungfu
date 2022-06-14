@@ -3,6 +3,7 @@ package logger
 import (
 	"context"
 	"fmt"
+	filelock "github.com/MichaelS11/go-file-lock"
 	"log"
 	"os"
 	"path"
@@ -16,38 +17,36 @@ var (
 )
 
 type Writer struct {
-	outType  OutType
-	logDir   string
-	logName  string
-	logDump  bool   //是否转储
-	dumpDate string //转储日期
-	logFile  *os.File
-	stdColor bool //是否标准输出显示彩色
-	fileLock *sync.Mutex
-	zipLock  *sync.RWMutex
-	dumpLock *sync.RWMutex
-	zipDay   int       //zip转储天数
-	zipStart time.Time //zip开始时间
-	zipTime  time.Time //zip转储时间
-	logChan  chan *LogItem
-	zipChan  <-chan time.Time //zip通道
-	dumpChan <-chan time.Time //dump通道
+	outType    OutType
+	logDir     string
+	logName    string
+	logDump    bool   //是否转储
+	dumpDate   string //转储日期
+	logFile    *os.File
+	stdColor   bool //是否标准输出显示彩色
+	fileLock   *sync.Mutex
+	zipDay     int       //zip转储天数
+	zipStart   time.Time //zip开始时间
+	zipTime    time.Time //zip转储时间
+	logChan    chan *LogItem
+	zipChan    <-chan time.Time //zip通道
+	dumpChan   <-chan time.Time //dump通道
+	changeChan chan ChangChanType
 }
 
 func newWriter() *Writer {
 	nowTime := time.Now()
 	w := &Writer{
-		outType:  OutStd,
-		logDump:  false,
-		logFile:  &os.File{},
-		stdColor: false,
-		zipStart: nowTime,
-		zipTime:  nowTime,
-		fileLock: new(sync.Mutex),
-		zipLock:  new(sync.RWMutex),
-		dumpLock: new(sync.RWMutex),
-		logChan:  make(chan *LogItem, 300),
-		zipDay:   7,
+		outType:    OutStd,
+		logDump:    false,
+		logFile:    &os.File{},
+		stdColor:   false,
+		zipStart:   nowTime,
+		zipTime:    nowTime,
+		fileLock:   new(sync.Mutex),
+		logChan:    make(chan *LogItem, 300),
+		zipDay:     7,
+		changeChan: make(chan ChangChanType, 2),
 	}
 	w.nextZipTime(nowTime)
 	w.nextDumpTime(nowTime)
@@ -65,8 +64,6 @@ func (w *Writer) initLogger() {
 	}
 }
 func (w *Writer) nextZipTime(now time.Time) {
-	w.zipLock.Lock()
-	defer w.zipLock.Unlock()
 	next := now.Add(time.Hour * 24 * time.Duration(w.zipDay))
 	next = time.Date(next.Year(), next.Month(), next.Day(), 0, 0, 0, 1, next.Location())
 	w.zipStart = now
@@ -74,25 +71,12 @@ func (w *Writer) nextZipTime(now time.Time) {
 	w.zipChan = time.After(next.Sub(now))
 }
 
-func (w *Writer) getZipChan() <-chan time.Time {
-	w.zipLock.RLock()
-	defer w.zipLock.RUnlock()
-	return w.zipChan
-}
-
 func (w *Writer) nextDumpTime(now time.Time) {
-	w.dumpLock.Lock()
-	defer w.dumpLock.Unlock()
 	next := now.Add(time.Hour * 24)
 	next = time.Date(next.Year(), next.Month(), next.Day(), 0, 0, 0, 1, next.Location())
 	w.dumpChan = time.After(next.Sub(now))
 }
 
-func (w *Writer) getDumpChan() <-chan time.Time {
-	w.dumpLock.RLock()
-	defer w.dumpLock.RUnlock()
-	return w.dumpChan
-}
 func (w *Writer) OpenFile() {
 	//进行文件转储
 	w.fileLock.Lock()
@@ -109,7 +93,14 @@ func (w *Writer) OpenFile() {
 			log.Fatal(err)
 		}
 	}
-	w.logFile, err = os.OpenFile(w.getLogFile(), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0766)
+	logFile := w.getLogFile()
+	lockHandle, err := filelock.New(logFile + lockSuffix)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer lockHandle.Unlock()
+	w.logFile, err = os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0766)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -179,12 +170,19 @@ func (w *Writer) logWriting() {
 			if item.logLevel == FATAL {
 				os.Exit(1)
 			}
-		case now := <-w.getZipChan():
-			w.zipFile() //压缩文件
+		case now := <-w.zipChan:
+			w.zipFile(now) //压缩文件
 			w.nextZipTime(now)
-		case now := <-w.getDumpChan():
-			w.dumpFile() //转储文件
+		case now := <-w.dumpChan:
+			w.dumpFile(now) //转储文件
 			w.nextDumpTime(now)
+		case typ := <-w.changeChan:
+			now := time.Now()
+			if typ == ChangChanZip {
+				w.nextZipTime(now)
+			} else if typ == ChangChanDump {
+				w.nextDumpTime(now)
+			}
 		case <-ctx.Done():
 			fmt.Println("关闭日志写入器")
 			return
@@ -192,11 +190,10 @@ func (w *Writer) logWriting() {
 	}
 }
 
-func (w *Writer) zipFile() {
+func (w *Writer) zipFile(nowTime time.Time) {
 	if w.outType <= OutStd || !w.logDump {
 		return
 	}
-	nowTime := time.Now()
 	nowDate := nowTime.Format("20060102")
 	zipFiles := make([]*os.File, 0)
 	start, end := w.zipStart, w.zipTime
@@ -210,9 +207,16 @@ func (w *Writer) zipFile() {
 	}
 	if len(zipFiles) > 0 {
 		dest := w.getZipFileName(start, end)
-		if exist, _ := PathExists(dest); exist {
-			dest = strings.TrimSuffix(dest, zipSuffix) + "_" + nowTime.Format("20060102150405") + zipSuffix
+		//if exist, _ := PathExists(dest); exist {
+		//	dest = strings.TrimSuffix(dest, zipSuffix) + "_" + nowTime.Format("20060102150405") + zipSuffix
+		//}
+		//分布式加锁处理
+		lockHandle, err := filelock.New(dest + lockSuffix)
+		if err != nil {
+			fmt.Println(err)
+			return
 		}
+		defer lockHandle.Unlock()
 		if err := Compress(zipFiles, dest); err != nil {
 			fmt.Println(err)
 		} else {
@@ -227,11 +231,10 @@ func (w *Writer) zipFile() {
 	}
 }
 
-func (w *Writer) dumpFile() {
+func (w *Writer) dumpFile(nowTime time.Time) {
 	if w.outType <= OutStd || !w.logDump {
 		return
 	}
-	nowTime := time.Now()
 	nowDate := nowTime.Format("20060102")
 	if w.dumpDate != nowDate {
 		w.OpenFile()

@@ -3,6 +3,7 @@ module github.com/jqiris/kungfu/v2
 go 1.18
 
 require (
+	github.com/MichaelS11/go-file-lock v0.1.0
 	github.com/appleboy/gin-jwt/v2 v2.8.0
 	github.com/fatih/color v1.13.0
 	github.com/gin-gonic/gin v1.7.7
