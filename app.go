@@ -52,6 +52,9 @@ ARG client_port
 # 时区控制
 ENV TZ Asia/Shanghai
 RUN echo "http://mirrors.aliyun.com/alpine/v3.4/main/" > /etc/apk/repositories \
+	&& apk update \
+	&& apk add curl \
+	&& apk add busybox-extras \
     && apk --no-cache add tzdata zeromq \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo '$TZ' > /etc/timezone
