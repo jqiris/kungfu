@@ -414,6 +414,36 @@ func (s *StoreRedis) FlushAllAsync() error {
 	return s.Client.FlushAllAsync(ctx).Err()
 }
 
+func (s *StoreRedis) SAdd(key string, members ...interface{}) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.SAdd(ctx, s.GetKey(key), members...).Err()
+}
+
+func (s *StoreRedis) SCard(key string) int64 {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.SCard(ctx, s.GetKey(key)).Val()
+}
+
+func (s *StoreRedis) SRem(key string, members ...interface{}) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.SRem(ctx, s.GetKey(key), members...).Err()
+}
+
+func (s *StoreRedis) SMembers(key string) []string {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.SMembers(ctx, s.GetKey(key)).Val()
+}
+
+func (s *StoreRedis) SIsMember(key string, member interface{}) bool {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.SIsMember(ctx, s.GetKey(key), member).Val()
+}
+
 func (s *StoreRedis) ZAdd(key string, members ...*redis.Z) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()

@@ -50,6 +50,11 @@ type StoreKeeper interface {
 	HExists(key, field string) bool
 	Expire(key string, expiration time.Duration) bool
 	HKeys(key string) ([]string, error)
+	SAdd(key string, members ...interface{}) error
+	SCard(key string) int64
+	SRem(key string, members ...interface{}) error
+	SMembers(key string) []string
+	SIsMember(key string, member interface{}) bool
 	ZAdd(key string, members ...*redis.Z) error
 	ZRangeWithScores(key string, start, stop int64) ([]redis.Z, error)
 	ZRevRangeWithScores(key string, start, stop int64) ([]redis.Z, error)
@@ -196,6 +201,25 @@ func FlushAllAsync() error {
 }
 func FlushAll() error {
 	return defStoreKeeper.FlushAll()
+}
+
+func SAdd(key string, members ...interface{}) error {
+	return defStoreKeeper.SAdd(key, members...)
+}
+func SCard(key string) int64 {
+	return defStoreKeeper.SCard(key)
+}
+
+func SRem(key string, members ...interface{}) error {
+	return defStoreKeeper.SRem(key, members...)
+}
+
+func SMembers(key string) []string {
+	return defStoreKeeper.SMembers(key)
+}
+
+func SIsMember(key string, member interface{}) bool {
+	return defStoreKeeper.SIsMember(key, member)
 }
 
 func ZAdd(key string, members ...*redis.Z) error {
