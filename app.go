@@ -627,6 +627,7 @@ func (m *MicroApp) projectSet(c *cli.Context) error {
 	project := c.Args().Get(0)
 	if len(project) > 0 {
 		m.setGlobalVar(cfg, dockerProject, project)
+		m.removeDockerFile()
 		fmt.Println("项目设置成功")
 	} else {
 		project = m.getGlobalVar(cfg, dockerProject)
