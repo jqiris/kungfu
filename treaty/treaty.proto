@@ -31,14 +31,15 @@ message Server{
   string server_type = 2; //服务器类型
   string server_name = 3; //服务器名字
   string server_ip = 4; //服务器IP
-  int32  client_port = 5; //客户端端口
-  bool  is_launch = 6; //是否加载
-  bool  serial = 7; //是否串行
-  int32 launch_weight = 8; //启动权重 越大越晚
-  int32 shut_weight = 9; //关闭权重 越大越晚
-  int64 load = 10;//负载量
-  bool maintained = 11;//是否在维护中
-  bool silent = 12;//沉默注册
+  int32 client_port = 5; //客户端端口
+  string server_root = 6; //服务根目录
+  bool  is_launch = 7; //是否加载
+  bool  serial = 8; //是否串行
+  int32 launch_weight = 9; //启动权重 越大越晚
+  int32 shut_weight = 10; //关闭权重 越大越晚
+  int64 load = 11;//负载量
+  bool maintained = 12;//是否在维护中
+  bool silent = 13;//沉默注册
 }
 
 message BalanceResult{

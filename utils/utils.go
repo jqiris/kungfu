@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"path"
 	"runtime"
 	"strconv"
 
@@ -183,6 +184,9 @@ func GetServerUrl(server *treaty.Server) string {
 	addr := fmt.Sprintf("%v:%v", server.ServerIp, server.ClientPort)
 	if domain, ok := config.GetDomain(addr); ok {
 		addr = domain
+	}
+	if len(server.ServerRoot) > 0 {
+		addr = path.Join(addr, server.ServerRoot)
 	}
 	return addr
 }
