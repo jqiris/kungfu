@@ -6,20 +6,23 @@ import (
 
 	socketio "github.com/googollee/go-socket.io"
 	"github.com/googollee/go-socket.io/engineio"
+	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/rpc"
 	"github.com/jqiris/kungfu/v2/utils"
 )
 
 type ServerSocket struct {
-	sc *socketio.Server
-	ns string
+	sc  *socketio.Server
+	ns  string
+	ssl config.SslConf
 }
 
-func NewServerSocket(ns string, opts *engineio.Options) *ServerSocket {
+func NewServerSocket(ns string, ssl config.SslConf, opts *engineio.Options) *ServerSocket {
 	return &ServerSocket{
-		ns: ns,
-		sc: socketio.NewServer(opts),
+		ns:  ns,
+		ssl: ssl,
+		sc:  socketio.NewServer(opts),
 	}
 }
 
@@ -45,9 +48,16 @@ func (b *ServerSocket) Run(s *rpc.ServerBase) {
 	scAddr := "/" + s.Server.ServerId + "/"
 	http.Handle(scAddr, b.sc)
 	logger.Infof("socket server start at:%v", s.Server.ClientPort)
-	if err := http.ListenAndServe(fmt.Sprintf(":%v", s.Server.ClientPort), nil); err != nil {
-		logger.Fatal(err)
+	if b.ssl.PowerOn {
+		if err := http.ListenAndServeTLS(fmt.Sprintf(":%v", s.Server.ClientPort), b.ssl.CertFile, b.ssl.KeyFile, nil); err != nil {
+			logger.Fatal(err)
+		}
+	} else {
+		if err := http.ListenAndServe(fmt.Sprintf(":%v", s.Server.ClientPort), nil); err != nil {
+			logger.Fatal(err)
+		}
 	}
+
 }
 
 func (b *ServerSocket) Init(s *rpc.ServerBase) {

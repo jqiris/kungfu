@@ -89,3 +89,7 @@ func GetDomain(addr string) (string, bool) {
 	domain, ok := config.Domains[addr]
 	return domain, ok
 }
+
+func GetSslConf() SslConf {
+	return config.Ssl
+}
