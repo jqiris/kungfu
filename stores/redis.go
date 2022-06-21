@@ -233,6 +233,12 @@ func (s *StoreRedis) HSet(key, field string, val any) error {
 	return nil
 }
 
+func (s *StoreRedis) HIncrBy(key, field string, incr int64) int64 {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.HIncrBy(ctx, s.GetKey(key), field, incr).Val()
+}
+
 func (s *StoreRedis) HGet(key, field string, val any) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()

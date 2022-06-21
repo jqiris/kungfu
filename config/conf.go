@@ -81,3 +81,11 @@ func GetServersConf() map[string]*treaty.Server {
 func SetServersConf(cfg map[string]*treaty.Server) {
 	config.Servers = cfg
 }
+
+func GetDomain(addr string) (string, bool) {
+	if config.Domains == nil {
+		return "", false
+	}
+	domain, ok := config.Domains[addr]
+	return domain, ok
+}

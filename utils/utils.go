@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 
+	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/treaty"
 	jsoniter "github.com/json-iterator/go"
@@ -176,4 +177,12 @@ func GetEnvDefault(key, defVal string) string {
 		return defVal
 	}
 	return val
+}
+
+func GetServerUrl(server *treaty.Server) string {
+	addr := fmt.Sprintf("%v:%v", server.ServerIp, server.ClientPort)
+	if domain, ok := config.GetDomain(addr); ok {
+		addr = domain
+	}
+	return addr
 }

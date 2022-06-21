@@ -43,6 +43,7 @@ type StoreKeeper interface {
 	Del(keys ...string) (int64, error)
 	Exists(keys ...string) bool
 	HSet(key, field string, val any) error
+	HIncrBy(key, field string, incr int64) int64
 	HGet(key, field string, val any) error
 	HGetAll(key string) (map[string]string, error)
 	HDel(key string, fields ...string) error
@@ -120,6 +121,10 @@ func Exists(keys ...string) bool {
 
 func HSet(key, field string, val any) error {
 	return defStoreKeeper.HSet(key, field, val)
+}
+
+func HIncrBy(key, field string, incr int64) int64 {
+	return defStoreKeeper.HIncrBy(key, field, incr)
 }
 
 func HGet(key, field string, val any) error {
