@@ -21,7 +21,6 @@ type DataItem struct {
 type DataHandler func(item *DataItem)
 
 type ServerData struct {
-	dbStore     stores.StoreKeeper
 	dataHandler DataHandler
 	dealChanArr []chan *DataItem
 	doneChan    chan int
@@ -32,7 +31,7 @@ type ServerData struct {
 	serverId    string
 }
 
-func NewServerData(dbStore stores.StoreKeeper, dataHandler DataHandler, maxDbQueue, dbQueueSize int64) *ServerData {
+func NewServerData(dataHandler DataHandler, maxDbQueue, dbQueueSize int64) *ServerData {
 	if maxDbQueue < 1 {
 		maxDbQueue = 10
 	}
@@ -40,7 +39,6 @@ func NewServerData(dbStore stores.StoreKeeper, dataHandler DataHandler, maxDbQue
 		dbQueueSize = 1000
 	}
 	s := &ServerData{
-		dbStore:     dbStore,
 		dataHandler: dataHandler,
 		dealChanArr: make([]chan *DataItem, maxDbQueue),
 		doneChan:    make(chan int, maxDbQueue),
@@ -60,7 +58,7 @@ func (b *ServerData) DealReq(ctx context.Context, s *rpc.ServerBase) {
 			return
 		default:
 			var item *DataItem
-			if err := b.dbStore.BRPop(s.Server.ServerId, &item); err == nil {
+			if err := stores.BRPop(s.Server.ServerId, &item); err == nil {
 				b.dealChanArr[item.UserId%b.maxDbQueue] <- item
 			} else {
 				if !stores.IsRedisNull(err) {
