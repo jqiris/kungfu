@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/jqiris/kungfu/v2/config"
+	"github.com/jqiris/kungfu/v2/treaty"
 )
 
 var (
@@ -36,4 +37,12 @@ func Request(s ReqBuilder) error {
 }
 func QueueRequest(s ReqBuilder) error {
 	return defRpc.QueueRequest(s)
+}
+
+func Find(serverType string, arg any) *treaty.Server {
+	return defRpc.Find(serverType, arg)
+}
+
+func RemoveFindCache(arg any) {
+	defRpc.RemoveFindCache(arg)
 }
