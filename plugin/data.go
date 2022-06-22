@@ -10,11 +10,6 @@ import (
 	"github.com/jqiris/kungfu/v2/rpc"
 	"github.com/jqiris/kungfu/v2/stores"
 	"github.com/jqiris/kungfu/v2/utils"
-	jsoniter "github.com/json-iterator/go"
-)
-
-var (
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 type DataItem struct {
@@ -29,10 +24,12 @@ type ServerData struct {
 	dbStore     stores.StoreKeeper
 	dataHandler DataHandler
 	dealChanArr []chan *DataItem
+	doneChan    chan int
 	maxDbQueue  int64
 	dbQueueSize int64
 	cancelCtx   context.Context
 	cancelFunc  context.CancelFunc
+	serverId    string
 }
 
 func NewServerData(dbStore stores.StoreKeeper, dataHandler DataHandler, maxDbQueue, dbQueueSize int64) *ServerData {
@@ -46,6 +43,7 @@ func NewServerData(dbStore stores.StoreKeeper, dataHandler DataHandler, maxDbQue
 		dbStore:     dbStore,
 		dataHandler: dataHandler,
 		dealChanArr: make([]chan *DataItem, maxDbQueue),
+		doneChan:    make(chan int, maxDbQueue),
 		maxDbQueue:  maxDbQueue,
 		dbQueueSize: dbQueueSize,
 	}
@@ -58,7 +56,7 @@ func (b *ServerData) DealReq(ctx context.Context, s *rpc.ServerBase) {
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Infof("DealReq receive cancel signal")
+			logger.Infof("%v DealReq receive cancel signal", b.serverId)
 			return
 		default:
 			var item *DataItem
@@ -74,13 +72,14 @@ func (b *ServerData) DealReq(ctx context.Context, s *rpc.ServerBase) {
 	}
 }
 
-func (b *ServerData) DealQueue(ctx context.Context, queue chan *DataItem) {
+func (b *ServerData) DealQueue(ctx context.Context, num int, queue chan *DataItem) {
 	for {
 		select {
 		case item := <-queue:
 			b.dataHandler(item)
 		case <-ctx.Done():
-			logger.Infof("DealQueue receive cancel signal")
+			logger.Infof("%v DealQueue receive cancel signal:%v", b.serverId, num)
+			b.doneChan <- num
 			return
 		}
 	}
@@ -90,35 +89,45 @@ func (b *ServerData) Init(s *rpc.ServerBase) {
 }
 
 func (b *ServerData) AfterInit(s *rpc.ServerBase) {
-	for k, v := range b.dealChanArr {
-		v = make(chan *DataItem, b.dbQueueSize)
-		b.dealChanArr[k] = v
-		go utils.SafeRun(func() {
-			b.DealQueue(b.cancelCtx, v)
-		})
+	b.serverId = s.Server.ServerId
+	//初始化队列
+	for i := 0; i < len(b.dealChanArr); i++ {
+		b.dealChanArr[i] = make(chan *DataItem, b.dbQueueSize)
 	}
 	//读取队列
 	go utils.SafeRun(func() {
 		b.DealReq(b.cancelCtx, s)
 	})
+	//处理数据
+	for i := 0; i < len(b.dealChanArr); i++ {
+		k, v := i, b.dealChanArr[i]
+		go utils.SafeRun(func() {
+			b.DealQueue(b.cancelCtx, k, v)
+		})
+	}
+
 }
 
 func (b *ServerData) BeforeShutdown(s *rpc.ServerBase) {
 	b.cancelFunc()
 	//剩余队列资源处理
 	wg := sync.WaitGroup{}
-	for dealKey, dealChan := range b.dealChanArr {
+	for i := 0; i < len(b.dealChanArr); i++ {
+		k := <-b.doneChan
+		v := b.dealChanArr[k]
+		close(v)
 		wg.Add(1)
-		go func(k int, v chan *DataItem) {
+		go func(num int, queue chan *DataItem) {
 			defer wg.Done()
-			logger.Infof("ServerData Shutting down deal chan:%v", k)
-			for item := range v {
+			logger.Infof("%v ServerData Shutting down deal begin:%v", b.serverId, num)
+			for item := range queue {
 				b.dataHandler(item)
 			}
-		}(dealKey, dealChan)
+			logger.Infof("%v ServerData Shutting down deal end:%v", b.serverId, num)
+		}(k, v)
 	}
 	wg.Wait()
-	fmt.Println("ServerData Shutting down deal chan over")
+	fmt.Println(b.serverId + " ServerData Shutting down deal chan over")
 }
 
 func (b *ServerData) Shutdown(s *rpc.ServerBase) {
