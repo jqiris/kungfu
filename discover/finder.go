@@ -2,27 +2,28 @@ package discover
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/treaty"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"sync"
 )
 
 type Findkey interface {
-	int | string
+	int64 | string
 }
 
 type ServerMap[k Findkey] map[k]*treaty.Server
 
 type Finder struct {
-	serversInt map[string]ServerMap[int]
+	serversInt map[string]ServerMap[int64]
 	serversStr map[string]ServerMap[string]
 	serverLock *sync.RWMutex
 }
 
 func NewFinder() *Finder {
 	f := &Finder{
-		serversInt: make(map[string]ServerMap[int]),
+		serversInt: make(map[string]ServerMap[int64]),
 		serversStr: make(map[string]ServerMap[string]),
 		serverLock: new(sync.RWMutex),
 	}
@@ -46,7 +47,7 @@ func (f *Finder) GetServerCache(serverType string, arg any) *treaty.Server {
 	f.serverLock.RLock()
 	defer f.serverLock.RUnlock()
 	switch v := arg.(type) {
-	case int:
+	case int64:
 		if serverTypeList, ok := f.serversInt[serverType]; ok {
 			if server, okv := serverTypeList[v]; okv {
 				return server
@@ -69,9 +70,9 @@ func (f *Finder) GetServerDiscover(serverType string, arg any) *treaty.Server {
 	server := GetServerByType(serverType, fmt.Sprintf("%v", arg))
 	if server != nil {
 		switch v := arg.(type) {
-		case int:
+		case int64:
 			if _, ok := f.serversInt[serverType]; !ok {
-				f.serversInt[serverType] = make(ServerMap[int])
+				f.serversInt[serverType] = make(ServerMap[int64])
 			}
 			f.serversInt[serverType][v] = server
 			logger.Infof("user server cache,  arg: %v, server_type: %v,server_id:%v", arg, serverType, server.ServerId)
@@ -106,7 +107,7 @@ func (f *Finder) RemoveUserCache(arg any) {
 	f.serverLock.Lock()
 	defer f.serverLock.Unlock()
 	switch v := arg.(type) {
-	case int:
+	case int64:
 		for typ, val := range f.serversInt {
 			if _, ok := val[v]; ok {
 				delete(f.serversInt[typ], v)

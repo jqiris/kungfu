@@ -86,6 +86,10 @@ type StoreKeeper interface {
 	GetKey(key string) string
 }
 
+func GetDefStoreKeeper() StoreKeeper {
+	return defStoreKeeper
+}
+
 func Set(key string, value any, expire time.Duration) error {
 	return defStoreKeeper.Set(key, value, expire)
 }

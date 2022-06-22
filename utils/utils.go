@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -189,4 +190,15 @@ func GetServerUrl(server *treaty.Server) string {
 		addr = path.Join(addr, server.ServerRoot)
 	}
 	return addr
+}
+
+func MapStringToStruct(src interface{}, dist interface{}) error {
+	if v, ok := src.(map[string]interface{}); ok {
+		bs, err := json.Marshal(v)
+		if err != nil {
+			return err
+		}
+		return json.Unmarshal(bs, dist)
+	}
+	return errors.New("no suit type to struct")
 }
