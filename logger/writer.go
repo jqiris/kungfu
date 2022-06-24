@@ -3,13 +3,14 @@ package logger
 import (
 	"context"
 	"fmt"
-	filelock "github.com/MichaelS11/go-file-lock"
 	"log"
 	"os"
 	"path"
 	"strings"
 	"sync"
 	"time"
+
+	filelock "github.com/MichaelS11/go-file-lock"
 )
 
 var (
@@ -94,12 +95,6 @@ func (w *Writer) OpenFile() {
 		}
 	}
 	logFile := w.getLogFile()
-	lockHandle, err := filelock.New(logFile + lockSuffix)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer lockHandle.Unlock()
 	w.logFile, err = os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0766)
 	if err != nil {
 		log.Fatal(err)
@@ -207,9 +202,6 @@ func (w *Writer) zipFile(nowTime time.Time) {
 	}
 	if len(zipFiles) > 0 {
 		dest := w.getZipFileName(start, end)
-		//if exist, _ := PathExists(dest); exist {
-		//	dest = strings.TrimSuffix(dest, zipSuffix) + "_" + nowTime.Format("20060102150405") + zipSuffix
-		//}
 		//分布式加锁处理
 		lockHandle, err := filelock.New(dest + lockSuffix)
 		if err != nil {
