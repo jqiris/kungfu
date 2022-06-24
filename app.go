@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -42,7 +43,7 @@ FROM golang:1.18.3 AS builder
 COPY . /src
 WORKDIR /src
 
-RUN GOPROXY=https://goproxy.cn CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server
+RUN GOPROXY=https://goproxy.cn CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o buildsrv
 
 FROM alpine
 MAINTAINER %s
@@ -60,13 +61,13 @@ RUN echo "http://mirrors.aliyun.com/alpine/v3.4/main/" > /etc/apk/repositories \
 ENV run_mode docker
 ENV run_server ${run_server}
 
-COPY --from=builder /src/server /app/
+COPY --from=builder /src/buildsrv /app/
 
 WORKDIR /app
 
 EXPOSE ${client_port}
 VOLUME /data
-ENTRYPOINT ["/app/server", "-conf", "/data/%s"]	
+ENTRYPOINT ["/app/buildsrv", "-conf", "/data/%s"]	
 	`
 )
 
@@ -434,6 +435,43 @@ func (m *MicroApp) removeDockerFile() {
 	}
 }
 
+func (m *MicroApp) serverDockerName(server *treaty.Server) string {
+	return fmt.Sprintf("%v_%v", server.ServerId, "dockerFile")
+}
+
+func (m *MicroApp) createServerDocker(server *treaty.Server) error {
+	file, err := os.Open(dockerPath)
+	if err != nil {
+		return err
+	}
+	bs, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+	serverName := "server_" + server.ServerId
+	if len(m.prefix) > 0 {
+		serverName = fmt.Sprintf("%v_%v", m.prefix, server.ServerId)
+	}
+	ntext := strings.Replace(string(bs), "buildsrv", serverName, -1)
+	fp, err := os.Create(m.serverDockerName(server))
+	if err != nil {
+		return err
+	}
+	defer fp.Close()
+	_, err = fp.Write([]byte(ntext))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *MicroApp) removeServerDocker(server *treaty.Server) {
+	err := os.Remove(m.serverDockerName(server))
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func (m *MicroApp) build(c *cli.Context) error {
 	if err := m.prepare(c); err != nil {
 		return err
@@ -755,7 +793,13 @@ func (m *MicroApp) saveName(prefix, ver string, list []string) string {
 }
 
 func (m *MicroApp) buildServer(buildPath string, server *treaty.Server) ([]byte, error) {
-	args := []string{"build", "--build-arg", fmt.Sprintf("run_server=%v", server.ServerId), "--build-arg", fmt.Sprintf(`client_port=%v`, server.ClientPort), "-t", m.runImage(m.prefix, m.ver, server), buildPath}
+	err := m.createServerDocker(server)
+	if err != nil {
+		return nil, err
+	}
+	defer m.removeServerDocker(server)
+	fileName := m.serverDockerName(server)
+	args := []string{"build", "-f", fileName, "--build-arg", fmt.Sprintf("run_server=%v", server.ServerId), "--build-arg", fmt.Sprintf(`client_port=%v`, server.ClientPort), "-t", m.runImage(m.prefix, m.ver, server), buildPath}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	return cmd.Output()
