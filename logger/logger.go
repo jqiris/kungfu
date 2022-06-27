@@ -156,7 +156,7 @@ func (l *Logger) Debugf(tmp string, args ...any) {
 }
 
 func (l *Logger) Report(txt ...any) {
-	item := l.NewLogItem(WARN, txt...)
+	item := l.NewLogItem(REPORT, txt...)
 	l.reportItem(item)
 	writer.logChan <- item
 }
