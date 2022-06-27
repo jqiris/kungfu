@@ -19,13 +19,13 @@ type LogItem struct {
 	logFile    string
 	logLine    int
 	logTxt     []any
-	logPrefix  string //日志前缀
+	logSuffix  string //日志前缀
 }
 
 func (l *LogItem) logFormat() string {
 	logTxt := ""
-	if len(l.logPrefix) == 0 {
-		if l.logRuntime {
+	if len(l.logSuffix) == 0 {
+		if l.logRuntime || needRuntime(l.logLevel) {
 			format := "[%s %s] %s [file:%s line:%d]"
 			logTxt = fmt.Sprintf(format, LevelDescMap[l.logLevel], l.logTime.Format(l.timeFormat), fmt.Sprint(l.logTxt...), l.logFile, l.logLine)
 		} else {
@@ -33,12 +33,12 @@ func (l *LogItem) logFormat() string {
 			logTxt = fmt.Sprintf(format, LevelDescMap[l.logLevel], l.logTime.Format(l.timeFormat), fmt.Sprint(l.logTxt...))
 		}
 	} else {
-		if l.logRuntime {
-			format := "[%s %s %s] %s [file:%s line:%d]"
-			logTxt = fmt.Sprintf(format, LevelDescMap[l.logLevel], l.logTime.Format(l.timeFormat), l.logPrefix, fmt.Sprint(l.logTxt...), l.logFile, l.logLine)
+		if l.logRuntime || needRuntime(l.logLevel) {
+			format := "[%s %s] %s [%s file:%s line:%d]"
+			logTxt = fmt.Sprintf(format, LevelDescMap[l.logLevel], l.logTime.Format(l.timeFormat), fmt.Sprint(l.logTxt...), l.logSuffix, l.logFile, l.logLine)
 		} else {
-			format := "[%s %s %s] %s"
-			logTxt = fmt.Sprintf(format, LevelDescMap[l.logLevel], l.logTime.Format(l.timeFormat), l.logPrefix, fmt.Sprint(l.logTxt...))
+			format := "[%s %s] %s [%s]"
+			logTxt = fmt.Sprintf(format, LevelDescMap[l.logLevel], l.logTime.Format(l.timeFormat), fmt.Sprint(l.logTxt...), l.logSuffix)
 		}
 	}
 	return logTxt
@@ -49,7 +49,7 @@ type Logger struct {
 	logRuntime bool     //是否记录运行时信息
 	timeFormat string   //日期显示格式
 	reporter   Reporter //上报者
-	logPrefix  string   //日志前缀
+	logSuffix  string   //日志后缀
 }
 
 func NewLogger(options ...Option) *Logger {
@@ -57,7 +57,7 @@ func NewLogger(options ...Option) *Logger {
 		logLevel:   DEBUG,
 		logRuntime: false,
 		timeFormat: "2006-01-02 15:04:05",
-		logPrefix:  "",
+		logSuffix:  "",
 	}
 	for _, option := range options {
 		option(l)
@@ -66,13 +66,13 @@ func NewLogger(options ...Option) *Logger {
 	return l
 }
 
-func (l *Logger) WithPrefix(prefix string) *Logger {
+func (l *Logger) WithSuffix(suffix string) *Logger {
 	return &Logger{
 		logLevel:   l.logLevel,
 		logRuntime: l.logRuntime,
 		timeFormat: l.timeFormat,
 		reporter:   l.reporter,
-		logPrefix:  prefix,
+		logSuffix:  suffix,
 	}
 }
 
@@ -93,9 +93,9 @@ func (l *Logger) NewLogItem(level LogLevel, txt ...any) *LogItem {
 		logTxt:     txt,
 		logRuntime: l.logRuntime,
 		timeFormat: l.timeFormat,
-		logPrefix:  l.logPrefix,
+		logSuffix:  l.logSuffix,
 	}
-	if l.logRuntime {
+	if l.logRuntime || needRuntime(l.logLevel) {
 		_, file, line, ok := runtime.Caller(4)
 		if ok {
 			item.logFile = l.GetCallerPath(file)
@@ -171,4 +171,8 @@ func (l *Logger) reportItem(item *LogItem) {
 	if len(content) > 0 && l.reporter != nil {
 		l.reporter(content)
 	}
+}
+
+func needRuntime(logLevel LogLevel) bool {
+	return logLevel <= ERROR
 }

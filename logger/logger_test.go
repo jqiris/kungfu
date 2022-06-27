@@ -13,7 +13,7 @@ func TestLoggerColor(t *testing.T) {
 	//}
 
 	Info("hello world")
-	n := defLogger.WithPrefix("welcome")
+	n := defLogger.WithSuffix("welcome")
 	n.Info("hello world2")
 	select {}
 

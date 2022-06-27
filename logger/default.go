@@ -8,8 +8,8 @@ func SetLogger(l *Logger) {
 	defLogger = l
 }
 
-func WithPrefix(prefix string) *Logger {
-	return defLogger.WithPrefix(prefix)
+func WithSuffix(prefix string) *Logger {
+	return defLogger.WithSuffix(prefix)
 }
 
 func Fatal(txt ...any) {
