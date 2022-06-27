@@ -1,10 +1,11 @@
 package discover
 
 import (
+	"time"
+
 	"github.com/jqiris/kungfu/v2/config"
 	"github.com/jqiris/kungfu/v2/logger"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"time"
 
 	"stathat.com/c/consistent"
 
@@ -41,6 +42,16 @@ type Discoverer interface {
 	GetServerTypeList(serverType string, args ...bool) map[string]*treaty.Server
 	RegEventHandlers(handlers ...EventHandler)
 	EventHandlerExec(ev *clientv3.Event, server *treaty.Server)
+	IncreLoad(serverId string, load int64) error //负载增加
+	DecreLoad(serverId string, load int64) error //负载减少
+}
+
+func IncreLoad(serverId string, load int64) error {
+	return defDiscoverer.IncreLoad(serverId, load)
+}
+
+func DecreLoad(serverId string, load int64) error {
+	return defDiscoverer.DecreLoad(serverId, load)
 }
 
 func Register(server *treaty.Server) error {

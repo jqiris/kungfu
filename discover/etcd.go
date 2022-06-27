@@ -2,8 +2,10 @@ package discover
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"stathat.com/c/consistent"
@@ -212,6 +214,26 @@ func (e *EtcdDiscoverer) UnRegister(server *treaty.Server) error {
 		logger.Infof("EtcdDiscoverer unregister resp:%+v", resp)
 	}
 	return nil
+}
+
+func (e *EtcdDiscoverer) IncreLoad(serverId string, load int64) error {
+	server := e.GetServerById(serverId, false)
+	if server == nil {
+		return fmt.Errorf("IncreLoad can't find server %s", serverId)
+	}
+	atomic.AddInt64(&server.Load, load)
+	server.Silent = true
+	return e.Register(server)
+}
+
+func (e *EtcdDiscoverer) DecreLoad(serverId string, load int64) error {
+	server := e.GetServerById(serverId, false)
+	if server == nil {
+		return fmt.Errorf("IncreLoad can't find server %s", serverId)
+	}
+	atomic.AddInt64(&server.Load, -load)
+	server.Silent = true
+	return e.Register(server)
 }
 
 func (e *EtcdDiscoverer) FindServer(serverType string) []*treaty.Server {
