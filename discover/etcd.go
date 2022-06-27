@@ -128,7 +128,7 @@ func (e *EtcdDiscoverer) Watcher() {
 				if !e.IsCurEvent(string(ev.Kv.Key)) {
 					continue
 				}
-				silent := false
+				var silent int32 = 0
 				switch ev.Type {
 				case clientv3.EventTypePut:
 					if server, err := treaty.RegUnSerialize(ev.Kv.Value); err == nil {
@@ -147,7 +147,7 @@ func (e *EtcdDiscoverer) Watcher() {
 						}
 						e.ServerLock.Unlock()
 						e.EventHandlerExec(ev, server)
-						silent = server.Silent
+						silent = atomic.LoadInt32(&server.Silent)
 					}
 				case clientv3.EventTypeDelete:
 					ks := strings.Split(string(ev.Kv.Key), "/")
@@ -169,7 +169,7 @@ func (e *EtcdDiscoverer) Watcher() {
 						e.ServerLock.Unlock()
 					}
 				}
-				if !silent {
+				if silent == 0 {
 					e.DumpServers()
 				}
 			}
@@ -198,7 +198,7 @@ func (e *EtcdDiscoverer) Register(server *treaty.Server) error {
 	if err != nil {
 		return err
 	}
-	if !server.Silent {
+	if atomic.LoadInt32(&server.Silent) == 0 {
 		logger.Infof("discover Register server,k=>v,%s=>%s,resp:%v", key, val, resp.Header)
 	}
 	return nil
@@ -210,7 +210,7 @@ func (e *EtcdDiscoverer) UnRegister(server *treaty.Server) error {
 	defer cancel()
 	if resp, err := kv.Delete(ctx, e.Prefix+treaty.RegSeverItem(server), clientv3.WithPrevKV()); err != nil {
 		return err
-	} else if !server.Silent {
+	} else if atomic.LoadInt32(&server.Silent) == 0 {
 		logger.Infof("EtcdDiscoverer unregister resp:%+v", resp)
 	}
 	return nil
@@ -222,7 +222,7 @@ func (e *EtcdDiscoverer) IncreLoad(serverId string, load int64) error {
 		return fmt.Errorf("IncreLoad can't find server %s", serverId)
 	}
 	atomic.AddInt64(&server.Load, load)
-	server.Silent = true
+	atomic.StoreInt32(&server.Silent, 1)
 	return e.Register(server)
 }
 
@@ -232,7 +232,7 @@ func (e *EtcdDiscoverer) DecreLoad(serverId string, load int64) error {
 		return fmt.Errorf("IncreLoad can't find server %s", serverId)
 	}
 	atomic.AddInt64(&server.Load, -load)
-	server.Silent = true
+	atomic.StoreInt32(&server.Silent, 1)
 	return e.Register(server)
 }
 

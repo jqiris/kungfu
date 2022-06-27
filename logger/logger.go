@@ -24,21 +24,21 @@ type LogItem struct {
 
 func (l *LogItem) logFormat() string {
 	logTxt := ""
-	if len(l.logSuffix) == 0 {
-		if l.logRuntime || needRuntime(l.logLevel) {
-			format := "[%s %s] %s [file:%s line:%d]"
-			logTxt = fmt.Sprintf(format, LevelDescMap[l.logLevel], l.logTime.Format(l.timeFormat), fmt.Sprint(l.logTxt...), l.logFile, l.logLine)
-		} else {
-			format := "[%s %s] %s"
-			logTxt = fmt.Sprintf(format, LevelDescMap[l.logLevel], l.logTime.Format(l.timeFormat), fmt.Sprint(l.logTxt...))
-		}
-	} else {
+	if len(l.logSuffix) > 0 {
 		if l.logRuntime || needRuntime(l.logLevel) {
 			format := "[%s %s] %s [%s file:%s line:%d]"
 			logTxt = fmt.Sprintf(format, LevelDescMap[l.logLevel], l.logTime.Format(l.timeFormat), fmt.Sprint(l.logTxt...), l.logSuffix, l.logFile, l.logLine)
 		} else {
 			format := "[%s %s] %s [%s]"
 			logTxt = fmt.Sprintf(format, LevelDescMap[l.logLevel], l.logTime.Format(l.timeFormat), fmt.Sprint(l.logTxt...), l.logSuffix)
+		}
+	} else {
+		if l.logRuntime || needRuntime(l.logLevel) {
+			format := "[%s %s] %s [file:%s line:%d]"
+			logTxt = fmt.Sprintf(format, LevelDescMap[l.logLevel], l.logTime.Format(l.timeFormat), fmt.Sprint(l.logTxt...), l.logFile, l.logLine)
+		} else {
+			format := "[%s %s] %s"
+			logTxt = fmt.Sprintf(format, LevelDescMap[l.logLevel], l.logTime.Format(l.timeFormat), fmt.Sprint(l.logTxt...))
 		}
 	}
 	return logTxt
