@@ -16,7 +16,7 @@ var (
 )
 
 func init() {
-	keeper = NewJobKeeper()
+	keeper = NewJobKeeper("default")
 	keeper.ExecJob()
 }
 
@@ -165,20 +165,24 @@ func (q JobQueues) Less(i, j int) bool { return q[i].StartTime < q[j].StartTime 
 func (q JobQueues) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
 
 type JobKeeper struct {
-	List    JobQueues
-	Index   map[int64]*JobQueue
-	AddChan chan *JobItem
-	DelChan chan int64
-	IdList  map[int64]map[int64]int
+	Name     string
+	List     JobQueues
+	Index    map[int64]*JobQueue
+	AddChan  chan *JobItem
+	DelChan  chan int64
+	StopChan chan struct{}
+	IdList   map[int64]map[int64]int
 }
 
-func NewJobKeeper() *JobKeeper {
+func NewJobKeeper(name string) *JobKeeper {
 	return &JobKeeper{
-		List:    make(JobQueues, 0),
-		Index:   make(map[int64]*JobQueue),
-		IdList:  make(map[int64]map[int64]int),
-		AddChan: make(chan *JobItem, 20),
-		DelChan: make(chan int64, 20),
+		Name:     name,
+		List:     make(JobQueues, 0),
+		Index:    make(map[int64]*JobQueue),
+		IdList:   make(map[int64]map[int64]int),
+		AddChan:  make(chan *JobItem, 20),
+		DelChan:  make(chan int64, 20),
+		StopChan: make(chan struct{}, 1),
 	}
 }
 
@@ -200,6 +204,10 @@ func (k *JobKeeper) delJob(delId int64) {
 		}
 	}
 	delete(k.IdList, delId)
+}
+
+func (k *JobKeeper) Stop() {
+	k.StopChan <- struct{}{}
 }
 
 func (k *JobKeeper) ExecJob() {
@@ -251,6 +259,9 @@ func (k *JobKeeper) ExecJob() {
 					}
 					k.IdList[jobItem.JobId][sTime]++
 				}
+			case <-k.StopChan:
+				logger.Infof("job keeper %v received stop signal", k.Name)
+				return
 			}
 		}
 	})
