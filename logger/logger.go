@@ -95,7 +95,7 @@ func (l *Logger) NewLogItem(level LogLevel, txt ...any) *LogItem {
 		timeFormat: l.timeFormat,
 		logSuffix:  l.logSuffix,
 	}
-	if l.logRuntime || needRuntime(l.logLevel) {
+	if l.logRuntime || needRuntime(level) {
 		_, file, line, ok := runtime.Caller(4)
 		if ok {
 			item.logFile = l.GetCallerPath(file)
