@@ -214,6 +214,9 @@ func (e *EtcdDiscoverer) RegisterLoad(server *treaty.Server, load int64) error {
 	defer e.RegLock.Unlock()
 	atomic.AddInt64(&server.Load, load)
 	atomic.StoreInt32(&server.Silent, 1)
+	if atomic.LoadInt64(&server.Load) < 0 {
+		atomic.StoreInt64(&server.Load, 0)
+	}
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
