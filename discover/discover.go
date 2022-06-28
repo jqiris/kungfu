@@ -42,15 +42,15 @@ type Discoverer interface {
 	GetServerTypeList(serverType string, args ...bool) map[string]*treaty.Server
 	RegEventHandlers(handlers ...EventHandler)
 	EventHandlerExec(ev *clientv3.Event, server *treaty.Server)
-	IncreLoad(serverId string, load int64) error //负载增加
-	DecreLoad(serverId string, load int64) error //负载减少
+	IncreLoad(serverId string, load uint64) error //负载增加
+	DecreLoad(serverId string, load uint64) error //负载减少
 }
 
-func IncreLoad(serverId string, load int64) error {
+func IncreLoad(serverId string, load uint64) error {
 	return defDiscoverer.IncreLoad(serverId, load)
 }
 
-func DecreLoad(serverId string, load int64) error {
+func DecreLoad(serverId string, load uint64) error {
 	return defDiscoverer.DecreLoad(serverId, load)
 }
 
