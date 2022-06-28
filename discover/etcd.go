@@ -367,7 +367,7 @@ func (e *EtcdDiscoverer) GetServerByTypeLoad(serverType string, args ...bool) *t
 			}
 			if server == nil {
 				server = v
-			} else if server.Load > v.Load {
+			} else if v.Load >= 0 && server.Load > v.Load {
 				server = v
 			}
 		}
