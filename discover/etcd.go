@@ -216,22 +216,22 @@ func (e *EtcdDiscoverer) UnRegister(server *treaty.Server) error {
 	return nil
 }
 
-func (e *EtcdDiscoverer) IncreLoad(serverId string, load uint64) error {
+func (e *EtcdDiscoverer) IncreLoad(serverId string, load int64) error {
 	server := e.GetServerById(serverId, false)
 	if server == nil {
 		return fmt.Errorf("IncreLoad can't find server %s", serverId)
 	}
-	atomic.AddUint64(&server.Load, load)
+	atomic.AddInt64(&server.Load, load)
 	atomic.StoreInt32(&server.Silent, 1)
 	return e.Register(server)
 }
 
-func (e *EtcdDiscoverer) DecreLoad(serverId string, load uint64) error {
+func (e *EtcdDiscoverer) DecreLoad(serverId string, load int64) error {
 	server := e.GetServerById(serverId, false)
 	if server == nil {
 		return fmt.Errorf("IncreLoad can't find server %s", serverId)
 	}
-	atomic.AddUint64(&server.Load, -load)
+	atomic.AddInt64(&server.Load, -load)
 	atomic.StoreInt32(&server.Silent, 1)
 	return e.Register(server)
 }

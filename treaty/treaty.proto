@@ -37,7 +37,7 @@ message Server{
   bool  serial = 8; //是否串行
   int32 launch_weight = 9; //启动权重 越大越晚
   int32 shut_weight = 10; //关闭权重 越大越晚
-  uint64 load = 11;//负载量
+  int64 load = 11;//负载量
   bool maintained = 12;//是否在维护中
   int32 silent = 13;//沉默注册
 }
