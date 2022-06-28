@@ -25,6 +25,7 @@ type EtcdDiscoverer struct {
 	ServerLock       *sync.RWMutex
 	EventHandlerList []EventHandler
 	Prefix           string
+	RegLock          *sync.Mutex
 }
 type EtcdOption func(e *EtcdDiscoverer)
 
@@ -52,6 +53,7 @@ func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 		ServerList:       make(map[string]*treaty.Server),
 		ServerTypeMap:    make(map[string]*ServerTypeItem),
 		ServerLock:       new(sync.RWMutex),
+		RegLock:          new(sync.Mutex),
 		EventHandlerList: make([]EventHandler, 0),
 		Prefix:           "/server/",
 	}
@@ -190,6 +192,28 @@ func (e *EtcdDiscoverer) DumpServers() {
 
 // Register register
 func (e *EtcdDiscoverer) Register(server *treaty.Server) error {
+	e.RegLock.Lock()
+	defer e.RegLock.Unlock()
+	kv := clientv3.NewKV(e.Client)
+	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
+	defer cancel()
+	key, val := e.Prefix+treaty.RegSeverItem(server), treaty.RegSerialize(server)
+	resp, err := kv.Put(ctx, key, val)
+	if err != nil {
+		return err
+	}
+	if atomic.LoadInt32(&server.Silent) == 0 {
+		logger.Infof("discover Register server,k=>v,%s=>%s,resp:%v", key, val, resp.Header)
+	}
+	return nil
+}
+
+// Register register
+func (e *EtcdDiscoverer) RegisterLoad(server *treaty.Server, load int64) error {
+	e.RegLock.Lock()
+	defer e.RegLock.Unlock()
+	atomic.AddInt64(&server.Load, load)
+	atomic.StoreInt32(&server.Silent, 1)
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
@@ -221,9 +245,7 @@ func (e *EtcdDiscoverer) IncreLoad(serverId string, load int64) error {
 	if server == nil {
 		return fmt.Errorf("IncreLoad can't find server %s", serverId)
 	}
-	atomic.AddInt64(&server.Load, load)
-	atomic.StoreInt32(&server.Silent, 1)
-	return e.Register(server)
+	return e.RegisterLoad(server, load)
 }
 
 func (e *EtcdDiscoverer) DecreLoad(serverId string, load int64) error {
@@ -231,9 +253,7 @@ func (e *EtcdDiscoverer) DecreLoad(serverId string, load int64) error {
 	if server == nil {
 		return fmt.Errorf("IncreLoad can't find server %s", serverId)
 	}
-	atomic.AddInt64(&server.Load, -load)
-	atomic.StoreInt32(&server.Silent, 1)
-	return e.Register(server)
+	return e.RegisterLoad(server, -load)
 }
 
 func (e *EtcdDiscoverer) FindServer(serverType string) []*treaty.Server {
