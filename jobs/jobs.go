@@ -13,20 +13,11 @@ import (
 
 var (
 	keeper *JobKeeper
-	pool   *sync.Pool
 )
 
 func init() {
-	keeper = NewJobKeeper()
-	keeper.SetName("default")
+	keeper = NewJobKeeper("default")
 	keeper.ExecJob()
-	pool = &sync.Pool{New: func() any {
-		return NewJobKeeper()
-	}}
-}
-
-func PoolKeeper() *JobKeeper {
-	return pool.Get().(*JobKeeper)
 }
 
 func AddJob(delay time.Duration, job JobWorker, options ...ItemOption) {
@@ -183,8 +174,9 @@ type JobKeeper struct {
 	IdList   map[int64]map[int64]int
 }
 
-func NewJobKeeper() *JobKeeper {
+func NewJobKeeper(name string) *JobKeeper {
 	return &JobKeeper{
+		Name:     name,
 		List:     make(JobQueues, 0),
 		Index:    make(map[int64]*JobQueue),
 		IdList:   make(map[int64]map[int64]int),
@@ -192,20 +184,6 @@ func NewJobKeeper() *JobKeeper {
 		DelChan:  make(chan int64, 20),
 		StopChan: make(chan struct{}, 1),
 	}
-}
-
-func (k *JobKeeper) SetName(name string) {
-	k.Name = name
-}
-
-func (k *JobKeeper) Reset() {
-	k.Name = ""
-	k.List = make(JobQueues, 0)
-	k.Index = make(map[int64]*JobQueue)
-	k.IdList = make(map[int64]map[int64]int)
-	k.AddChan = make(chan *JobItem, 20)
-	k.DelChan = make(chan int64, 20)
-	k.StopChan = make(chan struct{}, 1)
 }
 
 func (k *JobKeeper) AddJob(delay time.Duration, job JobWorker, options ...ItemOption) {
@@ -283,8 +261,6 @@ func (k *JobKeeper) ExecJob() {
 				}
 			case <-k.StopChan:
 				logger.Infof("job keeper %v received stop signal", k.Name)
-				k.Reset()
-				pool.Put(k)
 				return
 			}
 		}
