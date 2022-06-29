@@ -40,6 +40,7 @@ message Server{
   int64 load = 11;//负载量
   bool maintained = 12;//是否在维护中
   int32 silent = 13;//沉默注册
+  string version = 14;//版本号
 }
 
 message BalanceResult{
