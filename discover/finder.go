@@ -64,10 +64,10 @@ func (f *Finder) GetServerCache(serverType string, arg any) *treaty.Server {
 	return nil
 }
 
-func (f *Finder) GetServerDiscover(serverType string, arg any) *treaty.Server {
+func (f *Finder) GetServerDiscover(serverType string, arg any, options ...FilterOption) *treaty.Server {
 	f.serverLock.Lock()
 	defer f.serverLock.Unlock()
-	server := GetServerByType(serverType, fmt.Sprintf("%v", arg))
+	server := GetServerByType(serverType, fmt.Sprintf("%v", arg), options...)
 	if server != nil {
 		switch v := arg.(type) {
 		case int64:
@@ -90,12 +90,12 @@ func (f *Finder) GetServerDiscover(serverType string, arg any) *treaty.Server {
 	return nil
 }
 
-func (f *Finder) GetUserServer(serverType string, arg any) *treaty.Server {
+func (f *Finder) GetUserServer(serverType string, arg any, options ...FilterOption) *treaty.Server {
 	if server := f.GetServerCache(serverType, arg); server != nil {
 		return server
 	}
 	//discover发现
-	if server := f.GetServerDiscover(serverType, arg); server != nil {
+	if server := f.GetServerDiscover(serverType, arg, options...); server != nil {
 		return server
 	}
 	//不存在

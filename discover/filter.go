@@ -43,13 +43,13 @@ func (f *Filter) apply(s *treaty.Server) bool {
 
 type FilterOption func(f *Filter)
 
-func WithFilterMaintained(maintained MaintainType) FilterOption {
+func FilterMaintained(maintained MaintainType) FilterOption {
 	return func(f *Filter) {
 		f.maintainType = maintained
 	}
 }
 
-func WithFilterVersion(version int64) FilterOption {
+func FilterVersion(version int64) FilterOption {
 	return func(f *Filter) {
 		f.version = version
 	}

@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/jqiris/kungfu/v2/config"
+	"github.com/jqiris/kungfu/v2/discover"
 	"github.com/jqiris/kungfu/v2/treaty"
 )
 
@@ -39,8 +40,8 @@ func QueueRequest(s ReqBuilder) error {
 	return defRpc.QueueRequest(s)
 }
 
-func Find(serverType string, arg any) *treaty.Server {
-	return defRpc.Find(serverType, arg)
+func Find(serverType string, arg any, options ...discover.FilterOption) *treaty.Server {
+	return defRpc.Find(serverType, arg, options...)
 }
 
 func RemoveFindCache(arg any) {
