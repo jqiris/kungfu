@@ -3,6 +3,7 @@ package discover
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -13,19 +14,30 @@ import (
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/treaty"
 	"github.com/jqiris/kungfu/v2/utils"
+	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
+)
+
+const (
+	DefaultServerPrefix = "/server/"
+	DefaultDataPrefix   = "/data/"
+	dumpJobId           = -999
 )
 
 // EtcdDiscoverer etcd discoverer
 type EtcdDiscoverer struct {
-	Config           clientv3.Config
-	Client           *clientv3.Client
-	ServerList       map[string]*treaty.Server  //serverId=>server
-	ServerTypeMap    map[string]*ServerTypeItem //serverType=>serverTypeItem
-	ServerLock       *sync.RWMutex
-	EventHandlerList []EventHandler
-	Prefix           string
-	RegLock          *sync.Mutex
+	Config                 clientv3.Config
+	Client                 *clientv3.Client
+	ServerList             map[string]*treaty.Server  //serverId=>server
+	ServerTypeMap          map[string]*ServerTypeItem //serverType=>serverTypeItem
+	ServerLock             *sync.RWMutex
+	ServerEventHandlerList []ServerEventHandler
+	DataEventHandlerList   []DataEventHandler
+	ServerPrefix           string
+	DataPrefix             string
+	ServerChecker          *regexp.Regexp
+	DataChecker            *regexp.Regexp
+	RegLock                *sync.Mutex
 }
 type EtcdOption func(e *EtcdDiscoverer)
 
@@ -40,26 +52,36 @@ func WithEtcdDialTimeOut(d time.Duration) EtcdOption {
 		e.Config.DialTimeout = d
 	}
 }
-func WithEtcdPrefix(prefix string) EtcdOption {
+func WithEtcdServerPrefix(prefix string) EtcdOption {
 	return func(e *EtcdDiscoverer) {
 		prefix = "/" + prefix + "/"
-		e.Prefix = prefix
+		e.ServerPrefix = prefix
+	}
+}
+
+func WithEtcdDataPrefix(prefix string) EtcdOption {
+	return func(e *EtcdDiscoverer) {
+		prefix = "/" + prefix + "/"
+		e.DataPrefix = prefix
 	}
 }
 
 // NewEtcdDiscoverer init EtcdDiscoverer
 func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 	e := &EtcdDiscoverer{
-		ServerList:       make(map[string]*treaty.Server),
-		ServerTypeMap:    make(map[string]*ServerTypeItem),
-		ServerLock:       new(sync.RWMutex),
-		RegLock:          new(sync.Mutex),
-		EventHandlerList: make([]EventHandler, 0),
-		Prefix:           "/server/",
+		ServerList:             make(map[string]*treaty.Server),
+		ServerTypeMap:          make(map[string]*ServerTypeItem),
+		ServerLock:             new(sync.RWMutex),
+		RegLock:                new(sync.Mutex),
+		ServerEventHandlerList: make([]ServerEventHandler, 0),
+		ServerPrefix:           DefaultServerPrefix,
+		DataPrefix:             DefaultDataPrefix,
 	}
 	for _, opt := range opts {
 		opt(e)
 	}
+	e.ServerChecker = regexp.MustCompile(e.checkRule(e.ServerPrefix))
+	e.DataChecker = regexp.MustCompile(e.checkRule(e.DataPrefix))
 	cli, err := clientv3.New(e.Config)
 	if err != nil {
 		logger.Fatal(err)
@@ -70,13 +92,27 @@ func NewEtcdDiscoverer(opts ...EtcdOption) *EtcdDiscoverer {
 	return e
 }
 
-func (e *EtcdDiscoverer) RegEventHandlers(handlers ...EventHandler) {
-	e.EventHandlerList = append(e.EventHandlerList, handlers...)
+func (e *EtcdDiscoverer) checkRule(prefix string) string {
+	return `^` + prefix + "*"
 }
 
-func (e *EtcdDiscoverer) EventHandlerExec(ev *clientv3.Event, server *treaty.Server) {
-	for _, handler := range e.EventHandlerList {
+func (e *EtcdDiscoverer) RegServerEventHandlers(handlers ...ServerEventHandler) {
+	e.ServerEventHandlerList = append(e.ServerEventHandlerList, handlers...)
+}
+
+func (e *EtcdDiscoverer) ServerEventHandlerExec(ev *clientv3.Event, server *treaty.Server) {
+	for _, handler := range e.ServerEventHandlerList {
 		handler(ev, server)
+	}
+}
+
+func (e *EtcdDiscoverer) RegDataEventHandlers(handlers ...DataEventHandler) {
+	e.DataEventHandlerList = append(e.DataEventHandlerList, handlers...)
+}
+
+func (e *EtcdDiscoverer) DataEventHandlerExec(ev *clientv3.Event) {
+	for _, handler := range e.DataEventHandlerList {
+		handler(ev)
 	}
 }
 
@@ -84,7 +120,10 @@ func (e *EtcdDiscoverer) EventHandlerExec(ev *clientv3.Event, server *treaty.Ser
 func (e *EtcdDiscoverer) Init() {
 	//监听服务器变化
 	go utils.SafeRun(func() {
-		e.Watcher()
+		e.ServerWatcher()
+	})
+	go utils.SafeRun(func() {
+		e.DataWatcher()
 	})
 	//统计所有服务器
 	list := e.FindServerList()
@@ -103,21 +142,80 @@ func (e *EtcdDiscoverer) Init() {
 			e.ServerLock.Unlock()
 		}
 	}
-	e.DumpServers()
 }
 
-func (e *EtcdDiscoverer) IsCurEvent(key string) bool {
-	prefix := ""
-	keyArr := strings.Split(key, "/")
-	if len(keyArr) > 1 {
-		prefix = "/" + keyArr[1] + "/"
-	}
-	return e.Prefix == prefix
-}
-
-func (e *EtcdDiscoverer) Watcher() {
+func (e *EtcdDiscoverer) ServerWatcher() {
 	for {
-		rch := e.Client.Watch(context.Background(), e.Prefix, clientv3.WithPrefix())
+		rch := e.Client.Watch(context.Background(), e.ServerPrefix, clientv3.WithPrefix())
+		var err error
+		for wResp := range rch {
+			err = wResp.Err()
+			if err != nil {
+				logger.Errorf("etcd watch err:%v", err)
+			}
+			dump := false
+			for _, ev := range wResp.Events {
+				key := string(ev.Kv.Key)
+				if e.ServerChecker.MatchString(key) {
+					//服务注册
+					var silent int32 = 0
+					switch ev.Type {
+					case clientv3.EventTypePut:
+						if server, err := treaty.RegUnSerialize(ev.Kv.Value); err == nil {
+							e.ServerLock.Lock()
+							e.ServerList[server.ServerId] = server
+							if item, ok := e.ServerTypeMap[server.ServerType]; ok {
+								if _, okv := item.List[server.ServerId]; !okv {
+									item.hash.Add(server.ServerId)
+								}
+								item.List[server.ServerId] = server
+							} else {
+								item = NewServerTypeItem()
+								item.hash.Add(server.ServerId)
+								item.List[server.ServerId] = server
+								e.ServerTypeMap[server.ServerType] = item
+							}
+							e.ServerLock.Unlock()
+							e.ServerEventHandlerExec(ev, server)
+							silent = atomic.LoadInt32(&server.Silent)
+						}
+					case clientv3.EventTypeDelete:
+						ks := strings.Split(string(ev.Kv.Key), "/")
+						if len(ks) > 2 {
+							sType, sid := ks[len(ks)-2], ks[len(ks)-1]
+							e.ServerLock.Lock()
+							delete(e.ServerList, sid)
+							if item, ok := e.ServerTypeMap[sType]; ok {
+								if server, okv := item.List[sid]; okv {
+									item.hash.Remove(sid)
+									delete(item.List, sid)
+									e.ServerEventHandlerExec(ev, server)
+								}
+								if len(item.List) == 0 {
+									delete(e.ServerTypeMap, sType)
+								}
+
+							}
+							e.ServerLock.Unlock()
+						}
+					}
+					if silent == 0 {
+						dump = true
+					} else {
+						dump = false
+					}
+				}
+			}
+			if dump {
+				e.DumpServers()
+			}
+		}
+	}
+}
+
+func (e *EtcdDiscoverer) DataWatcher() {
+	for {
+		rch := e.Client.Watch(context.Background(), e.DataPrefix, clientv3.WithPrefix())
 		var err error
 		for wResp := range rch {
 			err = wResp.Err()
@@ -126,53 +224,10 @@ func (e *EtcdDiscoverer) Watcher() {
 			}
 
 			for _, ev := range wResp.Events {
-				//logger.Infof("%s %q %q", ev.Type, ev.Kv.Key, ev.Kv.Value)
-				if !e.IsCurEvent(string(ev.Kv.Key)) {
-					continue
-				}
-				var silent int32 = 0
-				switch ev.Type {
-				case clientv3.EventTypePut:
-					if server, err := treaty.RegUnSerialize(ev.Kv.Value); err == nil {
-						e.ServerLock.Lock()
-						e.ServerList[server.ServerId] = server
-						if item, ok := e.ServerTypeMap[server.ServerType]; ok {
-							if _, okv := item.List[server.ServerId]; !okv {
-								item.hash.Add(server.ServerId)
-							}
-							item.List[server.ServerId] = server
-						} else {
-							item = NewServerTypeItem()
-							item.hash.Add(server.ServerId)
-							item.List[server.ServerId] = server
-							e.ServerTypeMap[server.ServerType] = item
-						}
-						e.ServerLock.Unlock()
-						e.EventHandlerExec(ev, server)
-						silent = atomic.LoadInt32(&server.Silent)
-					}
-				case clientv3.EventTypeDelete:
-					ks := strings.Split(string(ev.Kv.Key), "/")
-					if len(ks) > 2 {
-						sType, sid := ks[len(ks)-2], ks[len(ks)-1]
-						e.ServerLock.Lock()
-						delete(e.ServerList, sid)
-						if item, ok := e.ServerTypeMap[sType]; ok {
-							if server, okv := item.List[sid]; okv {
-								item.hash.Remove(sid)
-								delete(item.List, sid)
-								e.EventHandlerExec(ev, server)
-							}
-							if len(item.List) == 0 {
-								delete(e.ServerTypeMap, sType)
-							}
-
-						}
-						e.ServerLock.Unlock()
-					}
-				}
-				if silent == 0 {
-					e.DumpServers()
+				key := string(ev.Kv.Key)
+				if e.DataChecker.MatchString(key) {
+					//数据处理
+					e.DataEventHandlerExec(ev)
 				}
 			}
 		}
@@ -189,6 +244,55 @@ func (e *EtcdDiscoverer) DumpServers() {
 	}
 	logger.Info("#####################################DUMP SERVERS END###################################")
 }
+func (e *EtcdDiscoverer) dataKey(key string) string {
+	return e.DataPrefix + key
+}
+
+func (e *EtcdDiscoverer) PutData(key, val string) error {
+	kv := clientv3.NewKV(e.Client)
+	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
+	defer cancel()
+	resp, err := kv.Put(ctx, e.dataKey(key), val)
+	if err != nil {
+		return err
+	}
+	logger.Infof("discover put data,k=>v,%s=>%s,resp:%v", key, val, e.dumpHeader(resp.Header))
+	return nil
+}
+
+func (e *EtcdDiscoverer) GetData(key string) (string, error) {
+	kv := clientv3.NewKV(e.Client)
+	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
+	defer cancel()
+	resp, err := kv.Get(ctx, e.dataKey(key))
+	if err != nil {
+		return "", err
+	}
+	if resp.Count == 0 {
+		return "", fmt.Errorf("data is empty")
+	}
+	return string(resp.Kvs[0].Value), nil
+}
+
+func (e *EtcdDiscoverer) RemoveData(key string) error {
+	kv := clientv3.NewKV(e.Client)
+	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
+	defer cancel()
+	resp, err := kv.Delete(ctx, e.dataKey(key), clientv3.WithPrevKV())
+	if err != nil {
+		return err
+	}
+	logger.Infof("discover remove data,k:%v,resp:%v", key, e.dumpHeader(resp.Header))
+	return nil
+}
+
+func (e *EtcdDiscoverer) serverKey(server *treaty.Server) string {
+	return e.ServerPrefix + treaty.RegSeverItem(server)
+}
+
+func (e *EtcdDiscoverer) dumpHeader(header *pb.ResponseHeader) string {
+	return fmt.Sprintf("ClusterId:%v,MemberId:%v,Revision:%v", header.ClusterId, header.MemberId, header.Revision)
+}
 
 // Register register
 func (e *EtcdDiscoverer) Register(server *treaty.Server) error {
@@ -197,13 +301,13 @@ func (e *EtcdDiscoverer) Register(server *treaty.Server) error {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
-	key, val := e.Prefix+treaty.RegSeverItem(server), treaty.RegSerialize(server)
+	key, val := e.serverKey(server), treaty.RegSerialize(server)
 	resp, err := kv.Put(ctx, key, val)
 	if err != nil {
 		return err
 	}
 	if atomic.LoadInt32(&server.Silent) == 0 {
-		logger.Infof("discover Register server,k=>v,%s=>%s,resp:%v", key, val, resp.Header)
+		logger.Infof("discover Register server,%s=>%s,resp:%v", key, val, e.dumpHeader(resp.Header))
 	}
 	return nil
 }
@@ -220,13 +324,13 @@ func (e *EtcdDiscoverer) RegisterLoad(server *treaty.Server, load int64) error {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
-	key, val := e.Prefix+treaty.RegSeverItem(server), treaty.RegSerialize(server)
+	key, val := e.serverKey(server), treaty.RegSerialize(server)
 	resp, err := kv.Put(ctx, key, val)
 	if err != nil {
 		return err
 	}
 	if atomic.LoadInt32(&server.Silent) == 0 {
-		logger.Infof("discover Register server,k=>v,%s=>%s,resp:%v", key, val, resp.Header)
+		logger.Infof("discover Register server,%s=>%s,resp:%v", key, val, e.dumpHeader(resp.Header))
 	}
 	return nil
 }
@@ -235,10 +339,10 @@ func (e *EtcdDiscoverer) UnRegister(server *treaty.Server) error {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
-	if resp, err := kv.Delete(ctx, e.Prefix+treaty.RegSeverItem(server), clientv3.WithPrevKV()); err != nil {
+	if resp, err := kv.Delete(ctx, e.serverKey(server), clientv3.WithPrevKV()); err != nil {
 		return err
 	} else if atomic.LoadInt32(&server.Silent) == 0 {
-		logger.Infof("EtcdDiscoverer unregister resp:%+v", resp)
+		logger.Infof("discover unregister serverId:%v, resp:%+v", server.ServerId, e.dumpHeader(resp.Header))
 	}
 	return nil
 }
@@ -263,7 +367,7 @@ func (e *EtcdDiscoverer) FindServer(serverType string) []*treaty.Server {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
-	if resp, err := kv.Get(ctx, e.Prefix+serverType+"/", clientv3.WithPrefix()); err != nil {
+	if resp, err := kv.Get(ctx, e.ServerPrefix+serverType+"/", clientv3.WithPrefix()); err != nil {
 		logger.Errorf("EtcdDiscoverer FindServer err:%v", err)
 		return nil
 	} else {
@@ -286,7 +390,7 @@ func (e *EtcdDiscoverer) FindServerList() map[string][]*treaty.Server {
 	kv := clientv3.NewKV(e.Client)
 	ctx, cancel := context.WithTimeout(context.TODO(), e.Config.DialTimeout)
 	defer cancel()
-	if resp, err := kv.Get(ctx, e.Prefix, clientv3.WithPrefix()); err != nil {
+	if resp, err := kv.Get(ctx, e.ServerPrefix, clientv3.WithPrefix()); err != nil {
 		logger.Errorf("EtcdDiscoverer FindServerList err:%v", err)
 		return nil
 	} else {

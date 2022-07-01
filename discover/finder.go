@@ -27,7 +27,7 @@ func NewFinder() *Finder {
 		serversStr: make(map[string]ServerMap[string]),
 		serverLock: new(sync.RWMutex),
 	}
-	RegEventHandlers(f.ServerEventHandler)
+	RegServerEventHandlers(f.ServerEventHandler)
 	return f
 }
 

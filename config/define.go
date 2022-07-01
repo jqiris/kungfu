@@ -15,10 +15,11 @@ type Config struct {
 }
 
 type DiscoverConf struct {
-	UseType     string   `json:"use_type"`
-	DialTimeout int      `json:"dial_timeout"`
-	Endpoints   []string `json:"endpoints"`
-	Prefix      string   `json:"prefix"`
+	UseType      string   `json:"use_type"`
+	DialTimeout  int      `json:"dial_timeout"`
+	Endpoints    []string `json:"endpoints"`
+	ServerPrefix string   `json:"server_prefix"`
+	DataPrefix   string   `json:"data_prefix"`
 }
 
 type RpcConf struct {

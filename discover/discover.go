@@ -22,14 +22,16 @@ func InitDiscoverer(cfg config.DiscoverConf) {
 		defDiscoverer = NewEtcdDiscoverer(
 			WithEtcdDialTimeOut(time.Duration(cfg.DialTimeout)*time.Second),
 			WithEtcdEndpoints(cfg.Endpoints),
-			WithEtcdPrefix(cfg.Prefix),
+			WithEtcdServerPrefix(cfg.ServerPrefix),
+			WithEtcdDataPrefix(cfg.DataPrefix),
 		)
 	default:
 		logger.Fatal("InitDiscoverer failed")
 	}
 }
 
-type EventHandler func(ev *clientv3.Event, server *treaty.Server)
+type ServerEventHandler func(ev *clientv3.Event, server *treaty.Server)
+type DataEventHandler func(ev *clientv3.Event)
 
 //Discoverer find service role
 type Discoverer interface {
@@ -40,10 +42,27 @@ type Discoverer interface {
 	GetServerByType(serverType, serverArg string, options ...FilterOption) *treaty.Server //根据serverType及参数分配唯一server信息
 	GetServerByTypeLoad(serverType string, options ...FilterOption) *treaty.Server        //根绝服务器最小负载量选择服务
 	GetServerTypeList(serverType string, options ...FilterOption) map[string]*treaty.Server
-	RegEventHandlers(handlers ...EventHandler)
-	EventHandlerExec(ev *clientv3.Event, server *treaty.Server)
+	RegServerEventHandlers(handlers ...ServerEventHandler)
+	ServerEventHandlerExec(ev *clientv3.Event, server *treaty.Server)
+	RegDataEventHandlers(handlers ...DataEventHandler)
+	DataEventHandlerExec(ev *clientv3.Event)
 	IncreLoad(serverId string, load int64, options ...FilterOption) error //负载增加
 	DecreLoad(serverId string, load int64, options ...FilterOption) error //负载减少
+	PutData(key, val string) error                                        //增加数据
+	RemoveData(key string) error                                          //删除数据
+	GetData(key string) (string, error)
+}
+
+func PutData(key, val string) error {
+	return defDiscoverer.PutData(key, val)
+}
+
+func RemoveData(key string) error {
+	return defDiscoverer.RemoveData(key)
+}
+
+func GetData(key string) (string, error) {
+	return defDiscoverer.GetData(key)
 }
 
 func IncreLoad(serverId string, load int64, options ...FilterOption) error {
@@ -82,8 +101,12 @@ func GetServerTypeList(serverType string, options ...FilterOption) map[string]*t
 	return defDiscoverer.GetServerTypeList(serverType, options...)
 }
 
-func RegEventHandlers(handlers ...EventHandler) {
-	defDiscoverer.RegEventHandlers(handlers...)
+func RegServerEventHandlers(handlers ...ServerEventHandler) {
+	defDiscoverer.RegServerEventHandlers(handlers...)
+}
+
+func RegDataEventHandlers(handlers ...DataEventHandler) {
+	defDiscoverer.RegDataEventHandlers(handlers...)
 }
 
 //serverType stores
