@@ -1,10 +1,11 @@
 package stores
 
 import (
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/jqiris/kungfu/config"
 	"github.com/jqiris/kungfu/logger"
-	"time"
 )
 
 var (
@@ -34,6 +35,7 @@ type StoreKeeper interface {
 	GetInt(key string) int
 	GetString(key string) string
 	Del(keys ...string) error
+	DelPattern(pattern string) error
 	Exists(keys ...string) bool
 	HSet(key, field string, val interface{}) error
 	HGet(key, field string, val interface{}) error
@@ -85,6 +87,10 @@ func GetString(key string) string {
 
 func Del(keys ...string) error {
 	return defStoreKeeper.Del(keys...)
+}
+
+func DelPattern(pattern string) error {
+	return defStoreKeeper.DelPattern(pattern)
 }
 
 func Exists(keys ...string) bool {

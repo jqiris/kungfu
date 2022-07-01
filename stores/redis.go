@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/jqiris/kungfu/logger"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jqiris/kungfu/logger"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -168,6 +169,18 @@ func (s *StoreRedis) Del(keys ...string) error {
 	defer cancel()
 	if _, err := s.Client.Del(ctx, s.GetKeys(keys)...).Result(); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (s *StoreRedis) DelPattern(pattern string) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	keys := s.Client.Keys(ctx, s.GetKey(pattern)).Val()
+	if len(keys) > 0 {
+		if _, err := s.Client.Del(ctx, keys...).Result(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
