@@ -209,6 +209,16 @@ func (s *StoreRedis) Del(keys ...string) (int64, error) {
 	return s.Client.Del(ctx, s.GetKeys(keys)...).Result()
 }
 
+func (s *StoreRedis) DelPattern(pattern string) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	keys := s.Client.Keys(ctx, s.GetKey(pattern)).Val()
+	if len(keys) > 0 {
+		return s.Client.Del(ctx, keys...).Result()
+	}
+	return 0, nil
+}
+
 func (s *StoreRedis) Exists(keys ...string) bool {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()

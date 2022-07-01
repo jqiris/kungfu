@@ -41,6 +41,7 @@ type StoreKeeper interface {
 	GetString(key string) string
 	GetProto(key string, val proto.Message) error
 	Del(keys ...string) (int64, error)
+	DelPattern(pattern string) (int64, error)
 	Exists(keys ...string) bool
 	HSet(key, field string, val any) error
 	HIncrBy(key, field string, incr int64) int64
@@ -117,6 +118,10 @@ func GetProto(key string, val proto.Message) error {
 
 func Del(keys ...string) (int64, error) {
 	return defStoreKeeper.Del(keys...)
+}
+
+func DelPattern(pattern string) (int64, error) {
+	return defStoreKeeper.DelPattern(pattern)
 }
 
 func Exists(keys ...string) bool {
