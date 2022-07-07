@@ -16,6 +16,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/nats-io/nats.go v1.15.0
 	github.com/spf13/viper v1.11.0
+	github.com/tencentyun/cos-go-sdk-v5 v0.7.35
 	github.com/urfave/cli/v2 v2.6.0
 	go.etcd.io/etcd/client/v3 v3.5.0-alpha.0
 	go.uber.org/ratelimit v0.2.0
@@ -25,12 +26,15 @@ require (
 
 require (
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
+	github.com/clbanning/mxj v1.8.4 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
+	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
+	github.com/mozillazg/go-httpheader v0.2.1 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 )
 
@@ -66,7 +70,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/wumansgy/goEncrypt v1.0.0
-	go.etcd.io/etcd/api/v3 v3.5.2 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.2
 	go.etcd.io/etcd/pkg/v3 v3.5.0-alpha.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect

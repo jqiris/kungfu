@@ -63,3 +63,9 @@ type SslConf struct {
 	CertFile string `json:"cert_file"` //证书文件地址
 	KeyFile  string `json:"key_file"`  //key文件地址
 }
+type TecentOBS struct {
+	SecretId   string `json:"secret_id"`   //秘钥ID
+	SecretKey  string `json:"secret_key"`  //秘钥key
+	ServiceUrl string `json:"service_url"` //服务地址
+	BulletUrl  string `json:"bullet_url"`  //存储桶地址
+}
