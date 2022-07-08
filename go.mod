@@ -16,6 +16,8 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/nats-io/nats.go v1.15.0
 	github.com/spf13/viper v1.11.0
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn v1.0.438
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.438
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.35
 	github.com/urfave/cli/v2 v2.6.0
 	go.etcd.io/etcd/client/v3 v3.5.0-alpha.0
