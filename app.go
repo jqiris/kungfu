@@ -151,14 +151,23 @@ func (m *MicroApp) rmi(c *cli.Context) error {
 }
 func (m *MicroApp) prune(c *cli.Context) error {
 	//ocker rmi $(docker images -q -f dangling=true)
-	args := []string{"image", "prune"}
+	args := []string{"images", "-q", "-f", "dangling=true"}
 	cmd := exec.Command("docker", args...)
 	fmt.Println(cmd.String())
 	out, err := cmd.Output()
 	if err != nil {
 		return err
 	}
-	fmt.Println("prune:", string(out))
+	pids := string(out)
+	if len(pids) > 0 {
+		cmd := exec.Command("docker", "rmi", pids)
+		fmt.Println(cmd.String())
+		out, err := cmd.Output()
+		if err != nil {
+			return err
+		}
+		fmt.Println("prune:", string(out))
+	}
 	return nil
 }
 
