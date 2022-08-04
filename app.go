@@ -38,7 +38,7 @@ var (
 	labelVersion        = "LabelVersion"
 	defaultLabelVersion = "1.0.0"
 	dockerTml           = `
-FROM golang:1.18.4 AS builder
+FROM golang:1.19.0 AS builder
 
 COPY . /src
 WORKDIR /src
@@ -158,15 +158,21 @@ func (m *MicroApp) prune(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	pids := string(out)
-	if len(pids) > 0 {
-		cmd := exec.Command("docker", "rmi", pids)
-		fmt.Println(cmd.String())
-		out, err := cmd.Output()
-		if err != nil {
-			return err
+	pidStr := string(out)
+	if len(pidStr) > 0 {
+		pids := strings.Split(pidStr, "\n")
+		for _, pid := range pids {
+			if len(pid) == 0 {
+				continue
+			}
+			cmd := exec.Command("docker", "rmi", pid)
+			fmt.Println(cmd.String())
+			out, err := cmd.Output()
+			if err != nil {
+				return err
+			}
+			fmt.Println("prune:", string(out))
 		}
-		fmt.Println("prune:", string(out))
 	}
 	return nil
 }
