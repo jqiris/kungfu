@@ -3,6 +3,7 @@ package auths
 import (
 	"github.com/farmerx/gorsa"
 	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/serialize"
 )
 
 type Option func(e *Encipherer)
@@ -34,5 +35,11 @@ func WithAesKey(aesKey string) Option {
 func WithAesIv(aesIv string) Option {
 	return func(e *Encipherer) {
 		e.aesIv = []byte(aesIv)
+	}
+}
+
+func WithSerializer(serializer serialize.Serializer) Option {
+	return func(e *Encipherer) {
+		e.serializer = serializer
 	}
 }

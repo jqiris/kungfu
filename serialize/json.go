@@ -21,7 +21,11 @@
 package serialize
 
 import (
-	"encoding/json"
+	jsoniter "github.com/json-iterator/go"
+)
+
+var (
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 // JsonSerializer implements the serialize.Serializer interface

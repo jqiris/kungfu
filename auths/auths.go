@@ -5,23 +5,22 @@ import (
 	"errors"
 
 	"github.com/farmerx/gorsa"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/jqiris/kungfu/v2/serialize"
 	"github.com/wumansgy/goEncrypt"
 )
 
-var (
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
-)
-
 type Encipherer struct {
-	rsaPriKey string
-	rsaPubKey string
-	aesKey    []byte
-	aesIv     []byte
+	rsaPriKey  string
+	rsaPubKey  string
+	aesKey     []byte
+	aesIv      []byte
+	serializer serialize.Serializer
 }
 
 func NewEncipherer(options ...Option) *Encipherer {
-	encipherer := &Encipherer{}
+	encipherer := &Encipherer{
+		serializer: serialize.NewJsonSerializer(),
+	}
 	for _, option := range options {
 		option(encipherer)
 	}
@@ -121,7 +120,7 @@ func DecryptData(ep *Encipherer, typ DecryptType, src string, res any) error {
 			return err
 		}
 	}
-	err = json.Unmarshal(data, res)
+	err = ep.serializer.Unmarshal(data, res)
 	if err != nil {
 		return err
 	}
@@ -129,7 +128,7 @@ func DecryptData(ep *Encipherer, typ DecryptType, src string, res any) error {
 }
 
 func EncryptData(ep *Encipherer, typ EncryptType, src any) (string, error) {
-	data, err := json.Marshal(src)
+	data, err := ep.serializer.Marshal(src)
 	if err != nil {
 		return "", err
 	}
