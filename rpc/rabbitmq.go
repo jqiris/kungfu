@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jqiris/kungfu/v2/discover"
 	"github.com/jqiris/kungfu/v2/logger"
@@ -13,13 +14,14 @@ import (
 )
 
 type RabbitMqRpc struct {
-	Endpoints []string //地址取第一条
-	DebugMsg  bool
-	Prefix    string
-	RpcCoder  map[string]EncoderRpc
-	Server    *treaty.Server
-	Finder    *discover.Finder
-	Client    *amqp.Connection
+	Endpoints   []string //地址取第一条
+	DebugMsg    bool
+	Prefix      string
+	RpcCoder    map[string]EncoderRpc
+	Server      *treaty.Server
+	Finder      *discover.Finder
+	Client      *amqp.Connection
+	DialTimeout time.Duration
 }
 
 type RabbitMqRpcOption func(r *RabbitMqRpc)
@@ -34,7 +36,11 @@ func WithRabbitMqEndpoints(endpoints []string) RabbitMqRpcOption {
 		r.Endpoints = endpoints
 	}
 }
-
+func WithRabbitMqDialTimeout(timeout time.Duration) RabbitMqRpcOption {
+	return func(r *RabbitMqRpc) {
+		r.DialTimeout = timeout
+	}
+}
 func WithRabbitMqServer(server *treaty.Server) RabbitMqRpcOption {
 	return func(r *RabbitMqRpc) {
 		r.Server = server
@@ -47,7 +53,7 @@ func WithRabbitMqPrefix(prefix string) RabbitMqRpcOption {
 	}
 }
 
-func NewRabbitMqRpc(opts ...RabbitMqRpcOption) *RabbitMqRpc {
+func NewRpcRabbitMq(opts ...RabbitMqRpcOption) *RabbitMqRpc {
 	r := &RabbitMqRpc{
 		Prefix: "rmRpc",
 	}
@@ -162,6 +168,13 @@ func (r *RabbitMqRpc) EncodeMsg(coder EncoderRpc, msgType MessageType, msgId int
 	return data, nil
 }
 
+func (r *RabbitMqRpc) dialTimeout(s ReqBuilder) time.Duration {
+	if s.dialTimeout > 0 {
+		return s.dialTimeout
+	}
+	return r.DialTimeout
+}
+
 // 发送消息
 func (r *RabbitMqRpc) Publish(s ReqBuilder) error {
 	ch, err := r.Client.Channel()
@@ -181,7 +194,7 @@ func (r *RabbitMqRpc) Publish(s ReqBuilder) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.TODO(), s.dialTimeout)
+	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
 	defer cancel()
 	if len(s.exName) > 0 && len(s.rtKey) > 0 {
 		err = ch.PublishWithContext(

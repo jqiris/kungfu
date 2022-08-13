@@ -328,3 +328,7 @@ func (r *NatsRpc) Response(codeType string, v any) []byte {
 func (r *NatsRpc) GetServer() *treaty.Server {
 	return r.Server
 }
+
+func (r *NatsRpc) Close() error {
+	return nil
+}

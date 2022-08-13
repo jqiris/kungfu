@@ -33,6 +33,7 @@ type ServerRpc interface {
 	GetServer() *treaty.Server                                                        //get current server
 	Find(serverType string, arg any, options ...discover.FilterOption) *treaty.Server //find server
 	RemoveFindCache(arg any)                                                          //clear find cache
+	Close() error                                                                     //close option
 }
 
 // NewRpcServer create rpc server
@@ -48,6 +49,14 @@ func NewRpcServer(cfg config.RpcConf, server *treaty.Server) ServerRpc {
 			WithNatsServer(server),
 			WithNatsPrefix(cfg.Prefix),
 			WithNatsDebugMsg(cfg.DebugMsg),
+		)
+	case "rabbitmq":
+		r = NewRpcRabbitMq(
+			WithRabbitMqEndpoints(cfg.Endpoints),
+			WithRabbitMqDialTimeout(timeout),
+			WithRabbitMqServer(server),
+			WithRabbitMqPrefix(cfg.Prefix),
+			WithRabbitMqDebugMsg(cfg.DebugMsg),
 		)
 	default:
 		logger.Fatal("NewRpcConnector failed")

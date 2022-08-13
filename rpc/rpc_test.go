@@ -3,12 +3,24 @@ package rpc
 import (
 	"fmt"
 	"testing"
+
+	"github.com/jqiris/kungfu/v2/config"
+)
+
+var (
+	testCfg = config.RpcConf{
+		UseType:     "rabbitmq",
+		DialTimeout: 5,
+		Endpoints:   []string{"amqp://guest:guest@localhost:5672/mahjong"},
+		DebugMsg:    true,
+		Prefix:      "",
+	}
 )
 
 func TestRabbitMqRprcSend(t *testing.T) {
-	rrpc := NewRabbitMqRpc(WithRabbitMqEndpoints([]string{"amqp://guest:guest@localhost:5672/mahjong"}))
+	rrpc := NewRpcServer(testCfg, nil)
 	defer rrpc.Close()
-	req := DefaultReqBuilder().SetCodeType(CodeTypeJson).SetQueue("mj_queue").SetReq("哈哈").SetMsgId(111).Build()
+	req := DefaultReqBuilder().SetCodeType(CodeTypeJson).SetQueue("mj_queue").SetReq("模拟测试").SetMsgId(111).Build()
 	err := rrpc.Publish(req)
 	if err != nil {
 		fmt.Println(err)
@@ -16,7 +28,7 @@ func TestRabbitMqRprcSend(t *testing.T) {
 }
 
 func TestRabbitMqRprcReceive(t *testing.T) {
-	rrpc := NewRabbitMqRpc(WithRabbitMqEndpoints([]string{"amqp://guest:guest@localhost:5672/mahjong"}))
+	rrpc := NewRpcServer(testCfg, nil)
 	defer rrpc.Close()
 	receiver := NewRssBuilder(nil).SetCodeType(CodeTypeJson).SetQueue("mj_queue").SetCallback(rabbitCallBack).Build()
 	err := rrpc.Subscribe(receiver)
