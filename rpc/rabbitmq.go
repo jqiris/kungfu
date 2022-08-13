@@ -1,10 +1,14 @@
 package rpc
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/jqiris/kungfu/v2/discover"
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/serialize"
 	"github.com/jqiris/kungfu/v2/treaty"
+	"github.com/jqiris/kungfu/v2/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -62,7 +66,7 @@ func NewRabbitMqRpc(opts ...RabbitMqRpcOption) *RabbitMqRpc {
 		CodeTypeProto: NewRpcEncoder(serialize.NewProtoSerializer()),
 		CodeTypeJson:  NewRpcEncoder(serialize.NewJsonSerializer()),
 	}
-	r.Finder = discover.NewFinder()
+	// r.Finder = discover.NewFinder()
 	return r
 }
 
@@ -74,8 +78,45 @@ func (r *RabbitMqRpc) RegEncoder(typ string, encoder EncoderRpc) {
 	}
 }
 
+func (r *RabbitMqRpc) DealMsg(msg amqp.Delivery, callback CallbackFunc, coder EncoderRpc) {
+	req := &MsgRpc{}
+	err := coder.Decode(msg.Body, req)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+	resp := callback(req)
+	if resp != nil {
+		logger.Info(resp)
+	}
+	if r.DebugMsg {
+		logger.Infof("DealMsg,msgType: %v, msgId: %v", req.MsgType, req.MsgId)
+	}
+}
 func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
-	panic("not implemented") // TODO: Implement
+	ch, err := r.Client.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+	err = r.prepareMq(ch, s.exName, s.exType, s.queue, s.rtKey)
+	if err != nil {
+		return err
+	}
+	coder := r.RpcCoder[s.codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
+	}
+	msgs, err := ch.Consume(s.queue, "", true, false, false, false, nil)
+	if err != nil {
+		return err
+	}
+	go utils.SafeRun(func() {
+		for msg := range msgs {
+			r.DealMsg(msg, s.callback, coder)
+		}
+	})
+	return nil
 }
 
 func (r *RabbitMqRpc) SubscribeBroadcast(s RssBuilder) error {
@@ -86,8 +127,88 @@ func (r *RabbitMqRpc) QueueSubscribe(s RssBuilder) error {
 	panic("not implemented") // TODO: Implement
 }
 
+// 准备mq
+func (r *RabbitMqRpc) prepareMq(ch *amqp.Channel, exName, exType, queue, rtKey string) error {
+	if len(exName) > 0 {
+		err := ch.ExchangeDeclare(exName, exType, true, false, false, false, nil)
+		if err != nil {
+			return err
+		}
+	}
+	_, err := ch.QueueDeclare(queue, true, false, false, false, nil)
+	if err != nil {
+		return err
+	}
+	// 绑定任务
+	if len(exName) > 0 && len(rtKey) > 0 {
+		err := ch.QueueBind(queue, rtKey, exName, false, nil)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *RabbitMqRpc) EncodeMsg(coder EncoderRpc, msgType MessageType, msgId int32, req any) ([]byte, error) {
+	rpcMsg := &MsgRpc{
+		MsgType: msgType,
+		MsgId:   msgId,
+		MsgData: req,
+	}
+	data, err := coder.Encode(rpcMsg)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// 发送消息
 func (r *RabbitMqRpc) Publish(s ReqBuilder) error {
-	panic("not implemented") // TODO: Implement
+	ch, err := r.Client.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+	err = r.prepareMq(ch, s.exName, s.exType, s.queue, s.rtKey)
+	if err != nil {
+		return err
+	}
+	coder := r.RpcCoder[s.codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
+	}
+	data, err := r.EncodeMsg(coder, MsgTypePublish, s.msgId, s.req)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.TODO(), s.dialTimeout)
+	defer cancel()
+	if len(s.exName) > 0 && len(s.rtKey) > 0 {
+		err = ch.PublishWithContext(
+			ctx,
+			s.exName,
+			s.rtKey,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType:  "text/plain",
+				Body:         data,
+				DeliveryMode: 2,
+			})
+	} else {
+		err = ch.PublishWithContext(
+			ctx,
+			DefaultExName,
+			s.queue,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType:  "text/plain",
+				Body:         data,
+				DeliveryMode: 2,
+			})
+	}
+	return err
 }
 
 func (r *RabbitMqRpc) QueuePublish(s ReqBuilder) error {
@@ -115,17 +236,22 @@ func (r *RabbitMqRpc) DecodeMsg(codeType string, data []byte, v any) error {
 }
 
 func (r *RabbitMqRpc) GetCoder(codeType string) EncoderRpc {
-	panic("not implemented") // TODO: Implement
+	return r.RpcCoder[codeType]
 }
 
 func (r *RabbitMqRpc) GetServer() *treaty.Server {
-	panic("not implemented") // TODO: Implement
+	return r.Server
 }
 
 func (r *RabbitMqRpc) Find(serverType string, arg any, options ...discover.FilterOption) *treaty.Server {
-	panic("not implemented") // TODO: Implement
+	// return r.Finder.GetUserServer(serverType, arg, options...)
+	return nil
 }
 
 func (r *RabbitMqRpc) RemoveFindCache(arg any) {
-	panic("not implemented") // TODO: Implement
+	// r.Finder.RemoveUserCache(arg)
+}
+
+func (r *RabbitMqRpc) Close() error {
+	return r.Client.Close()
 }

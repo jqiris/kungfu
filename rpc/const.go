@@ -10,6 +10,9 @@ const (
 const (
 	DefaultQueue  = "dq"
 	DefaultSuffix = ""
+	DefaultExName = ""
+	DefaultExType = "direct"
+	DefaultRtKey  = ""
 	JsonSuffix    = "json"
 )
 const (

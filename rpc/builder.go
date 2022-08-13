@@ -19,11 +19,15 @@ type RssBuilder struct {
 	codeType string
 	suffix   string
 	parallel bool
+	//for rabbitmq
+	exName string //交换机名称
+	exType string //交换类型
+	rtKey  string //绑定key
 }
 
 func NewRssBuilder(server *treaty.Server) *RssBuilder {
 	parallel := true
-	if server.Serial { //串行处理
+	if server != nil && server.Serial { //串行处理
 		parallel = false
 	}
 	return &RssBuilder{
@@ -33,7 +37,25 @@ func NewRssBuilder(server *treaty.Server) *RssBuilder {
 		codeType: CodeTypeProto,
 		suffix:   DefaultSuffix,
 		parallel: parallel,
+		exName:   DefaultExName,
+		exType:   DefaultExType,
+		rtKey:    DefaultRtKey,
 	}
+}
+
+func (r *RssBuilder) SetExName(name string) *RssBuilder {
+	r.exName = name
+	return r
+}
+
+func (r *RssBuilder) SetExType(typ string) *RssBuilder {
+	r.exType = typ
+	return r
+}
+
+func (r *RssBuilder) SetRtKey(rtKey string) *RssBuilder {
+	r.rtKey = rtKey
+	return r
 }
 
 func (r *RssBuilder) SetQueue(queue string) *RssBuilder {
@@ -70,6 +92,9 @@ func (r *RssBuilder) Build() RssBuilder {
 		codeType: r.codeType,
 		suffix:   r.suffix,
 		parallel: r.parallel,
+		exName:   r.exName,
+		exType:   r.exType,
+		rtKey:    r.rtKey,
 	}
 }
 
@@ -83,6 +108,10 @@ type ReqBuilder struct {
 	resp        any
 	serverType  string
 	dialTimeout time.Duration
+	//for rabbitmq
+	exName string //交换机名称
+	exType string //交换类型
+	rtKey  string //绑定key
 }
 
 func NewReqBuilder(server *treaty.Server) *ReqBuilder {
@@ -98,13 +127,33 @@ func NewReqBuilder(server *treaty.Server) *ReqBuilder {
 		serverType: serverType,
 	}
 }
+
 func DefaultReqBuilder() *ReqBuilder {
 	return &ReqBuilder{
 		queue:    DefaultQueue,
 		codeType: CodeTypeProto,
 		suffix:   DefaultSuffix,
+		exName:   DefaultExName,
+		exType:   DefaultExType,
+		rtKey:    DefaultRtKey,
 	}
 }
+
+func (r *ReqBuilder) SetExName(name string) *ReqBuilder {
+	r.exName = name
+	return r
+}
+
+func (r *ReqBuilder) SetExType(typ string) *ReqBuilder {
+	r.exType = typ
+	return r
+}
+
+func (r *ReqBuilder) SetRtKey(rtKey string) *ReqBuilder {
+	r.rtKey = rtKey
+	return r
+}
+
 func (r *ReqBuilder) SetQueue(queue string) *ReqBuilder {
 	r.queue = queue
 	return r
@@ -154,5 +203,8 @@ func (r *ReqBuilder) Build() ReqBuilder {
 		resp:        r.resp,
 		serverType:  r.serverType,
 		dialTimeout: r.dialTimeout,
+		exName:      r.exName,
+		exType:      r.exType,
+		rtKey:       r.rtKey,
 	}
 }

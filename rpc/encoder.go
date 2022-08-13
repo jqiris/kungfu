@@ -27,6 +27,7 @@ var (
 type EncoderRpc interface {
 	Encode(rpcMsg *MsgRpc) ([]byte, error)
 	Decode(data []byte, rpcMsg *MsgRpc) error
+	EncodeMsg(v any) ([]byte, error)
 	DecodeMsg(data []byte, v any) error
 	Response(v any) []byte
 }
@@ -98,12 +99,12 @@ func (r *DefaultRpcEncoder) Decode(data []byte, rpcMsg *MsgRpc) error {
 	return nil
 }
 
+func (r *DefaultRpcEncoder) EncodeMsg(v any) ([]byte, error) {
+	return r.encoder.Marshal(v)
+}
+
 func (r *DefaultRpcEncoder) DecodeMsg(data []byte, v any) error {
-	err := r.encoder.Unmarshal(data, v)
-	if err != nil {
-		return err
-	}
-	return nil
+	return r.encoder.Unmarshal(data, v)
 }
 
 func (r *DefaultRpcEncoder) Response(v any) []byte {
