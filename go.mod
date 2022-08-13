@@ -37,6 +37,7 @@ require (
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/mozillazg/go-httpheader v0.2.1 // indirect
+	github.com/rabbitmq/amqp091-go v1.4.0 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 )
 
