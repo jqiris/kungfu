@@ -72,7 +72,7 @@ func NewRpcRabbitMq(opts ...RabbitMqRpcOption) *RabbitMqRpc {
 		CodeTypeProto: NewRpcEncoder(serialize.NewProtoSerializer()),
 		CodeTypeJson:  NewRpcEncoder(serialize.NewJsonSerializer()),
 	}
-	// r.Finder = discover.NewFinder()
+	r.Finder = discover.NewFinder()
 	return r
 }
 
@@ -257,12 +257,11 @@ func (r *RabbitMqRpc) GetServer() *treaty.Server {
 }
 
 func (r *RabbitMqRpc) Find(serverType string, arg any, options ...discover.FilterOption) *treaty.Server {
-	// return r.Finder.GetUserServer(serverType, arg, options...)
-	return nil
+	return r.Finder.GetUserServer(serverType, arg, options...)
 }
 
 func (r *RabbitMqRpc) RemoveFindCache(arg any) {
-	// r.Finder.RemoveUserCache(arg)
+	r.Finder.RemoveUserCache(arg)
 }
 
 func (r *RabbitMqRpc) Close() error {
