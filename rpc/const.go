@@ -12,6 +12,7 @@ const (
 	DefaultSuffix = ""
 	DefaultExName = ""
 	DefaultExType = "direct"
+	FanoutExType  = "fanout"
 	DefaultRtKey  = ""
 	JsonSuffix    = "json"
 )

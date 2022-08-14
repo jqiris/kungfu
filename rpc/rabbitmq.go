@@ -126,11 +126,33 @@ func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
 }
 
 func (r *RabbitMqRpc) SubscribeBroadcast(s RssBuilder) error {
-	panic("not implemented") // TODO: Implement
+	ch, err := r.Client.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+	err = r.prepareMq(ch, s.exName, FanoutExType, s.queue, s.rtKey)
+	if err != nil {
+		return err
+	}
+	coder := r.RpcCoder[s.codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
+	}
+	msgs, err := ch.Consume(s.queue, "", true, false, false, false, nil)
+	if err != nil {
+		return err
+	}
+	go utils.SafeRun(func() {
+		for msg := range msgs {
+			r.DealMsg(msg, s.callback, coder)
+		}
+	})
+	return nil
 }
 
 func (r *RabbitMqRpc) QueueSubscribe(s RssBuilder) error {
-	panic("not implemented") // TODO: Implement
+	return r.Subscribe(s)
 }
 
 // 准备mq
@@ -225,27 +247,36 @@ func (r *RabbitMqRpc) Publish(s ReqBuilder) error {
 }
 
 func (r *RabbitMqRpc) QueuePublish(s ReqBuilder) error {
-	panic("not implemented") // TODO: Implement
+	return r.Publish(s)
 }
 
 func (r *RabbitMqRpc) PublishBroadcast(s ReqBuilder) error {
-	panic("not implemented") // TODO: Implement
+	return r.Publish(s)
 }
 
 func (r *RabbitMqRpc) Request(s ReqBuilder) error {
-	panic("not implemented") // TODO: Implement
+	return r.Publish(s) //todo 完善
 }
 
 func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
-	panic("not implemented") // TODO: Implement
+	return r.Publish(s) //todo 完善
 }
 
 func (r *RabbitMqRpc) Response(codeType string, v any) []byte {
-	panic("not implemented") // TODO: Implement
+	coder := r.RpcCoder[codeType]
+	if coder == nil {
+		logger.Errorf("rpc coder not exist:%v", codeType)
+		return nil
+	}
+	return coder.Response(v)
 }
 
 func (r *RabbitMqRpc) DecodeMsg(codeType string, data []byte, v any) error {
-	panic("not implemented") // TODO: Implement
+	coder := r.RpcCoder[codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", codeType)
+	}
+	return coder.DecodeMsg(data, v)
 }
 
 func (r *RabbitMqRpc) GetCoder(codeType string) EncoderRpc {
