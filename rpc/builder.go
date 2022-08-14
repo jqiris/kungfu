@@ -13,21 +13,23 @@ func DefaultCallback(req *MsgRpc) []byte {
 }
 
 type RssBuilder struct {
-	queue    string
-	server   *treaty.Server
-	callback CallbackFunc
-	codeType string
-	suffix   string
-	parallel bool
+	queue       string
+	server      *treaty.Server
+	callback    CallbackFunc
+	codeType    string
+	suffix      string
+	parallel    bool
+	dialTimeout time.Duration
 	//for rabbitmq
 	exName string //交换机名称
 	exType string //交换类型
 	rtKey  string //绑定key
+
 }
 
 func NewRssBuilder(server *treaty.Server) *RssBuilder {
 	parallel := true
-	if server != nil && server.Serial { //串行处理
+	if server.Serial { //串行处理
 		parallel = false
 	}
 	return &RssBuilder{
@@ -42,7 +44,10 @@ func NewRssBuilder(server *treaty.Server) *RssBuilder {
 		rtKey:    DefaultRtKey,
 	}
 }
-
+func (r *RssBuilder) SetDialTimeout(d time.Duration) *RssBuilder {
+	r.dialTimeout = d
+	return r
+}
 func (r *RssBuilder) SetExName(name string) *RssBuilder {
 	r.exName = name
 	return r
@@ -125,6 +130,9 @@ func NewReqBuilder(server *treaty.Server) *ReqBuilder {
 		suffix:     DefaultSuffix,
 		server:     server,
 		serverType: serverType,
+		exName:     DefaultExName,
+		exType:     DefaultExType,
+		rtKey:      DefaultRtKey,
 	}
 }
 

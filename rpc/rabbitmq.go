@@ -3,8 +3,10 @@ package rpc
 import (
 	"context"
 	"fmt"
+	"path"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jqiris/kungfu/v2/discover"
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/serialize"
@@ -76,6 +78,10 @@ func NewRpcRabbitMq(opts ...RabbitMqRpcOption) *RabbitMqRpc {
 	return r
 }
 
+func (r *RabbitMqRpc) OpenConn() (*amqp.Connection, error) {
+	return amqp.Dial(r.Endpoints[0])
+}
+
 func (r *RabbitMqRpc) RegEncoder(typ string, encoder EncoderRpc) {
 	if _, ok := r.RpcCoder[typ]; !ok {
 		r.RpcCoder[typ] = encoder
@@ -84,7 +90,7 @@ func (r *RabbitMqRpc) RegEncoder(typ string, encoder EncoderRpc) {
 	}
 }
 
-func (r *RabbitMqRpc) DealMsg(msg amqp.Delivery, callback CallbackFunc, coder EncoderRpc) {
+func (r *RabbitMqRpc) DealMsg(s RssBuilder, ch *amqp.Channel, msg amqp.Delivery, callback CallbackFunc, coder EncoderRpc) {
 	req := &MsgRpc{}
 	err := coder.Decode(msg.Body, req)
 	if err != nil {
@@ -93,7 +99,21 @@ func (r *RabbitMqRpc) DealMsg(msg amqp.Delivery, callback CallbackFunc, coder En
 	}
 	resp := callback(req)
 	if resp != nil {
-		logger.Info(resp)
+		ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeoutRss(s))
+		defer cancel()
+		if err = ch.PublishWithContext(
+			ctx,
+			s.exName,    // exchange
+			msg.ReplyTo, // routing key
+			false,       // mandatory
+			false,       // immediate
+			amqp.Publishing{
+				ContentType:   "text/plain",
+				CorrelationId: msg.CorrelationId,
+				Body:          resp,
+			}); err != nil {
+			logger.Error(err)
+		}
 	}
 	if r.DebugMsg {
 		logger.Infof("DealMsg,msgType: %v, msgId: %v", req.MsgType, req.MsgId)
@@ -104,8 +124,8 @@ func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
 	if err != nil {
 		return err
 	}
-	defer ch.Close()
-	err = r.prepareMq(ch, s.exName, s.exType, s.queue, s.rtKey)
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
+	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
 	if err != nil {
 		return err
 	}
@@ -113,13 +133,21 @@ func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
 	}
-	msgs, err := ch.Consume(s.queue, "", true, false, false, false, nil)
+	msgs, err := ch.Consume(sub, "", true, false, false, false, nil)
 	if err != nil {
 		return err
 	}
 	go utils.SafeRun(func() {
 		for msg := range msgs {
-			r.DealMsg(msg, s.callback, coder)
+			if s.parallel {
+				go utils.SafeRun(func() {
+					r.DealMsg(s, ch, msg, s.callback, coder)
+				})
+			} else {
+				utils.SafeRun(func() {
+					r.DealMsg(s, ch, msg, s.callback, coder)
+				})
+			}
 		}
 	})
 	return nil
@@ -130,8 +158,8 @@ func (r *RabbitMqRpc) SubscribeBroadcast(s RssBuilder) error {
 	if err != nil {
 		return err
 	}
-	defer ch.Close()
-	err = r.prepareMq(ch, s.exName, FanoutExType, s.queue, s.rtKey)
+	sub := path.Join(r.Prefix, s.server.ServerType, s.suffix)
+	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
 	if err != nil {
 		return err
 	}
@@ -139,20 +167,58 @@ func (r *RabbitMqRpc) SubscribeBroadcast(s RssBuilder) error {
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
 	}
-	msgs, err := ch.Consume(s.queue, "", true, false, false, false, nil)
+	msgs, err := ch.Consume(sub, "", true, false, false, false, nil)
 	if err != nil {
 		return err
 	}
 	go utils.SafeRun(func() {
 		for msg := range msgs {
-			r.DealMsg(msg, s.callback, coder)
+			if s.parallel {
+				go utils.SafeRun(func() {
+					r.DealMsg(s, ch, msg, s.callback, coder)
+				})
+			} else {
+				utils.SafeRun(func() {
+					r.DealMsg(s, ch, msg, s.callback, coder)
+				})
+			}
 		}
 	})
 	return nil
 }
 
 func (r *RabbitMqRpc) QueueSubscribe(s RssBuilder) error {
-	return r.Subscribe(s)
+	ch, err := r.Client.Channel()
+	if err != nil {
+		return err
+	}
+	sub := path.Join(r.Prefix, treaty.RegSeverQueue(s.server.ServerType, s.queue), s.suffix)
+	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
+	if err != nil {
+		return err
+	}
+	coder := r.RpcCoder[s.codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
+	}
+	msgs, err := ch.Consume(sub, "", true, false, false, false, nil)
+	if err != nil {
+		return err
+	}
+	go utils.SafeRun(func() {
+		for msg := range msgs {
+			if s.parallel {
+				go utils.SafeRun(func() {
+					r.DealMsg(s, ch, msg, s.callback, coder)
+				})
+			} else {
+				utils.SafeRun(func() {
+					r.DealMsg(s, ch, msg, s.callback, coder)
+				})
+			}
+		}
+	})
+	return nil
 }
 
 // 准备mq
@@ -197,14 +263,27 @@ func (r *RabbitMqRpc) dialTimeout(s ReqBuilder) time.Duration {
 	return r.DialTimeout
 }
 
+func (r *RabbitMqRpc) dialTimeoutRss(s RssBuilder) time.Duration {
+	if s.dialTimeout > 0 {
+		return s.dialTimeout
+	}
+	return r.DialTimeout
+}
+
 // 发送消息
 func (r *RabbitMqRpc) Publish(s ReqBuilder) error {
-	ch, err := r.Client.Channel()
+	conn, err := r.OpenConn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	ch, err := conn.Channel()
 	if err != nil {
 		return err
 	}
 	defer ch.Close()
-	err = r.prepareMq(ch, s.exName, s.exType, s.queue, s.rtKey)
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
+	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
 	if err != nil {
 		return err
 	}
@@ -218,11 +297,11 @@ func (r *RabbitMqRpc) Publish(s ReqBuilder) error {
 	}
 	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
 	defer cancel()
-	if len(s.exName) > 0 && len(s.rtKey) > 0 {
+	if len(s.exName) > 0 && len(sub) > 0 {
 		err = ch.PublishWithContext(
 			ctx,
 			s.exName,
-			s.rtKey,
+			sub,
 			false,
 			false,
 			amqp.Publishing{
@@ -234,7 +313,7 @@ func (r *RabbitMqRpc) Publish(s ReqBuilder) error {
 		err = ch.PublishWithContext(
 			ctx,
 			DefaultExName,
-			s.queue,
+			sub,
 			false,
 			false,
 			amqp.Publishing{
@@ -247,19 +326,263 @@ func (r *RabbitMqRpc) Publish(s ReqBuilder) error {
 }
 
 func (r *RabbitMqRpc) QueuePublish(s ReqBuilder) error {
-	return r.Publish(s)
+	conn, err := r.OpenConn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	ch, err := conn.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+	sub := path.Join(r.Prefix, treaty.RegSeverQueue(s.serverType, s.queue), s.suffix)
+	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
+	if err != nil {
+		return err
+	}
+	coder := r.RpcCoder[s.codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
+	}
+	data, err := r.EncodeMsg(coder, MsgTypePublish, s.msgId, s.req)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
+	defer cancel()
+	if len(s.exName) > 0 && len(sub) > 0 {
+		err = ch.PublishWithContext(
+			ctx,
+			s.exName,
+			sub,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType:  "text/plain",
+				Body:         data,
+				DeliveryMode: 2,
+			})
+	} else {
+		err = ch.PublishWithContext(
+			ctx,
+			DefaultExName,
+			sub,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType:  "text/plain",
+				Body:         data,
+				DeliveryMode: 2,
+			})
+	}
+	return err
 }
 
 func (r *RabbitMqRpc) PublishBroadcast(s ReqBuilder) error {
-	return r.Publish(s)
+	conn, err := r.OpenConn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	ch, err := conn.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+	sub := path.Join(r.Prefix, s.serverType, s.suffix)
+	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
+	if err != nil {
+		return err
+	}
+	coder := r.RpcCoder[s.codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
+	}
+	data, err := r.EncodeMsg(coder, MsgTypePublish, s.msgId, s.req)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
+	defer cancel()
+	if len(s.exName) > 0 && len(sub) > 0 {
+		err = ch.PublishWithContext(
+			ctx,
+			s.exName,
+			sub,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType:  "text/plain",
+				Body:         data,
+				DeliveryMode: 2,
+			})
+	} else {
+		err = ch.PublishWithContext(
+			ctx,
+			DefaultExName,
+			sub,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType:  "text/plain",
+				Body:         data,
+				DeliveryMode: 2,
+			})
+	}
+	return err
 }
 
 func (r *RabbitMqRpc) Request(s ReqBuilder) error {
-	return r.Publish(s) //todo 完善
+	conn, err := r.OpenConn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	ch, err := conn.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
+	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
+	if err != nil {
+		return err
+	}
+	coder := r.RpcCoder[s.codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
+	}
+	data, err := r.EncodeMsg(coder, MsgTypeRequest, s.msgId, s.req)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
+	defer cancel()
+	corrId := uuid.NewString()
+	if len(s.exName) > 0 && len(sub) > 0 {
+		err = ch.PublishWithContext(
+			ctx,
+			s.exName,
+			sub,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType:   "text/plain",
+				CorrelationId: corrId,
+				ReplyTo:       sub,
+				Body:          data,
+				DeliveryMode:  2,
+			})
+	} else {
+		err = ch.PublishWithContext(
+			ctx,
+			DefaultExName,
+			sub,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType:   "text/plain",
+				CorrelationId: corrId,
+				ReplyTo:       sub,
+				Body:          data,
+				DeliveryMode:  2,
+			})
+	}
+	if err != nil {
+		return err
+	}
+	msgs, err := ch.Consume(sub, "", true, false, false, false, nil)
+	if err != nil {
+		return err
+	}
+	for d := range msgs {
+		if corrId == d.CorrelationId {
+			respMsg := &MsgRpc{MsgData: s.resp}
+			err = coder.Decode(d.Body, respMsg)
+			if err != nil {
+				return err
+			}
+			break
+		}
+	}
+	return nil
 }
 
 func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
-	return r.Publish(s) //todo 完善
+	conn, err := r.OpenConn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	ch, err := conn.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+	sub := path.Join(r.Prefix, treaty.RegSeverQueue(s.serverType, s.queue), s.suffix)
+	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
+	if err != nil {
+		return err
+	}
+	coder := r.RpcCoder[s.codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
+	}
+	data, err := r.EncodeMsg(coder, MsgTypeRequest, s.msgId, s.req)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
+	defer cancel()
+	corrId := uuid.NewString()
+	if len(s.exName) > 0 && len(sub) > 0 {
+		err = ch.PublishWithContext(
+			ctx,
+			s.exName,
+			sub,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType:   "text/plain",
+				CorrelationId: corrId,
+				ReplyTo:       sub,
+				Body:          data,
+				DeliveryMode:  2,
+			})
+	} else {
+		err = ch.PublishWithContext(
+			ctx,
+			DefaultExName,
+			sub,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType:   "text/plain",
+				CorrelationId: corrId,
+				ReplyTo:       sub,
+				Body:          data,
+				DeliveryMode:  2,
+			})
+	}
+	if err != nil {
+		return err
+	}
+	msgs, err := ch.Consume(sub, "", true, false, false, false, nil)
+	if err != nil {
+		return err
+	}
+	for d := range msgs {
+		if corrId == d.CorrelationId {
+			respMsg := &MsgRpc{MsgData: s.resp}
+			err = coder.Decode(d.Body, respMsg)
+			if err != nil {
+				return err
+			}
+			break
+		}
+	}
+	return nil
 }
 
 func (r *RabbitMqRpc) Response(codeType string, v any) []byte {

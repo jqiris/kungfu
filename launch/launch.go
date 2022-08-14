@@ -10,7 +10,7 @@ import (
 	"github.com/jqiris/kungfu/v2/utils"
 )
 
-//服务器集群管理
+// 服务器集群管理
 var (
 	creators  map[string]rpc.ServerCreator
 	launched  map[string]rpc.ServerEntity
@@ -31,7 +31,7 @@ func RegisterCreator(typ string, creator rpc.ServerCreator) {
 	}
 }
 
-//Startup 启动服务器
+// Startup 启动服务器
 func Startup() {
 	//run servers
 	servers := config.GetServersConf()
@@ -102,7 +102,7 @@ func StartUpAfterInit() {
 	}
 }
 
-//Shutdown 关闭服务器
+// Shutdown 关闭服务器
 func Shutdown() {
 	//stop creators
 	sort.Slice(launchArr, func(i, j int) bool {
@@ -118,4 +118,6 @@ func Shutdown() {
 			server.Shutdown()
 		}
 	}
+	//关闭默认rpc连接
+	rpc.DefRpcClose()
 }

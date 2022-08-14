@@ -131,6 +131,8 @@ func (s *ServerBase) Shutdown() {
 	for _, plugin := range s.plugins {
 		plugin.Shutdown(s)
 	}
+	//关闭rpc连接
+	s.Rpc.Close()
 	logger.Infof("shutdown service,type:%v,id:%v", s.Server.ServerType, s.Server.ServerId)
 }
 

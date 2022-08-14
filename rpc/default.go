@@ -9,17 +9,24 @@ import (
 )
 
 var (
-	defRpc ServerRpc
-	once   sync.Once
+	defRpc    ServerRpc
+	onceInit  sync.Once
+	onceClose sync.Once
 )
 
 func defRpcInit() {
-	once.Do(func() {
+	onceInit.Do(func() {
 		defRpc = NewRpcServer(config.GetRpcConf(), nil)
 	})
 }
 
-//公用调用方法
+func DefRpcClose() {
+	onceClose.Do(func() {
+		defRpc.Close()
+	})
+}
+
+// 公用调用方法
 func DefRpcInit() {
 	defRpcInit()
 }

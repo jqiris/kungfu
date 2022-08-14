@@ -10,9 +10,10 @@ const (
 const (
 	DefaultQueue  = "dq"
 	DefaultSuffix = ""
-	DefaultExName = ""
+	DefaultExName = "exchange"
 	DefaultExType = "direct"
 	FanoutExType  = "fanout"
+	TopicEXType   = "topic"
 	DefaultRtKey  = ""
 	JsonSuffix    = "json"
 )
