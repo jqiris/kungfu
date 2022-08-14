@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"time"
@@ -91,6 +92,7 @@ func (r *RabbitMqRpc) RegEncoder(typ string, encoder EncoderRpc) {
 }
 
 func (r *RabbitMqRpc) DealMsg(s RssBuilder, ch *amqp.Channel, msg amqp.Delivery, callback CallbackFunc, coder EncoderRpc) {
+	defer msg.Ack(false)
 	req := &MsgRpc{}
 	err := coder.Decode(msg.Body, req)
 	if err != nil {
@@ -103,7 +105,7 @@ func (r *RabbitMqRpc) DealMsg(s RssBuilder, ch *amqp.Channel, msg amqp.Delivery,
 		defer cancel()
 		if err = ch.PublishWithContext(
 			ctx,
-			s.exName,    // exchange
+			"",          // exchange
 			msg.ReplyTo, // routing key
 			false,       // mandatory
 			false,       // immediate
@@ -133,7 +135,7 @@ func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
 	}
-	msgs, err := ch.Consume(sub, "", true, false, false, false, nil)
+	msgs, err := ch.Consume(sub, "", false, false, false, false, nil)
 	if err != nil {
 		return err
 	}
@@ -445,7 +447,12 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 	}
 	defer ch.Close()
 	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
+	subReply := path.Join(sub, DefaultReply)
 	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
+	if err != nil {
+		return err
+	}
+	err = r.prepareMq(ch, DefaultExName, s.exType, subReply, DefaultRtKey)
 	if err != nil {
 		return err
 	}
@@ -460,39 +467,31 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
 	defer cancel()
 	corrId := uuid.NewString()
-	if len(s.exName) > 0 && len(sub) > 0 {
-		err = ch.PublishWithContext(
-			ctx,
-			s.exName,
-			sub,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType:   "text/plain",
-				CorrelationId: corrId,
-				ReplyTo:       sub,
-				Body:          data,
-				DeliveryMode:  2,
-			})
-	} else {
-		err = ch.PublishWithContext(
-			ctx,
-			DefaultExName,
-			sub,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType:   "text/plain",
-				CorrelationId: corrId,
-				ReplyTo:       sub,
-				Body:          data,
-				DeliveryMode:  2,
-			})
-	}
+	msgs, err := ch.Consume(
+		subReply, // queue
+		"",       // consumer
+		true,     // auto-ack
+		false,    // exclusive
+		false,    // no-local
+		false,    // no-wait
+		nil,      // args
+	)
 	if err != nil {
 		return err
 	}
-	msgs, err := ch.Consume(sub, "", true, false, false, false, nil)
+	err = ch.PublishWithContext(
+		ctx,
+		DefaultExName,
+		sub,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType:   "text/plain",
+			CorrelationId: corrId,
+			ReplyTo:       subReply,
+			Body:          data,
+			DeliveryMode:  2,
+		})
 	if err != nil {
 		return err
 	}
@@ -503,10 +502,10 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 			if err != nil {
 				return err
 			}
-			break
+			return nil
 		}
 	}
-	return nil
+	return errors.New("no msg reply")
 }
 
 func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
@@ -521,7 +520,12 @@ func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
 	}
 	defer ch.Close()
 	sub := path.Join(r.Prefix, treaty.RegSeverQueue(s.serverType, s.queue), s.suffix)
+	subReply := path.Join(sub, DefaultReply)
 	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
+	if err != nil {
+		return err
+	}
+	err = r.prepareMq(ch, DefaultExName, s.exType, subReply, DefaultRtKey)
 	if err != nil {
 		return err
 	}
@@ -536,39 +540,31 @@ func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
 	defer cancel()
 	corrId := uuid.NewString()
-	if len(s.exName) > 0 && len(sub) > 0 {
-		err = ch.PublishWithContext(
-			ctx,
-			s.exName,
-			sub,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType:   "text/plain",
-				CorrelationId: corrId,
-				ReplyTo:       sub,
-				Body:          data,
-				DeliveryMode:  2,
-			})
-	} else {
-		err = ch.PublishWithContext(
-			ctx,
-			DefaultExName,
-			sub,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType:   "text/plain",
-				CorrelationId: corrId,
-				ReplyTo:       sub,
-				Body:          data,
-				DeliveryMode:  2,
-			})
-	}
+	msgs, err := ch.Consume(
+		subReply, // queue
+		"",       // consumer
+		true,     // auto-ack
+		false,    // exclusive
+		false,    // no-local
+		false,    // no-wait
+		nil,      // args
+	)
 	if err != nil {
 		return err
 	}
-	msgs, err := ch.Consume(sub, "", true, false, false, false, nil)
+	err = ch.PublishWithContext(
+		ctx,
+		DefaultExName,
+		sub,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType:   "text/plain",
+			CorrelationId: corrId,
+			ReplyTo:       subReply,
+			Body:          data,
+			DeliveryMode:  2,
+		})
 	if err != nil {
 		return err
 	}
@@ -579,10 +575,10 @@ func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
 			if err != nil {
 				return err
 			}
-			break
+			return nil
 		}
 	}
-	return nil
+	return errors.New("no msg reply")
 }
 
 func (r *RabbitMqRpc) Response(codeType string, v any) []byte {

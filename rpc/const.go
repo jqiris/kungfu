@@ -15,6 +15,7 @@ const (
 	FanoutExType  = "fanout"
 	TopicEXType   = "topic"
 	DefaultRtKey  = ""
+	DefaultReply  = "reply"
 	JsonSuffix    = "json"
 )
 const (
