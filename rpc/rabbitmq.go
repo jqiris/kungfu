@@ -101,9 +101,21 @@ func (r *RabbitMqRpc) DealMsg(s RssBuilder, ch *amqp.Channel, msg amqp.Delivery,
 	}
 	resp := callback(req)
 	if resp != nil {
+		conn, err := r.OpenConn()
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		defer conn.Close()
+		replyCh, err := conn.Channel()
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		defer replyCh.Close()
 		ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeoutRss(s))
 		defer cancel()
-		if err = ch.PublishWithContext(
+		if err = replyCh.PublishWithContext(
 			ctx,
 			"",          // exchange
 			msg.ReplyTo, // routing key
@@ -447,12 +459,20 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 	}
 	defer ch.Close()
 	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
-	subReply := path.Join(sub, DefaultReply)
 	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
 	if err != nil {
 		return err
 	}
-	err = r.prepareMq(ch, DefaultExName, s.exType, subReply, DefaultRtKey)
+	corrId := uuid.NewString()
+	subReply := path.Join(sub, DefaultReply, corrId)
+	replyQueue, err := ch.QueueDeclare(
+		subReply, // name
+		false,    // durable
+		true,     // delete when unused
+		true,     // exclusive
+		false,    // noWait
+		nil,      // arguments
+	)
 	if err != nil {
 		return err
 	}
@@ -466,15 +486,15 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 	}
 	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
 	defer cancel()
-	corrId := uuid.NewString()
+
 	msgs, err := ch.Consume(
-		subReply, // queue
-		"",       // consumer
-		true,     // auto-ack
-		false,    // exclusive
-		false,    // no-local
-		false,    // no-wait
-		nil,      // args
+		replyQueue.Name, // queue
+		"",              // consumer
+		true,            // auto-ack
+		false,           // exclusive
+		false,           // no-local
+		false,           // no-wait
+		nil,             // args
 	)
 	if err != nil {
 		return err
@@ -520,12 +540,20 @@ func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
 	}
 	defer ch.Close()
 	sub := path.Join(r.Prefix, treaty.RegSeverQueue(s.serverType, s.queue), s.suffix)
-	subReply := path.Join(sub, DefaultReply)
 	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
 	if err != nil {
 		return err
 	}
-	err = r.prepareMq(ch, DefaultExName, s.exType, subReply, DefaultRtKey)
+	corrId := uuid.NewString()
+	subReply := path.Join(sub, DefaultReply, corrId)
+	replyQueue, err := ch.QueueDeclare(
+		subReply, // name
+		false,    // durable
+		true,     // delete when unused
+		true,     // exclusive
+		false,    // noWait
+		nil,      // arguments
+	)
 	if err != nil {
 		return err
 	}
@@ -539,15 +567,14 @@ func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
 	}
 	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
 	defer cancel()
-	corrId := uuid.NewString()
 	msgs, err := ch.Consume(
-		subReply, // queue
-		"",       // consumer
-		true,     // auto-ack
-		false,    // exclusive
-		false,    // no-local
-		false,    // no-wait
-		nil,      // args
+		replyQueue.Name, // queue
+		"",              // consumer
+		true,            // auto-ack
+		false,           // exclusive
+		false,           // no-local
+		false,           // no-wait
+		nil,             // args
 	)
 	if err != nil {
 		return err
