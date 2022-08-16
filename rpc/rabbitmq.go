@@ -605,13 +605,15 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 	if err != nil {
 		return err
 	}
+	replyCtx, replyCancel := context.WithTimeout(context.TODO(), 2*dialTimeout)
+	defer replyCancel()
 	for {
 		select {
 		case item := <-replyItem.MsgReply:
 			s.resp = item
 			logger.Warnf("Request 收到消息:subReply:%v,corrid:%v", subReply, corrId)
 			return nil
-		case <-ctx.Done():
+		case <-replyCtx.Done():
 			return fmt.Errorf("消息返回超时,subReply:%v,corrId:%v", subReply, corrId)
 		}
 	}
@@ -635,17 +637,18 @@ func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
 	}
 	corrId := uuid.NewString()
 	subReply := path.Join(sub, DefaultReply)
-	replyCh, err := ch.QueueDeclare(
-		subReply, // name
-		false,    // durable
-		false,    // delete when unused
-		false,    // exclusive
-		false,    // noWait
-		nil,      // arguments
-	)
+	replyQueue, err := r.GetReplyQueue(subReply)
 	if err != nil {
 		return err
 	}
+	replyItem := &RabbitWaitItem{
+		CorrId:   corrId,
+		CodeType: s.codeType,
+		MsgData:  s.resp,
+		MsgReply: make(chan *MsgRpc, 1),
+	}
+	replyQueue.WaitChan <- replyItem
+	logger.Warnf("QueueRequest 发送消息:subReply:%v,corrid:%v", subReply, corrId)
 	coder := r.RpcCoder[s.codeType]
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
@@ -657,18 +660,6 @@ func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
 	dialTimeout := r.dialTimeout(s)
 	ctx, cancel := context.WithTimeout(context.TODO(), dialTimeout)
 	defer cancel()
-	msgs, err := ch.Consume(
-		replyCh.Name, // queue
-		"",           // consumer
-		false,        // auto-ack
-		false,        // exclusive
-		false,        // no-local
-		false,        // no-wait
-		nil,          // args
-	)
-	if err != nil {
-		return err
-	}
 	err = ch.PublishWithContext(
 		ctx,
 		DefaultExName,
@@ -685,20 +676,16 @@ func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
 	if err != nil {
 		return err
 	}
+	replyCtx, replyCancel := context.WithTimeout(context.TODO(), 2*dialTimeout)
+	defer replyCancel()
 	for {
 		select {
-		case d := <-msgs:
-			if corrId == d.CorrelationId {
-				defer d.Ack(false)
-				respMsg := &MsgRpc{MsgData: s.resp}
-				err = coder.Decode(d.Body, respMsg)
-				if err != nil {
-					return err
-				}
-				return nil
-			}
-		case <-ctx.Done():
-			return fmt.Errorf("消息返回超时:%v", subReply)
+		case item := <-replyItem.MsgReply:
+			s.resp = item
+			logger.Warnf("QueueRequest 收到消息:subReply:%v,corrid:%v", subReply, corrId)
+			return nil
+		case <-replyCtx.Done():
+			return fmt.Errorf("消息返回超时,subReply:%v,corrId:%v", subReply, corrId)
 		}
 	}
 }
