@@ -2,9 +2,9 @@ package rpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,6 +16,108 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+type RabbitWaitItem struct {
+	CorrId   string
+	CodeType string
+	MsgData  any
+	MsgReply chan *MsgRpc
+}
+
+type RabbitReplyQueue struct {
+	QueueName string
+	WaitMap   map[string]*RabbitWaitItem
+	WaitChan  chan *RabbitWaitItem
+	ReplyChan <-chan amqp.Delivery
+	RpcCoder  map[string]EncoderRpc
+}
+
+func NewRabbitReplyQueue(name string, ch <-chan amqp.Delivery, rpcCoder map[string]EncoderRpc) *RabbitReplyQueue {
+	return &RabbitReplyQueue{
+		QueueName: name,
+		WaitMap:   make(map[string]*RabbitWaitItem),
+		WaitChan:  make(chan *RabbitWaitItem, 30),
+		ReplyChan: ch,
+		RpcCoder:  rpcCoder,
+	}
+}
+
+func (r *RabbitReplyQueue) WaitReply() {
+	go utils.SafeRun(func() {
+		for {
+			select {
+			case item := <-r.WaitChan:
+				r.WaitMap[item.CorrId] = item
+			case reply := <-r.ReplyChan:
+				if v, ok := r.WaitMap[reply.CorrelationId]; ok {
+					coder := r.RpcCoder[v.CodeType]
+					if coder == nil {
+						logger.Errorf("rpc coder not exist:%v", v.CodeType)
+						continue
+					}
+					respMsg := &MsgRpc{MsgData: v.MsgData}
+					err := coder.Decode(reply.Body, respMsg)
+					if err != nil {
+						logger.Error(err)
+					}
+					v.MsgReply <- respMsg
+					delete(r.WaitMap, reply.CorrelationId)
+				} else {
+					logger.Errorf("WaitReply can't find reply msg,queue:%v,corrid:%v", r.QueueName, reply.CorrelationId)
+				}
+			}
+		}
+	})
+}
+
+func (r *RabbitMqRpc) GetReplyQueue(subReply string) (*RabbitReplyQueue, error) {
+	if v, ok := r.ReplyQueues.Load(subReply); ok {
+		return v.(*RabbitReplyQueue), nil
+	}
+	conn, err := r.OpenConn()
+	if err != nil {
+		return nil, err
+	}
+	ch, err := conn.Channel()
+	if err != nil {
+		return nil, err
+	}
+	replyCh, err := ch.QueueDeclare(
+		subReply, // name
+		false,    // durable
+		false,    // delete when unused
+		false,    // exclusive
+		false,    // noWait
+		nil,      // arguments
+	)
+	if err != nil {
+		return nil, err
+	}
+	err = ch.Qos(
+		30,    // prefetch count
+		0,     // prefetch size
+		false, // global
+	)
+	if err != nil {
+		return nil, err
+	}
+	msgs, err := ch.Consume(
+		replyCh.Name, // queue
+		"",           // consumer
+		true,         // auto-ack
+		false,        // exclusive
+		false,        // no-local
+		false,        // no-wait
+		nil,          // args
+	)
+	if err != nil {
+		return nil, err
+	}
+	queue := NewRabbitReplyQueue(subReply, msgs, r.RpcCoder)
+	queue.WaitReply()
+	r.ReplyQueues.Store(subReply, queue)
+	return queue, nil
+}
+
 type RabbitMqRpc struct {
 	Endpoints   []string //地址取第一条
 	DebugMsg    bool
@@ -25,6 +127,7 @@ type RabbitMqRpc struct {
 	Finder      *discover.Finder
 	Client      *amqp.Connection
 	DialTimeout time.Duration
+	ReplyQueues sync.Map
 }
 
 type RabbitMqRpcOption func(r *RabbitMqRpc)
@@ -58,7 +161,8 @@ func WithRabbitMqPrefix(prefix string) RabbitMqRpcOption {
 
 func NewRpcRabbitMq(opts ...RabbitMqRpcOption) *RabbitMqRpc {
 	r := &RabbitMqRpc{
-		Prefix: "rmRpc",
+		Prefix:      "rmRpc",
+		ReplyQueues: sync.Map{},
 	}
 	for _, opt := range opts {
 		opt(r)
@@ -92,7 +196,6 @@ func (r *RabbitMqRpc) RegEncoder(typ string, encoder EncoderRpc) {
 }
 
 func (r *RabbitMqRpc) DealMsg(s RssBuilder, ch *amqp.Channel, msg amqp.Delivery, callback CallbackFunc, coder EncoderRpc) {
-	defer msg.Ack(false)
 	req := &MsgRpc{}
 	err := coder.Decode(msg.Body, req)
 	if err != nil {
@@ -101,19 +204,14 @@ func (r *RabbitMqRpc) DealMsg(s RssBuilder, ch *amqp.Channel, msg amqp.Delivery,
 	}
 	resp := callback(req)
 	if resp != nil {
-		conn, err := r.OpenConn()
+		replyCh, err := r.Client.Channel()
 		if err != nil {
-			logger.Error(err)
-			return
-		}
-		defer conn.Close()
-		replyCh, err := conn.Channel()
-		if err != nil {
-			logger.Error(err)
+			logger.Errorf("DealMsg 回复报错:subReply:%v,corrid:%v,err:%v", msg.ReplyTo, msg.CorrelationId, err)
 			return
 		}
 		defer replyCh.Close()
-		ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeoutRss(s))
+		dialTimeout := r.dialTimeoutRss(s)
+		ctx, cancel := context.WithTimeout(context.TODO(), dialTimeout)
 		defer cancel()
 		if err = replyCh.PublishWithContext(
 			ctx,
@@ -125,8 +223,11 @@ func (r *RabbitMqRpc) DealMsg(s RssBuilder, ch *amqp.Channel, msg amqp.Delivery,
 				ContentType:   "text/plain",
 				CorrelationId: msg.CorrelationId,
 				Body:          resp,
+				DeliveryMode:  2,
 			}); err != nil {
 			logger.Error(err)
+		} else {
+			logger.Warnf("DealMsg 发送消息:subReply:%v,corrid:%v", msg.ReplyTo, msg.CorrelationId)
 		}
 	}
 	if r.DebugMsg {
@@ -147,7 +248,7 @@ func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
 	}
-	msgs, err := ch.Consume(sub, "", false, false, false, false, nil)
+	msgs, err := ch.Consume(sub, "", true, false, false, false, nil)
 	if err != nil {
 		return err
 	}
@@ -464,18 +565,19 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 		return err
 	}
 	corrId := uuid.NewString()
-	subReply := path.Join(sub, DefaultReply, corrId)
-	replyQueue, err := ch.QueueDeclare(
-		subReply, // name
-		false,    // durable
-		true,     // delete when unused
-		true,     // exclusive
-		false,    // noWait
-		nil,      // arguments
-	)
+	subReply := path.Join(sub, DefaultReply)
+	replyQueue, err := r.GetReplyQueue(subReply)
 	if err != nil {
 		return err
 	}
+	replyItem := &RabbitWaitItem{
+		CorrId:   corrId,
+		CodeType: s.codeType,
+		MsgData:  s.resp,
+		MsgReply: make(chan *MsgRpc, 1),
+	}
+	replyQueue.WaitChan <- replyItem
+	logger.Warnf("Request 发送消息:subReply:%v,corrid:%v", subReply, corrId)
 	coder := r.RpcCoder[s.codeType]
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
@@ -484,21 +586,9 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
+	dialTimeout := r.dialTimeout(s)
+	ctx, cancel := context.WithTimeout(context.TODO(), dialTimeout)
 	defer cancel()
-
-	msgs, err := ch.Consume(
-		replyQueue.Name, // queue
-		"",              // consumer
-		true,            // auto-ack
-		false,           // exclusive
-		false,           // no-local
-		false,           // no-wait
-		nil,             // args
-	)
-	if err != nil {
-		return err
-	}
 	err = ch.PublishWithContext(
 		ctx,
 		DefaultExName,
@@ -515,17 +605,16 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 	if err != nil {
 		return err
 	}
-	for d := range msgs {
-		if corrId == d.CorrelationId {
-			respMsg := &MsgRpc{MsgData: s.resp}
-			err = coder.Decode(d.Body, respMsg)
-			if err != nil {
-				return err
-			}
+	for {
+		select {
+		case item := <-replyItem.MsgReply:
+			s.resp = item
+			logger.Warnf("Request 收到消息:subReply:%v,corrid:%v", subReply, corrId)
 			return nil
+		case <-ctx.Done():
+			return fmt.Errorf("消息返回超时,subReply:%v,corrId:%v", subReply, corrId)
 		}
 	}
-	return errors.New("no msg reply")
 }
 
 func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
@@ -545,12 +634,12 @@ func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
 		return err
 	}
 	corrId := uuid.NewString()
-	subReply := path.Join(sub, DefaultReply, corrId)
-	replyQueue, err := ch.QueueDeclare(
+	subReply := path.Join(sub, DefaultReply)
+	replyCh, err := ch.QueueDeclare(
 		subReply, // name
 		false,    // durable
-		true,     // delete when unused
-		true,     // exclusive
+		false,    // delete when unused
+		false,    // exclusive
 		false,    // noWait
 		nil,      // arguments
 	)
@@ -565,16 +654,17 @@ func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
+	dialTimeout := r.dialTimeout(s)
+	ctx, cancel := context.WithTimeout(context.TODO(), dialTimeout)
 	defer cancel()
 	msgs, err := ch.Consume(
-		replyQueue.Name, // queue
-		"",              // consumer
-		true,            // auto-ack
-		false,           // exclusive
-		false,           // no-local
-		false,           // no-wait
-		nil,             // args
+		replyCh.Name, // queue
+		"",           // consumer
+		false,        // auto-ack
+		false,        // exclusive
+		false,        // no-local
+		false,        // no-wait
+		nil,          // args
 	)
 	if err != nil {
 		return err
@@ -595,17 +685,22 @@ func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
 	if err != nil {
 		return err
 	}
-	for d := range msgs {
-		if corrId == d.CorrelationId {
-			respMsg := &MsgRpc{MsgData: s.resp}
-			err = coder.Decode(d.Body, respMsg)
-			if err != nil {
-				return err
+	for {
+		select {
+		case d := <-msgs:
+			if corrId == d.CorrelationId {
+				defer d.Ack(false)
+				respMsg := &MsgRpc{MsgData: s.resp}
+				err = coder.Decode(d.Body, respMsg)
+				if err != nil {
+					return err
+				}
+				return nil
 			}
-			return nil
+		case <-ctx.Done():
+			return fmt.Errorf("消息返回超时:%v", subReply)
 		}
 	}
-	return errors.New("no msg reply")
 }
 
 func (r *RabbitMqRpc) Response(codeType string, v any) []byte {
