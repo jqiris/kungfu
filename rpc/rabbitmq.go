@@ -254,15 +254,15 @@ func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
 	}
 	go utils.SafeRun(func() {
 		for msg := range msgs {
-			if s.parallel {
-				go utils.SafeRun(func() {
-					r.DealMsg(s, ch, msg, s.callback, coder)
-				})
-			} else {
-				utils.SafeRun(func() {
-					r.DealMsg(s, ch, msg, s.callback, coder)
-				})
-			}
+			// if s.parallel {
+			// 	go utils.SafeRun(func() {
+			// 		r.DealMsg(s, ch, msg, s.callback, coder)
+			// 	})
+			// } else {
+			utils.SafeRun(func() {
+				r.DealMsg(s, ch, msg, s.callback, coder)
+			})
+			// }
 		}
 	})
 	return nil
