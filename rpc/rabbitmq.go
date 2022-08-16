@@ -231,7 +231,7 @@ func (r *RabbitMqRpc) DealMsg(s RssBuilder, ch *amqp.Channel, msg amqp.Delivery,
 		}
 	}
 	if r.DebugMsg {
-		logger.Infof("DealMsg,msgType: %v, msgId: %v", req.MsgType, req.MsgId)
+		logger.Infof("DealMsg,msgType: %v, msgId: %v,subReply:%v,corrid:%v", req.MsgType, req.MsgId, msg.ReplyTo, msg.CorrelationId)
 	}
 }
 func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
