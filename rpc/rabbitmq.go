@@ -226,12 +226,12 @@ func (r *RabbitMqRpc) DealMsg(s RssBuilder, ch *amqp.Channel, msg amqp.Delivery,
 				DeliveryMode:  2,
 			}); err != nil {
 			logger.Error(err)
-		} else {
-			logger.Warnf("DealMsg 发送消息:subReply:%v,corrid:%v", msg.ReplyTo, msg.CorrelationId)
+		} else if r.DebugMsg {
+			logger.Infof("DealMsg 回复消息:subReply:%v,corrid:%v", msg.ReplyTo, msg.CorrelationId)
 		}
 	}
 	if r.DebugMsg {
-		logger.Infof("DealMsg,msgType: %v, msgId: %v,subReply:%v,corrid:%v", req.MsgType, req.MsgId, msg.ReplyTo, msg.CorrelationId)
+		logger.Infof("DealMsg,msgType: %v, msgId: %v", req.MsgType, req.MsgId)
 	}
 }
 func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
@@ -254,15 +254,9 @@ func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
 	}
 	go utils.SafeRun(func() {
 		for msg := range msgs {
-			// if s.parallel {
-			// 	go utils.SafeRun(func() {
-			// 		r.DealMsg(s, ch, msg, s.callback, coder)
-			// 	})
-			// } else {
 			utils.SafeRun(func() {
 				r.DealMsg(s, ch, msg, s.callback, coder)
 			})
-			// }
 		}
 	})
 	return nil
@@ -288,15 +282,9 @@ func (r *RabbitMqRpc) SubscribeBroadcast(s RssBuilder) error {
 	}
 	go utils.SafeRun(func() {
 		for msg := range msgs {
-			if s.parallel {
-				go utils.SafeRun(func() {
-					r.DealMsg(s, ch, msg, s.callback, coder)
-				})
-			} else {
-				utils.SafeRun(func() {
-					r.DealMsg(s, ch, msg, s.callback, coder)
-				})
-			}
+			utils.SafeRun(func() {
+				r.DealMsg(s, ch, msg, s.callback, coder)
+			})
 		}
 	})
 	return nil
@@ -322,15 +310,9 @@ func (r *RabbitMqRpc) QueueSubscribe(s RssBuilder) error {
 	}
 	go utils.SafeRun(func() {
 		for msg := range msgs {
-			if s.parallel {
-				go utils.SafeRun(func() {
-					r.DealMsg(s, ch, msg, s.callback, coder)
-				})
-			} else {
-				utils.SafeRun(func() {
-					r.DealMsg(s, ch, msg, s.callback, coder)
-				})
-			}
+			utils.SafeRun(func() {
+				r.DealMsg(s, ch, msg, s.callback, coder)
+			})
 		}
 	})
 	return nil
@@ -577,7 +559,9 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 		MsgReply: make(chan *MsgRpc, 1),
 	}
 	replyQueue.WaitChan <- replyItem
-	logger.Warnf("Request 发送消息:subReply:%v,corrid:%v", subReply, corrId)
+	if r.DebugMsg {
+		logger.Infof("Request 发送消息:subReply:%v,corrid:%v", subReply, corrId)
+	}
 	coder := r.RpcCoder[s.codeType]
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
@@ -611,7 +595,9 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 		select {
 		case item := <-replyItem.MsgReply:
 			s.resp = item
-			logger.Warnf("Request 收到消息:subReply:%v,corrid:%v", subReply, corrId)
+			if r.DebugMsg {
+				logger.Infof("Request 收到消息:subReply:%v,corrid:%v", subReply, corrId)
+			}
 			return nil
 		case <-replyCtx.Done():
 			return fmt.Errorf("消息返回超时,subReply:%v,corrId:%v", subReply, corrId)
