@@ -242,7 +242,24 @@ func (r *NatsRpc) QueueRequest(s ReqBuilder) error {
 	}
 	return nil
 }
-
+func (r *NatsRpc) SendMsg(s ReqBuilder) error {
+	coder := r.RpcCoder[s.codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
+	}
+	data, err := r.EncodeMsg(coder, MsgTypePublish, s.msgId, s.req)
+	if err != nil {
+		return err
+	}
+	sub := s.queue
+	if len(s.exName) > 0 && len(s.rtKey) > 0 {
+		sub = path.Join(s.exName, s.rtKey)
+	}
+	if err = r.Client.Publish(sub, data); err != nil {
+		return err
+	}
+	return nil
+}
 func (r *NatsRpc) Publish(s ReqBuilder) error {
 	coder := r.RpcCoder[s.codeType]
 	if coder == nil {

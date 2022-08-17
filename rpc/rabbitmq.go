@@ -368,6 +368,60 @@ func (r *RabbitMqRpc) dialTimeoutRss(s RssBuilder) time.Duration {
 }
 
 // 发送消息
+func (r *RabbitMqRpc) SendMsg(s ReqBuilder) error {
+	conn, err := r.OpenConn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	ch, err := conn.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+	err = r.prepareMq(ch, s.exName, s.exType, s.queue, s.rtKey)
+	if err != nil {
+		return err
+	}
+	coder := r.RpcCoder[s.codeType]
+	if coder == nil {
+		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
+	}
+	data, err := r.EncodeMsg(coder, MsgTypePublish, s.msgId, s.req)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
+	defer cancel()
+	if len(s.exName) > 0 && len(s.rtKey) > 0 {
+		err = ch.PublishWithContext(
+			ctx,
+			s.exName,
+			s.rtKey,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType:  "text/plain",
+				Body:         data,
+				DeliveryMode: 2,
+			})
+	} else {
+		err = ch.PublishWithContext(
+			ctx,
+			"",
+			s.queue,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType:  "text/plain",
+				Body:         data,
+				DeliveryMode: 2,
+			})
+	}
+	return err
+}
+
+// 发送消息
 func (r *RabbitMqRpc) Publish(s ReqBuilder) error {
 	conn, err := r.OpenConn()
 	if err != nil {

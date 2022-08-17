@@ -22,6 +22,7 @@ type ServerRpc interface {
 	Subscribe(s RssBuilder) error                                                     //self Subscribe
 	SubscribeBroadcast(s RssBuilder) error                                            //broadcast subscribe
 	QueueSubscribe(s RssBuilder) error                                                //queue self Subscribe
+	SendMsg(s ReqBuilder) error                                                       //send msg direct
 	Publish(s ReqBuilder) error                                                       //publish
 	QueuePublish(s ReqBuilder) error                                                  //queue publish
 	PublishBroadcast(s ReqBuilder) error                                              //broadcast publish
