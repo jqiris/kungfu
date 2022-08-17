@@ -128,8 +128,6 @@ type RabbitMqRpc struct {
 	Client      *amqp.Connection
 	DialTimeout time.Duration
 	ReplyQueues sync.Map
-	ctx         context.Context
-	cancel      context.CancelFunc
 }
 
 type RabbitMqRpcOption func(r *RabbitMqRpc)
@@ -166,7 +164,6 @@ func NewRpcRabbitMq(opts ...RabbitMqRpcOption) *RabbitMqRpc {
 		Prefix:      "rmRpc",
 		ReplyQueues: sync.Map{},
 	}
-	r.ctx, r.cancel = context.WithCancel(context.Background())
 	for _, opt := range opts {
 		opt(r)
 	}
@@ -237,10 +234,6 @@ func (r *RabbitMqRpc) DealMsg(s RssBuilder, ch *amqp.Channel, msg amqp.Delivery,
 		logger.Infof("DealMsg,msgType: %v, msgId: %v,subReply:%v,corrid:%v", req.MsgType, req.MsgId, msg.ReplyTo, msg.CorrelationId)
 	}
 }
-
-func (r *RabbitMqRpc) Cancel() {
-	r.cancel()
-}
 func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
 	ch, err := r.Client.Channel()
 	if err != nil {
@@ -260,22 +253,16 @@ func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
 		return err
 	}
 	go utils.SafeRun(func() {
-		for {
-			select {
-			case msg := <-msgs:
-				if s.parallel {
-					go utils.SafeRun(func() {
-						r.DealMsg(s, ch, msg, s.callback, coder)
-					})
-				} else {
-					utils.SafeRun(func() {
-						r.DealMsg(s, ch, msg, s.callback, coder)
-					})
-				}
-			case <-r.ctx.Done():
-				logger.Infof("received cancel signal")
-				return
-			}
+		for msg := range msgs {
+			// if s.parallel {
+			// 	go utils.SafeRun(func() {
+			// 		r.DealMsg(s, ch, msg, s.callback, coder)
+			// 	})
+			// } else {
+			utils.SafeRun(func() {
+				r.DealMsg(s, ch, msg, s.callback, coder)
+			})
+			// }
 		}
 	})
 	return nil
