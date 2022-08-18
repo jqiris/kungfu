@@ -353,6 +353,19 @@ func (r *RabbitMqRpc) EncodeMsg(coder EncoderRpc, msgType MessageType, msgId int
 	return data, nil
 }
 
+func (r *RabbitMqRpc) EncodeMsgRaw(coder EncoderRpc, msgType MessageType, msgId int32, req any) ([]byte, error) {
+	rpcMsg := &MsgRpc{
+		MsgType: msgType,
+		MsgId:   msgId,
+		MsgData: req,
+	}
+	data, err := coder.EncodeMsg(rpcMsg)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
 func (r *RabbitMqRpc) dialTimeout(s ReqBuilder) time.Duration {
 	if s.dialTimeout > 0 {
 		return s.dialTimeout
@@ -379,7 +392,15 @@ func (r *RabbitMqRpc) SendMsg(s ReqBuilder) error {
 		return err
 	}
 	defer ch.Close()
-	err = r.prepareMq(ch, s.exName, s.exType, s.queue, s.rtKey)
+	queue := s.queue
+	rtKey := s.rtKey
+	if len(r.Prefix) > 0 {
+		queue = r.Prefix + "_" + s.queue
+	}
+	if len(r.Prefix) > 0 && len(s.rtKey) > 0 {
+		rtKey = r.Prefix + "_" + s.rtKey
+	}
+	err = r.prepareMq(ch, s.exName, s.exType, queue, rtKey)
 	if err != nil {
 		return err
 	}
@@ -387,17 +408,17 @@ func (r *RabbitMqRpc) SendMsg(s ReqBuilder) error {
 	if coder == nil {
 		return fmt.Errorf("rpc coder not exist:%v", s.codeType)
 	}
-	data, err := r.EncodeMsg(coder, MsgTypePublish, s.msgId, s.req)
+	data, err := r.EncodeMsgRaw(coder, MsgTypePublish, s.msgId, s.req)
 	if err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
 	defer cancel()
-	if len(s.exName) > 0 && len(s.rtKey) > 0 {
+	if len(s.exName) > 0 && len(rtKey) > 0 {
 		err = ch.PublishWithContext(
 			ctx,
 			s.exName,
-			s.rtKey,
+			rtKey,
 			false,
 			false,
 			amqp.Publishing{
@@ -409,7 +430,7 @@ func (r *RabbitMqRpc) SendMsg(s ReqBuilder) error {
 		err = ch.PublishWithContext(
 			ctx,
 			"",
-			s.queue,
+			queue,
 			false,
 			false,
 			amqp.Publishing{

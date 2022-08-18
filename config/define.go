@@ -23,11 +23,11 @@ type DiscoverConf struct {
 }
 
 type RpcConf struct {
-	UseType     string   `json:"use_type"`
-	DialTimeout int      `json:"dial_timeout"`
-	Endpoints   []string `json:"endpoints"`
-	DebugMsg    bool     `json:"debug_msg"`
-	Prefix      string   `json:"prefix"`
+	UseType     string   `json:"use_type" mapstructure:"use_type"`
+	DialTimeout int      `json:"dial_timeout" mapstructure:"dial_timeout"`
+	Endpoints   []string `json:"endpoints" mapstructure:"endpoints"`
+	DebugMsg    bool     `json:"debug_msg" mapstructure:"debug_msg"`
+	Prefix      string   `json:"prefix" mapstructure:"prefix"`
 }
 
 type StoresConf struct {
