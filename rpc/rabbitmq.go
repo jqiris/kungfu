@@ -382,12 +382,7 @@ func (r *RabbitMqRpc) dialTimeoutRss(s RssBuilder) time.Duration {
 
 // 发送消息
 func (r *RabbitMqRpc) SendMsg(s ReqBuilder) error {
-	conn, err := r.OpenConn()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	ch, err := conn.Channel()
+	ch, err := r.Client.Channel()
 	if err != nil {
 		return err
 	}
@@ -444,12 +439,7 @@ func (r *RabbitMqRpc) SendMsg(s ReqBuilder) error {
 
 // 发送消息
 func (r *RabbitMqRpc) Publish(s ReqBuilder) error {
-	conn, err := r.OpenConn()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	ch, err := conn.Channel()
+	ch, err := r.Client.Channel()
 	if err != nil {
 		return err
 	}
@@ -498,12 +488,7 @@ func (r *RabbitMqRpc) Publish(s ReqBuilder) error {
 }
 
 func (r *RabbitMqRpc) QueuePublish(s ReqBuilder) error {
-	conn, err := r.OpenConn()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	ch, err := conn.Channel()
+	ch, err := r.Client.Channel()
 	if err != nil {
 		return err
 	}
@@ -552,12 +537,7 @@ func (r *RabbitMqRpc) QueuePublish(s ReqBuilder) error {
 }
 
 func (r *RabbitMqRpc) PublishBroadcast(s ReqBuilder) error {
-	conn, err := r.OpenConn()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	ch, err := conn.Channel()
+	ch, err := r.Client.Channel()
 	if err != nil {
 		return err
 	}
@@ -606,12 +586,7 @@ func (r *RabbitMqRpc) PublishBroadcast(s ReqBuilder) error {
 }
 
 func (r *RabbitMqRpc) Request(s ReqBuilder) error {
-	conn, err := r.OpenConn()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	ch, err := conn.Channel()
+	ch, err := r.Client.Channel()
 	if err != nil {
 		return err
 	}
@@ -681,12 +656,7 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 }
 
 func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
-	conn, err := r.OpenConn()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	ch, err := conn.Channel()
+	ch, err := r.Client.Channel()
 	if err != nil {
 		return err
 	}
