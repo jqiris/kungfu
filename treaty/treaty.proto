@@ -65,6 +65,10 @@ message GameChannel{ //游戏通道信息
     int64 reconnect_time = 6;//重连时间
 }
 
+message ServerMaintainReq{
+  string server_id = 2;//服务器id
+  int32  req_state = 3;//请求服务器状态 1-维护 2-解除维护
+}
 
 enum RpcMsgId {
   RpcMsgNone = 0;
