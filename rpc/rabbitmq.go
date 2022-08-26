@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"sync"
@@ -10,10 +11,17 @@ import (
 	"github.com/google/uuid"
 	"github.com/jqiris/kungfu/v2/discover"
 	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/pool"
 	"github.com/jqiris/kungfu/v2/serialize"
 	"github.com/jqiris/kungfu/v2/treaty"
 	"github.com/jqiris/kungfu/v2/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
+)
+
+var (
+	ErrorClosed  = errors.New("rabbitmq closed connection")
+	ErrorBlocked = errors.New("rabbitmq blocked")
+	ErrorTimeout = errors.New("rabbitmq publish timeout")
 )
 
 type RabbitWaitItem struct {
@@ -73,7 +81,7 @@ func (r *RabbitMqRpc) GetReplyQueue(subReply string) (*RabbitReplyQueue, error) 
 	if v, ok := r.ReplyQueues.Load(subReply); ok {
 		return v.(*RabbitReplyQueue), nil
 	}
-	conn, err := r.OpenConn()
+	conn, err := r.openConn()
 	if err != nil {
 		return nil, err
 	}
@@ -119,15 +127,23 @@ func (r *RabbitMqRpc) GetReplyQueue(subReply string) (*RabbitReplyQueue, error) 
 }
 
 type RabbitMqRpc struct {
-	Endpoints   []string //地址取第一条
-	DebugMsg    bool
-	Prefix      string
-	RpcCoder    map[string]EncoderRpc
-	Server      *treaty.Server
-	Finder      *discover.Finder
-	Client      *amqp.Connection
-	DialTimeout time.Duration
-	ReplyQueues sync.Map
+	Endpoints     []string //地址取第一条
+	DebugMsg      bool
+	Prefix        string
+	RpcCoder      map[string]EncoderRpc
+	Server        *treaty.Server
+	Finder        *discover.Finder
+	Client        *amqp.Connection
+	DialTimeout   time.Duration
+	ReplyQueues   sync.Map
+	ChanPool      *pool.Pool[*amqp.Channel]
+	connLock      sync.Mutex
+	blockNotifier []chan amqp.Blocking
+	closeNotifier []chan *amqp.Error
+	defBlocker    chan amqp.Blocking
+	defCloser     chan *amqp.Error
+	blockState    bool
+	blockLock     sync.RWMutex
 }
 
 type RabbitMqRpcOption func(r *RabbitMqRpc)
@@ -152,6 +168,17 @@ func WithRabbitMqServer(server *treaty.Server) RabbitMqRpcOption {
 		r.Server = server
 	}
 }
+func WithRabbitBlockedNotifier(notifier chan amqp.Blocking) RabbitMqRpcOption {
+	return func(r *RabbitMqRpc) {
+		r.blockNotifier = append(r.blockNotifier, notifier)
+	}
+}
+
+func WithRabbitCloseNotifier(notifier chan *amqp.Error) RabbitMqRpcOption {
+	return func(r *RabbitMqRpc) {
+		r.closeNotifier = append(r.closeNotifier, notifier)
+	}
+}
 
 func WithRabbitMqPrefix(prefix string) RabbitMqRpcOption {
 	return func(r *RabbitMqRpc) {
@@ -163,28 +190,79 @@ func NewRpcRabbitMq(opts ...RabbitMqRpcOption) *RabbitMqRpc {
 	r := &RabbitMqRpc{
 		Prefix:      "rmRpc",
 		ReplyQueues: sync.Map{},
+		defBlocker:  make(chan amqp.Blocking, 10),
+		defCloser:   make(chan *amqp.Error, 10),
+		blockState:  false,
+		blockLock:   sync.RWMutex{},
 	}
+	r.blockNotifier = append(r.blockNotifier, r.defBlocker)
+	r.closeNotifier = append(r.closeNotifier, r.defCloser)
 	for _, opt := range opts {
 		opt(r)
 	}
 	if len(r.Endpoints) < 1 {
 		logger.Fatal("please set rpc endPoints")
 	}
-	conn, err := amqp.Dial(r.Endpoints[0])
+	err := r.connect()
 	if err != nil {
 		logger.Fatal(err)
 	}
-	r.Client = conn
 	r.RpcCoder = map[string]EncoderRpc{
 		CodeTypeProto: NewRpcEncoder(serialize.NewProtoSerializer()),
 		CodeTypeJson:  NewRpcEncoder(serialize.NewJsonSerializer()),
 	}
 	r.Finder = discover.NewFinder()
+	//阻塞及关闭处理
+	go r.dealBlocked()
+	go r.dealClosed()
 	return r
 }
 
-func (r *RabbitMqRpc) OpenConn() (*amqp.Connection, error) {
+func (r *RabbitMqRpc) setBlockState(state bool) {
+	r.blockLock.Lock()
+	defer r.blockLock.Unlock()
+	r.blockState = state
+}
+func (r *RabbitMqRpc) getBlockState() bool {
+	r.blockLock.RLock()
+	defer r.blockLock.RUnlock()
+	return r.blockState
+}
+
+func (r *RabbitMqRpc) dealBlocked() {
+	for blocker := range r.defBlocker {
+		logger.Warnf("dealBlocked:%+v", blocker)
+		if blocker.Active {
+			r.setBlockState(true)
+		} else {
+			r.setBlockState(false)
+		}
+	}
+}
+func (r *RabbitMqRpc) dealClosed() {
+	for closer := range r.defCloser {
+		logger.Warnf("dealClosed:%+v", closer)
+	}
+}
+
+func (r *RabbitMqRpc) openConn() (*amqp.Connection, error) {
 	return amqp.Dial(r.Endpoints[0])
+}
+
+func (r *RabbitMqRpc) AddBlockedNotifier(notifier chan amqp.Blocking) {
+	if notifier == nil {
+		return
+	}
+	r.blockNotifier = append(r.blockNotifier, notifier)
+	r.Client.NotifyBlocked(notifier)
+}
+
+func (r *RabbitMqRpc) AddCloseNotifier(notifier chan *amqp.Error) {
+	if notifier == nil {
+		return
+	}
+	r.closeNotifier = append(r.closeNotifier, notifier)
+	r.Client.NotifyClose(notifier)
 }
 
 func (r *RabbitMqRpc) RegEncoder(typ string, encoder EncoderRpc) {
@@ -211,20 +289,8 @@ func (r *RabbitMqRpc) DealMsg(s RssBuilder, ch *amqp.Channel, msg amqp.Delivery,
 		}
 		defer replyCh.Close()
 		dialTimeout := r.dialTimeoutRss(s)
-		ctx, cancel := context.WithTimeout(context.TODO(), dialTimeout)
-		defer cancel()
-		if err = replyCh.PublishWithContext(
-			ctx,
-			"",          // exchange
-			msg.ReplyTo, // routing key
-			false,       // mandatory
-			false,       // immediate
-			amqp.Publishing{
-				ContentType:   "text/plain",
-				CorrelationId: msg.CorrelationId,
-				Body:          resp,
-				DeliveryMode:  2,
-			}); err != nil {
+		err = r.publishReply(replyCh, msg.CorrelationId, msg.ReplyTo, dialTimeout, resp)
+		if err != nil {
 			logger.Error(err)
 		} else if r.DebugMsg {
 			logger.Infof("DealMsg 回复消息:subReply:%v,corrid:%v", msg.ReplyTo, msg.CorrelationId)
@@ -234,11 +300,40 @@ func (r *RabbitMqRpc) DealMsg(s RssBuilder, ch *amqp.Channel, msg amqp.Delivery,
 		logger.Infof("DealMsg,msgType: %v, msgId: %v", req.MsgType, req.MsgId)
 	}
 }
+
+func (r *RabbitMqRpc) publishReply(ch *amqp.Channel, corrId, replyTo string, timeout time.Duration, data []byte) error {
+	msg := amqp.Publishing{
+		ContentType:   "text/plain",
+		Body:          data,
+		DeliveryMode:  2,
+		CorrelationId: corrId,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	select {
+	case <-ctx.Done():
+		return ErrorTimeout
+	default:
+		err := ch.PublishWithContext(
+			ctx,
+			"",      // exchange
+			replyTo, // routing key
+			false,
+			false,
+			msg,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
-	ch, err := r.Client.Channel()
+	ch, err := r.getChannel()
 	if err != nil {
 		return err
 	}
+	defer r.releaseChannel(ch)
 	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
 	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
 	if err != nil {
@@ -263,10 +358,11 @@ func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
 }
 
 func (r *RabbitMqRpc) SubscribeBroadcast(s RssBuilder) error {
-	ch, err := r.Client.Channel()
+	ch, err := r.getChannel()
 	if err != nil {
 		return err
 	}
+	defer r.releaseChannel(ch)
 	sub := path.Join(r.Prefix, s.server.ServerType, s.suffix)
 	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
 	if err != nil {
@@ -291,10 +387,11 @@ func (r *RabbitMqRpc) SubscribeBroadcast(s RssBuilder) error {
 }
 
 func (r *RabbitMqRpc) QueueSubscribe(s RssBuilder) error {
-	ch, err := r.Client.Channel()
+	ch, err := r.getChannel()
 	if err != nil {
 		return err
 	}
+	defer r.releaseChannel(ch)
 	sub := path.Join(r.Prefix, treaty.RegSeverQueue(s.server.ServerType, s.queue), s.suffix)
 	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
 	if err != nil {
@@ -380,13 +477,72 @@ func (r *RabbitMqRpc) dialTimeoutRss(s RssBuilder) time.Duration {
 	return r.DialTimeout
 }
 
-// 发送消息
-func (r *RabbitMqRpc) SendMsg(s ReqBuilder) error {
-	ch, err := r.Client.Channel()
+func (r *RabbitMqRpc) getChannel() (*amqp.Channel, error) {
+	if r.getBlockState() {
+		return nil, ErrorBlocked
+	}
+	ch, err := r.ChanPool.Acquire()
+	if err != nil {
+		logger.Error(err)
+		err := r.connect()
+		if err != nil {
+			return nil, err
+		}
+		ch, err = r.ChanPool.Acquire()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return ch, nil
+}
+
+func (r *RabbitMqRpc) connect() error {
+	r.connLock.Lock()
+	defer r.connLock.Unlock()
+	if r.Client != nil {
+		if err := r.Client.Close(); err != nil {
+			logger.Error(err)
+		}
+	}
+	if r.ChanPool != nil {
+		r.ChanPool.Close()
+	}
+	conn, err := r.openConn()
 	if err != nil {
 		return err
 	}
-	defer ch.Close()
+	r.Client = conn
+	chanPool, err := pool.New(func() (*amqp.Channel, error) {
+		ch, err := r.Client.Channel()
+		if err != nil {
+			return nil, err
+		}
+		return ch, nil
+	}, 10)
+	if err != nil {
+		return err
+	}
+	r.ChanPool = chanPool
+	for _, notifier := range r.blockNotifier {
+		r.Client.NotifyBlocked(notifier)
+	}
+	for _, notifier := range r.closeNotifier {
+		r.Client.NotifyClose(notifier)
+	}
+	return nil
+}
+
+func (r *RabbitMqRpc) releaseChannel(ch *amqp.Channel) {
+	r.ChanPool.Release(ch)
+}
+
+// 发送消息
+func (r *RabbitMqRpc) SendMsg(s ReqBuilder) error {
+	ch, err := r.getChannel()
+	if err != nil {
+		return err
+	}
+	defer r.releaseChannel(ch)
 	queue := s.queue
 	rtKey := s.rtKey
 	if len(r.Prefix) > 0 {
@@ -407,43 +563,69 @@ func (r *RabbitMqRpc) SendMsg(s ReqBuilder) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
-	defer cancel()
-	if len(s.exName) > 0 && len(rtKey) > 0 {
-		err = ch.PublishWithContext(
-			ctx,
-			s.exName,
-			rtKey,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType:  "text/plain",
-				Body:         data,
-				DeliveryMode: 2,
-			})
-	} else {
-		err = ch.PublishWithContext(
-			ctx,
-			"",
-			queue,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType:  "text/plain",
-				Body:         data,
-				DeliveryMode: 2,
-			})
+	return r.publishData(ch, queue, s.exName, rtKey, r.dialTimeout(s), data)
+}
+
+func (r *RabbitMqRpc) publishData(ch *amqp.Channel, queue, exName, rtKey string, timeout time.Duration, data []byte, args ...string) error {
+	msg := amqp.Publishing{
+		ContentType:  "text/plain",
+		Body:         data,
+		DeliveryMode: 2,
 	}
-	return err
+	if len(args) > 0 {
+		msg.CorrelationId = args[0]
+	}
+	if len(args) > 1 {
+		msg.ReplyTo = args[1]
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	if len(exName) > 0 && len(rtKey) > 0 {
+		select {
+		case <-ctx.Done():
+			return ErrorTimeout
+		default:
+			err := ch.PublishWithContext(
+				ctx,
+				exName,
+				rtKey,
+				false,
+				false,
+				msg,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+	} else {
+		select {
+		case <-ctx.Done():
+			return ErrorTimeout
+		default:
+			err := ch.PublishWithContext(
+				ctx,
+				"",
+				queue,
+				false,
+				false,
+				msg,
+			)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // 发送消息
 func (r *RabbitMqRpc) Publish(s ReqBuilder) error {
-	ch, err := r.Client.Channel()
+	ch, err := r.getChannel()
 	if err != nil {
 		return err
 	}
-	defer ch.Close()
+	defer r.releaseChannel(ch)
 	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
 	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
 	if err != nil {
@@ -457,42 +639,15 @@ func (r *RabbitMqRpc) Publish(s ReqBuilder) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
-	defer cancel()
-	if len(s.exName) > 0 && len(sub) > 0 {
-		err = ch.PublishWithContext(
-			ctx,
-			s.exName,
-			sub,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType:  "text/plain",
-				Body:         data,
-				DeliveryMode: 2,
-			})
-	} else {
-		err = ch.PublishWithContext(
-			ctx,
-			DefaultExName,
-			sub,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType:  "text/plain",
-				Body:         data,
-				DeliveryMode: 2,
-			})
-	}
-	return err
+	return r.publishData(ch, sub, s.exName, sub, r.dialTimeout(s), data)
 }
 
 func (r *RabbitMqRpc) QueuePublish(s ReqBuilder) error {
-	ch, err := r.Client.Channel()
+	ch, err := r.getChannel()
 	if err != nil {
 		return err
 	}
-	defer ch.Close()
+	defer r.releaseChannel(ch)
 	sub := path.Join(r.Prefix, treaty.RegSeverQueue(s.serverType, s.queue), s.suffix)
 	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
 	if err != nil {
@@ -506,42 +661,15 @@ func (r *RabbitMqRpc) QueuePublish(s ReqBuilder) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
-	defer cancel()
-	if len(s.exName) > 0 && len(sub) > 0 {
-		err = ch.PublishWithContext(
-			ctx,
-			s.exName,
-			sub,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType:  "text/plain",
-				Body:         data,
-				DeliveryMode: 2,
-			})
-	} else {
-		err = ch.PublishWithContext(
-			ctx,
-			DefaultExName,
-			sub,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType:  "text/plain",
-				Body:         data,
-				DeliveryMode: 2,
-			})
-	}
-	return err
+	return r.publishData(ch, sub, s.exName, sub, r.dialTimeout(s), data)
 }
 
 func (r *RabbitMqRpc) PublishBroadcast(s ReqBuilder) error {
-	ch, err := r.Client.Channel()
+	ch, err := r.getChannel()
 	if err != nil {
 		return err
 	}
-	defer ch.Close()
+	defer r.releaseChannel(ch)
 	sub := path.Join(r.Prefix, s.serverType, s.suffix)
 	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
 	if err != nil {
@@ -555,42 +683,15 @@ func (r *RabbitMqRpc) PublishBroadcast(s ReqBuilder) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.TODO(), r.dialTimeout(s))
-	defer cancel()
-	if len(s.exName) > 0 && len(sub) > 0 {
-		err = ch.PublishWithContext(
-			ctx,
-			s.exName,
-			sub,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType:  "text/plain",
-				Body:         data,
-				DeliveryMode: 2,
-			})
-	} else {
-		err = ch.PublishWithContext(
-			ctx,
-			DefaultExName,
-			sub,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType:  "text/plain",
-				Body:         data,
-				DeliveryMode: 2,
-			})
-	}
-	return err
+	return r.publishData(ch, sub, s.exName, sub, r.dialTimeout(s), data)
 }
 
 func (r *RabbitMqRpc) Request(s ReqBuilder) error {
-	ch, err := r.Client.Channel()
+	ch, err := r.getChannel()
 	if err != nil {
 		return err
 	}
-	defer ch.Close()
+	defer r.releaseChannel(ch)
 	sub := path.Join(r.Prefix, treaty.RegSeverItem(s.server), s.suffix)
 	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
 	if err != nil {
@@ -621,25 +722,11 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 		return err
 	}
 	dialTimeout := r.dialTimeout(s)
-	ctx, cancel := context.WithTimeout(context.TODO(), dialTimeout)
-	defer cancel()
-	err = ch.PublishWithContext(
-		ctx,
-		DefaultExName,
-		sub,
-		false,
-		false,
-		amqp.Publishing{
-			ContentType:   "text/plain",
-			CorrelationId: corrId,
-			ReplyTo:       subReply,
-			Body:          data,
-			DeliveryMode:  2,
-		})
+	err = r.publishData(ch, sub, s.exName, sub, dialTimeout, data, corrId, subReply)
 	if err != nil {
 		return err
 	}
-	replyCtx, replyCancel := context.WithTimeout(context.TODO(), 2*dialTimeout)
+	replyCtx, replyCancel := context.WithTimeout(context.Background(), 2*dialTimeout)
 	defer replyCancel()
 	for {
 		select {
@@ -656,11 +743,11 @@ func (r *RabbitMqRpc) Request(s ReqBuilder) error {
 }
 
 func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
-	ch, err := r.Client.Channel()
+	ch, err := r.getChannel()
 	if err != nil {
 		return err
 	}
-	defer ch.Close()
+	defer r.releaseChannel(ch)
 	sub := path.Join(r.Prefix, treaty.RegSeverQueue(s.serverType, s.queue), s.suffix)
 	err = r.prepareMq(ch, s.exName, s.exType, sub, sub)
 	if err != nil {
@@ -689,21 +776,7 @@ func (r *RabbitMqRpc) QueueRequest(s ReqBuilder) error {
 		return err
 	}
 	dialTimeout := r.dialTimeout(s)
-	ctx, cancel := context.WithTimeout(context.TODO(), dialTimeout)
-	defer cancel()
-	err = ch.PublishWithContext(
-		ctx,
-		DefaultExName,
-		sub,
-		false,
-		false,
-		amqp.Publishing{
-			ContentType:   "text/plain",
-			CorrelationId: corrId,
-			ReplyTo:       subReply,
-			Body:          data,
-			DeliveryMode:  2,
-		})
+	err = r.publishData(ch, sub, s.exName, sub, dialTimeout, data, corrId, subReply)
 	if err != nil {
 		return err
 	}
@@ -755,5 +828,6 @@ func (r *RabbitMqRpc) RemoveFindCache(arg any) {
 }
 
 func (r *RabbitMqRpc) Close() error {
+	r.ChanPool.Close()
 	return r.Client.Close()
 }
