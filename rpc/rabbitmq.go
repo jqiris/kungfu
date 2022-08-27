@@ -310,23 +310,25 @@ func (r *RabbitMqRpc) publishReply(ch *amqp.Channel, corrId, replyTo string, tim
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	select {
-	case <-ctx.Done():
-		return ErrorTimeout
-	default:
-		err := ch.PublishWithContext(
-			ctx,
-			"",      // exchange
-			replyTo, // routing key
-			false,
-			false,
-			msg,
-		)
-		if err != nil {
-			return err
+	for {
+		select {
+		case <-ctx.Done():
+			return ErrorTimeout
+		default:
+			err := ch.PublishWithContext(
+				ctx,
+				"",      // exchange
+				replyTo, // routing key
+				false,
+				false,
+				msg,
+			)
+			if err != nil {
+				return err
+			}
+			return nil
 		}
 	}
-	return nil
 }
 func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
 	ch, err := r.getChannel()
@@ -581,42 +583,47 @@ func (r *RabbitMqRpc) publishData(ch *amqp.Channel, queue, exName, rtKey string,
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	if len(exName) > 0 && len(rtKey) > 0 {
-		select {
-		case <-ctx.Done():
-			return ErrorTimeout
-		default:
-			err := ch.PublishWithContext(
-				ctx,
-				exName,
-				rtKey,
-				false,
-				false,
-				msg,
-			)
-			if err != nil {
-				return err
+		for {
+			select {
+			case <-ctx.Done():
+				return ErrorTimeout
+			default:
+				err := ch.PublishWithContext(
+					ctx,
+					exName,
+					rtKey,
+					false,
+					false,
+					msg,
+				)
+				if err != nil {
+					return err
+				}
+				return nil
 			}
 		}
 
 	} else {
-		select {
-		case <-ctx.Done():
-			return ErrorTimeout
-		default:
-			err := ch.PublishWithContext(
-				ctx,
-				"",
-				queue,
-				false,
-				false,
-				msg,
-			)
-			if err != nil {
-				return err
+		for {
+			select {
+			case <-ctx.Done():
+				return ErrorTimeout
+			default:
+				err := ch.PublishWithContext(
+					ctx,
+					"",
+					queue,
+					false,
+					false,
+					msg,
+				)
+				if err != nil {
+					return err
+				}
+				return nil
 			}
 		}
 	}
-	return nil
 }
 
 // 发送消息
