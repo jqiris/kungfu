@@ -15,7 +15,7 @@ import (
 	"github.com/jqiris/kungfu/v2/serialize"
 	"github.com/jqiris/kungfu/v2/treaty"
 	"github.com/jqiris/kungfu/v2/utils"
-	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/streadway/amqp"
 )
 
 var (
@@ -315,8 +315,7 @@ func (r *RabbitMqRpc) publishReply(ch *amqp.Channel, corrId, replyTo string, tim
 		case <-ctx.Done():
 			return ErrorTimeout
 		default:
-			err := ch.PublishWithContext(
-				ctx,
+			err := ch.Publish(
 				"",      // exchange
 				replyTo, // routing key
 				false,
@@ -588,8 +587,7 @@ func (r *RabbitMqRpc) publishData(ch *amqp.Channel, queue, exName, rtKey string,
 			case <-ctx.Done():
 				return ErrorTimeout
 			default:
-				err := ch.PublishWithContext(
-					ctx,
+				err := ch.Publish(
 					exName,
 					rtKey,
 					false,
@@ -609,8 +607,7 @@ func (r *RabbitMqRpc) publishData(ch *amqp.Channel, queue, exName, rtKey string,
 			case <-ctx.Done():
 				return ErrorTimeout
 			default:
-				err := ch.PublishWithContext(
-					ctx,
+				err := ch.Publish(
 					"",
 					queue,
 					false,
