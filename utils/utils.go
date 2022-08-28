@@ -60,7 +60,7 @@ func StringToUint(s string) uint {
 	}
 }
 
-//FindServerConfig 查找服务器配置
+// FindServerConfig 查找服务器配置
 func FindServerConfig(servers map[string]*treaty.Server, serverId string) *treaty.Server {
 	if server, ok := servers[serverId]; ok {
 		return server
@@ -68,24 +68,24 @@ func FindServerConfig(servers map[string]*treaty.Server, serverId string) *treat
 	return nil
 }
 
-//Md5 md5加密
+// Md5 md5加密
 func Md5(str string) string {
 	data := []byte(str)
 	hash := md5.Sum(data)
 	return fmt.Sprintf("%x", hash) //将[]byte转成16进制
 }
 
-//IntToString 整数转字符串
+// IntToString 整数转字符串
 func IntToString(val int) string {
 	return strconv.Itoa(val)
 }
 
-//Int32ToString 整数转字符串
+// Int32ToString 整数转字符串
 func Int32ToString(val int32) string {
 	return strconv.Itoa(int(val))
 }
 
-//Int64ToString 整数转字符串
+// Int64ToString 整数转字符串
 func Int64ToString(val int64) string {
 	return strconv.Itoa(int(val))
 }
@@ -192,8 +192,19 @@ func GetServerUrl(server *treaty.Server) string {
 	return addr
 }
 
-func MapStringToStruct(src interface{}, dist interface{}) error {
-	if v, ok := src.(map[string]interface{}); ok {
+func MapStringToStruct(src any, dist any) error {
+	if v, ok := src.(map[string]any); ok {
+		bs, err := json.Marshal(v)
+		if err != nil {
+			return err
+		}
+		return json.Unmarshal(bs, dist)
+	}
+	return errors.New("no suit type to struct")
+}
+
+func MapListToStruct(src any, dist any) error {
+	if v, ok := src.([]any); ok {
 		bs, err := json.Marshal(v)
 		if err != nil {
 			return err
