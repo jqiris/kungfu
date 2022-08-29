@@ -301,6 +301,20 @@ func (r *RabbitMqRpc) DealMsg(s RssBuilder, ch *amqp.Channel, msg amqp.Delivery,
 	}
 }
 
+func (r *RabbitMqRpc) publishReplyChan(ch *amqp.Channel, corrId, replyTo string, msg amqp.Publishing) <-chan error {
+	err := make(chan error, 1)
+	go func() {
+		err <- ch.Publish(
+			"",      // exchange
+			replyTo, // routing key
+			false,
+			false,
+			msg,
+		)
+	}()
+	return err
+}
+
 func (r *RabbitMqRpc) publishReply(ch *amqp.Channel, corrId, replyTo string, timeout time.Duration, data []byte) error {
 	msg := amqp.Publishing{
 		ContentType:   "text/plain",
@@ -310,23 +324,12 @@ func (r *RabbitMqRpc) publishReply(ch *amqp.Channel, corrId, replyTo string, tim
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	for {
-		select {
-		case <-ctx.Done():
-			return ErrorTimeout
-		default:
-			err := ch.Publish(
-				"",      // exchange
-				replyTo, // routing key
-				false,
-				false,
-				msg,
-			)
-			if err != nil {
-				return err
-			}
-			return nil
-		}
+	errChan := r.publishReplyChan(ch, corrId, replyTo, msg)
+	select {
+	case <-ctx.Done():
+		return ErrorTimeout
+	case err := <-errChan:
+		return err
 	}
 }
 func (r *RabbitMqRpc) Subscribe(s RssBuilder) error {
@@ -567,6 +570,30 @@ func (r *RabbitMqRpc) SendMsg(s ReqBuilder) error {
 	return r.publishData(ch, queue, s.exName, rtKey, r.dialTimeout(s), data)
 }
 
+func (r *RabbitMqRpc) publishDataChan(ch *amqp.Channel, queue, exName, rtKey string, msg amqp.Publishing) <-chan error {
+	err := make(chan error, 1)
+	go func() {
+		if len(exName) > 0 && len(rtKey) > 0 {
+			err <- ch.Publish(
+				exName,
+				rtKey,
+				false,
+				false,
+				msg,
+			)
+		} else {
+			err <- ch.Publish(
+				"",
+				queue,
+				false,
+				false,
+				msg,
+			)
+		}
+	}()
+	return err
+}
+
 func (r *RabbitMqRpc) publishData(ch *amqp.Channel, queue, exName, rtKey string, timeout time.Duration, data []byte, args ...string) error {
 	msg := amqp.Publishing{
 		ContentType:  "text/plain",
@@ -581,45 +608,12 @@ func (r *RabbitMqRpc) publishData(ch *amqp.Channel, queue, exName, rtKey string,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	if len(exName) > 0 && len(rtKey) > 0 {
-		for {
-			select {
-			case <-ctx.Done():
-				return ErrorTimeout
-			default:
-				err := ch.Publish(
-					exName,
-					rtKey,
-					false,
-					false,
-					msg,
-				)
-				if err != nil {
-					return err
-				}
-				return nil
-			}
-		}
-
-	} else {
-		for {
-			select {
-			case <-ctx.Done():
-				return ErrorTimeout
-			default:
-				err := ch.Publish(
-					"",
-					queue,
-					false,
-					false,
-					msg,
-				)
-				if err != nil {
-					return err
-				}
-				return nil
-			}
-		}
+	errChan := r.publishDataChan(ch, queue, exName, rtKey, msg)
+	select {
+	case <-ctx.Done():
+		return ErrorTimeout
+	case err := <-errChan:
+		return err
 	}
 }
 
