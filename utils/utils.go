@@ -156,6 +156,13 @@ func RangeRand64(min, max int64) int64 {
 	return rand.Int63n(max-min+1) + min
 }
 
+func RangeRand32(min, max int32) int32 {
+	if min > max || min < 0 {
+		panic("param is wrong!")
+	}
+	return rand.Int31n(max-min+1) + min
+}
+
 func Stringify(data any) string {
 	bs, err := json.Marshal(data)
 	if err != nil {
