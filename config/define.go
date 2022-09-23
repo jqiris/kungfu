@@ -69,3 +69,12 @@ type TecentOBS struct {
 	ServiceUrl string `json:"service_url"` //服务地址
 	BulletUrl  string `json:"bullet_url"`  //存储桶地址
 }
+
+type TecentSms struct {
+	SecretId  string `json:"secret_id" mapstructure:"secret_id"`   //秘钥ID
+	SecretKey string `json:"secret_key" mapstructure:"secret_key"` //秘钥key
+	EndPoint  string `json:"endpoint" mapstructure:"endpoint"`     //服务地址
+	Region    string `json:"region" mapstructure:"region"`         //地域
+	SdkAppid  string `json:"sdk_appid" mapstructure:"sdk_appid"`   //sdk appid
+	SignName  string `json:"sign_name" mapstructure:"sign_name"`   //签名内容
+}

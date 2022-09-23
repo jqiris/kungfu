@@ -18,7 +18,8 @@ require (
 	github.com/spf13/viper v1.11.0
 	github.com/streadway/amqp v1.0.0
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn v1.0.438
-	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.438
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.502
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms v1.0.502
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.35
 	github.com/urfave/cli/v2 v2.6.0
 	go.etcd.io/etcd/client/v3 v3.5.0-alpha.0

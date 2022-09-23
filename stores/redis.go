@@ -243,6 +243,19 @@ func (s *StoreRedis) HSet(key, field string, val any) error {
 	return nil
 }
 
+func (s *StoreRedis) HSetNx(key, field string, val any) error {
+	bs, err := json.Marshal(val)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	if _, err := s.Client.HSetNX(ctx, s.GetKey(key), field, bs).Result(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *StoreRedis) HIncrBy(key, field string, incr int64) int64 {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()

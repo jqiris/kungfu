@@ -34,6 +34,15 @@ func StringToInt(s string) int {
 	}
 }
 
+func StringToInt8(s string) int8 {
+	if res, err := strconv.Atoi(s); err != nil {
+		logger.Debug(err)
+		return 0
+	} else {
+		return int8(res)
+	}
+}
+
 func StringToInt32(s string) int32 {
 	if res, err := strconv.Atoi(s); err != nil {
 		logger.Debug(err)
