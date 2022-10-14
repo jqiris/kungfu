@@ -22,17 +22,36 @@ import (
 )
 
 type RealAuthMgr struct {
-	AppId  string
-	BizId  string
-	Secret []byte
+	checkUrl    string
+	queryUrl    string
+	loginOutUrl string
+	AppId       string
+	BizId       string
+	Secret      []byte
 }
 
-func NewRealAuthMgr(appId, bizId, secret string) *RealAuthMgr {
-	return &RealAuthMgr{
-		AppId:  appId,
-		BizId:  bizId,
-		Secret: []byte(secret),
+func NewRealAuthMgr(appId, bizId, secret string, args ...bool) *RealAuthMgr {
+	isTest := false
+	if len(args) > 0 {
+		isTest = args[0]
 	}
+	checkUrl := "https://api.wlc.nppa.gov.cn/idcard/authentication/check"
+	queryUrl := "http://api2.wlc.nppa.gov.cn/idcard/authentication/query"
+	loginOutUrl := "http://api2.wlc.nppa.gov.cn/behavior/collection/loginout"
+	if isTest { //是否是测试环境
+		checkUrl = "https://wlc.nppa.gov.cn/test/authentication/check"
+		queryUrl = "https://wlc.nppa.gov.cn/test/authentication/query"
+		loginOutUrl = "https://wlc.nppa.gov.cn/test/collection/loginout"
+	}
+	mgr := &RealAuthMgr{
+		checkUrl:    checkUrl,
+		queryUrl:    queryUrl,
+		loginOutUrl: loginOutUrl,
+		AppId:       appId,
+		BizId:       bizId,
+		Secret:      []byte(secret),
+	}
+	return mgr
 }
 func (m *RealAuthMgr) encrypt(plaintext []byte) ([]byte, error) {
 	key, err := hex.DecodeString(string(m.Secret))
@@ -49,7 +68,7 @@ func (m *RealAuthMgr) encrypt(plaintext []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	logger.Infof("nonce size: %d", gcm.NonceSize())
+	// logger.Debugf("nonce size: %d", gcm.NonceSize())
 
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
@@ -63,14 +82,14 @@ func (m *RealAuthMgr) getEncryptData(v interface{}) (*RequestBody, error) {
 	if err != nil {
 		return nil, err
 	}
-	logger.Infof("body: %s", string(result))
+	// logger.Debugf("body: %s", string(result))
 
 	result, err = m.encrypt(result)
 	if err != nil {
 		return nil, err
 	}
-	logger.Infof("encrypt: %x", result)
 	encode := base64.StdEncoding.EncodeToString(result)
+	// logger.Debugf("data: %v", encode)
 	return &RequestBody{
 		Data: encode,
 	}, nil
@@ -84,8 +103,6 @@ func (m *RealAuthMgr) getHeader(params url.Values, v interface{}) (url.Values, e
 	// 填充 timestamps
 	t := time.Now()
 	header.Add("timestamps", strconv.FormatInt(t.UnixNano()/1000000, 10))
-
-	// header.Add("timestamps", strconv.FormatInt(1615878019978, 10))
 
 	// 因为 keys 的长度是固定的，所以此处这样写代码比较合理
 	keys := make([]string, 0, len(header)+len(params))
@@ -137,7 +154,9 @@ func (m *RealAuthMgr) getHeader(params url.Values, v interface{}) (url.Values, e
 		}
 		requestBuf.Write(result)
 	}
-	encrypt := fmt.Sprintf("%x", sha256.Sum256(requestBuf.Bytes()))
+	data := requestBuf.Bytes()
+	// logger.Debugf("待签名字符串:%v", string(data))
+	encrypt := fmt.Sprintf("%x", sha256.Sum256(data))
 	header.Set("sign", encrypt)
 	return header, nil
 }
@@ -150,12 +169,12 @@ func (m *RealAuthMgr) getResponse(urlValue url.Values, v interface{}) (string, e
 		if err != nil {
 			return "", err
 		}
-		req, err = http.NewRequest("POST", checkUrl, bytes.NewBuffer(result))
+		req, err = http.NewRequest("POST", m.checkUrl, bytes.NewBuffer(result))
 		if err != nil {
 			return "", err
 		}
 	} else {
-		req, err = http.NewRequest("POST", checkUrl, nil)
+		req, err = http.NewRequest("POST", m.checkUrl, nil)
 		if err != nil {
 			return "", err
 		}
@@ -165,7 +184,7 @@ func (m *RealAuthMgr) getResponse(urlValue url.Values, v interface{}) (string, e
 	for k, v := range urlValue {
 		req.Header.Set(k, v[0])
 	}
-	logger.Infof("header: %+v", req.Header)
+	// logger.Debugf("header: %+v", req.Header)
 
 	client := &http.Client{}
 
@@ -179,13 +198,13 @@ func (m *RealAuthMgr) getResponse(urlValue url.Values, v interface{}) (string, e
 	if err != nil {
 		return "", err
 	}
-	logger.Infof("the raw is:%+v", string(body))
+	// logger.Debugf("the raw is:%+v", string(body))
 	responseData := &Response{}
 	if err := json.Unmarshal(body, responseData); err != nil {
 		return "", err
 	}
 
-	logger.Infof("the response is:%+v", responseData)
+	// logger.Debugf("the response is:%+v", responseData)
 
 	if responseData.ErrCode != 0 {
 		return "", fmt.Errorf("%d -> %s", responseData.ErrCode, responseData.ErrMsg)
@@ -202,7 +221,7 @@ func (m *RealAuthMgr) getResponse(urlValue url.Values, v interface{}) (string, e
 	case 1:
 		return "", ErrNeedQuery
 	case 2:
-		return "", fmt.Errorf("")
+		return "", ErrAuthFailed
 	}
 	return "", fmt.Errorf("result status error: %d", result.Status)
 }
@@ -210,7 +229,7 @@ func (m *RealAuthMgr) getResponse(urlValue url.Values, v interface{}) (string, e
 func (m *RealAuthMgr) getResponseCheck(code string, urlValue url.Values, v interface{}) (string, error) {
 	var req *http.Request
 	var err error
-	url := checkUrl + "/" + code
+	url := m.checkUrl + "/" + code
 	if v != nil {
 		result, err := json.Marshal(v)
 		if err != nil {
@@ -231,7 +250,7 @@ func (m *RealAuthMgr) getResponseCheck(code string, urlValue url.Values, v inter
 	for k, v := range urlValue {
 		req.Header.Set(k, v[0])
 	}
-	logger.Infof("header: %+v", req.Header)
+	// logger.Debugf("header: %+v", req.Header)
 
 	client := &http.Client{}
 
@@ -245,7 +264,7 @@ func (m *RealAuthMgr) getResponseCheck(code string, urlValue url.Values, v inter
 	if err != nil {
 		return "", err
 	}
-	logger.Infof("the raw is:%+v", string(body))
+	// logger.Debugf("the raw is:%+v", string(body))
 	return string(body), nil
 }
 
@@ -255,12 +274,12 @@ func (m *RealAuthMgr) getReportResponse(urlValue url.Values, v interface{}) (*Re
 		return nil, err
 	}
 
-	req, _ := http.NewRequest("POST", loginOutUrl, bytes.NewBuffer(result))
+	req, _ := http.NewRequest("POST", m.loginOutUrl, bytes.NewBuffer(result))
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	for k, v := range urlValue {
 		req.Header.Set(k, v[0])
 	}
-	logger.Infof("header: %+v", req.Header)
+	// logger.Debugf("header: %+v", req.Header)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -273,7 +292,7 @@ func (m *RealAuthMgr) getReportResponse(urlValue url.Values, v interface{}) (*Re
 	if err != nil {
 		return nil, err
 	}
-	logger.Infof("%s", body)
+	// logger.Debugf("%s", body)
 
 	responseData := &ReportResponse{}
 	if err := json.Unmarshal(body, responseData); err != nil {
@@ -292,7 +311,7 @@ func (m *RealAuthMgr) getReportCheckResponse(code string, urlValue url.Values, v
 		return nil, err
 	}
 
-	req, _ := http.NewRequest("POST", loginOutUrl+"/"+code, bytes.NewBuffer(result))
+	req, _ := http.NewRequest("POST", m.loginOutUrl+"/"+code, bytes.NewBuffer(result))
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	for k, v := range urlValue {
 		req.Header.Set(k, v[0])
@@ -324,15 +343,15 @@ func (m *RealAuthMgr) getReportCheckResponse(code string, urlValue url.Values, v
 }
 
 func (m *RealAuthMgr) getQueryResponse(urlValue url.Values, ai string) (string, error) {
-	u := queryUrl + fmt.Sprintf("?ai=%s", ai)
+	u := m.queryUrl + fmt.Sprintf("?ai=%s", ai)
 	req, _ := http.NewRequest("GET", u, nil)
-	logger.Infof("query url: %s", u)
+	// logger.Debugf("query url: %s", u)
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	for k, v := range urlValue {
-		logger.Infof("%s -> %s", k, v[0])
+		logger.Debugf("%s -> %s", k, v[0])
 		req.Header.Set(k, v[0])
 	}
-	logger.Infof("header: %+v", req.Header)
+	// logger.Debugf("header: %+v", req.Header)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -346,7 +365,7 @@ func (m *RealAuthMgr) getQueryResponse(urlValue url.Values, ai string) (string, 
 		return "", err
 	}
 
-	logger.Infof("%s", string(body))
+	// logger.Debugf("%s", string(body))
 
 	responseData := &Response{}
 	if err := json.Unmarshal(body, responseData); err != nil {
@@ -374,15 +393,15 @@ func (m *RealAuthMgr) getQueryResponse(urlValue url.Values, ai string) (string, 
 }
 
 func (m *RealAuthMgr) getQueryCheckResponse(code string, urlValue url.Values, ai string) (string, error) {
-	u := queryUrl + fmt.Sprintf("/%s?ai=%s", code, ai)
+	u := m.queryUrl + fmt.Sprintf("/%s?ai=%s", code, ai)
 	req, _ := http.NewRequest("GET", u, nil)
-	fmt.Printf("query url: %s", u)
+	// logger.Debugf("query url: %s", u)
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	for k, v := range urlValue {
-		fmt.Printf("%s -> %s", k, v[0])
+		// logger.Debugf("%s -> %s", k, v[0])
 		req.Header.Set(k, v[0])
 	}
-	fmt.Printf("header: %+v", req.Header)
+	// logger.Debugf("header: %+v", req.Header)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -396,7 +415,7 @@ func (m *RealAuthMgr) getQueryCheckResponse(code string, urlValue url.Values, ai
 		return "", err
 	}
 
-	fmt.Printf("%s", string(body))
+	// logger.Debugf("%s", string(body))
 
 	responseData := &Response{}
 	if err := json.Unmarshal(body, responseData); err != nil {
@@ -445,8 +464,7 @@ func (m *RealAuthMgr) Check(uid int, name, idNum string) (string, error) {
 	return pi, nil
 }
 
-func (m *RealAuthMgr) CheckTest(uid int, name, idNum, code string) (string, error) {
-	ai := utils.Md5(utils.IntToString(uid))
+func (m *RealAuthMgr) CheckTest(ai string, name, idNum, code string) (string, error) {
 	info := &RequestInfo{
 		Ai:    ai,
 		Name:  name,
@@ -507,7 +525,7 @@ func (m *RealAuthMgr) ReportLoginout(item ReportItem) (*ReportResponse, error) {
 		Collections: []ReportItem{item},
 	}
 
-	logger.Infof("%v", report)
+	// logger.Debugf("%v", report)
 
 	body, err := m.getEncryptData(report)
 	if err != nil {
@@ -531,7 +549,7 @@ func (m *RealAuthMgr) ReportLoginoutCheck(item ReportItem, code string) (*Report
 		Collections: []ReportItem{item},
 	}
 
-	logger.Infof("%v", report)
+	// logger.Debugf("%v", report)
 
 	body, err := m.getEncryptData(report)
 	if err != nil {

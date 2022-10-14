@@ -2,14 +2,9 @@ package realauth
 
 import "fmt"
 
-const (
-	checkUrl    = "https://api.wlc.nppa.gov.cn/idcard/authentication/check"
-	queryUrl    = "http://api2.wlc.nppa.gov.cn/idcard/authentication/query"
-	loginOutUrl = "http://api2.wlc.nppa.gov.cn/behavior/collection/loginout"
-)
-
 var (
-	ErrNeedQuery = fmt.Errorf("need query result")
+	ErrNeedQuery  = fmt.Errorf("need query result")
+	ErrAuthFailed = fmt.Errorf("auth failed")
 )
 
 type RequestInfo struct {
