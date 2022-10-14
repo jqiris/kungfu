@@ -27,7 +27,7 @@ type RealAuthMgr struct {
 	loginOutUrl string
 	AppId       string
 	BizId       string
-	Secret      []byte
+	Secret      string
 }
 
 func NewRealAuthMgr(appId, bizId, secret string, args ...bool) *RealAuthMgr {
@@ -49,7 +49,7 @@ func NewRealAuthMgr(appId, bizId, secret string, args ...bool) *RealAuthMgr {
 		loginOutUrl: loginOutUrl,
 		AppId:       appId,
 		BizId:       bizId,
-		Secret:      []byte(secret),
+		Secret:      secret,
 	}
 	return mgr
 }
@@ -120,7 +120,7 @@ func (m *RealAuthMgr) getHeader(params url.Values, v interface{}) (url.Values, e
 	sort.Strings(keys)
 
 	var requestBuf bytes.Buffer
-	requestBuf.Write(m.Secret)
+	requestBuf.WriteString(m.Secret)
 	for _, k := range keys {
 		vs, ok := header[k]
 		if ok {
