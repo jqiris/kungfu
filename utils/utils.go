@@ -2,6 +2,8 @@ package utils
 
 import (
 	"crypto/md5"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -82,6 +84,14 @@ func Md5(str string) string {
 	data := []byte(str)
 	hash := md5.Sum(data)
 	return fmt.Sprintf("%x", hash) //将[]byte转成16进制
+}
+
+// sha256加密
+func Sha256(str string) string {
+	m := sha256.New()
+	m.Write([]byte(str))
+	res := hex.EncodeToString(m.Sum(nil))
+	return res
 }
 
 // IntToString 整数转字符串

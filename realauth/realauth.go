@@ -443,8 +443,7 @@ func (m *RealAuthMgr) getQueryCheckResponse(code string, urlValue url.Values, ai
 	return "", fmt.Errorf("result status error: %d", result.Status)
 }
 
-func (m *RealAuthMgr) Check(uid int64, name, idNum string) (string, error) {
-	ai := utils.Md5(utils.Int64ToString(uid))
+func (m *RealAuthMgr) Check(ai string, name, idNum string) (string, error) {
 	info := &RequestInfo{
 		Ai:    ai,
 		Name:  name,
@@ -577,10 +576,13 @@ func (m *RealAuthMgr) IdDecode(idcard string) (string, string, string, bool) {
 		if result.Sex == 0 {
 			sex = "女"
 		}
+		birthday = result.Birthday.Format("20060102")
+		address = result.Province + result.City + result.District
 		startTime := nowTime.AddDate(-18, 0, 0)
 		if startTime.Unix() > result.Birthday.Unix() {
 			isAdult = true
 		}
+
 	} else {
 		logger.Errorf("chinaid error idcard:%v, err:%v", idcard, err)
 	}
