@@ -15,6 +15,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/json-iterator/go v1.1.12
 	github.com/nats-io/nats.go v1.15.0
+	github.com/sleagon/chinaid v0.4.2
 	github.com/spf13/viper v1.11.0
 	github.com/streadway/amqp v1.0.0
 	github.com/syyongx/go-wordsfilter v0.0.0-20190622081656-74232c786041

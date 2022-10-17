@@ -19,6 +19,7 @@ import (
 
 	"github.com/jqiris/kungfu/v2/logger"
 	"github.com/jqiris/kungfu/v2/utils"
+	"github.com/sleagon/chinaid"
 )
 
 type RealAuthMgr struct {
@@ -442,8 +443,8 @@ func (m *RealAuthMgr) getQueryCheckResponse(code string, urlValue url.Values, ai
 	return "", fmt.Errorf("result status error: %d", result.Status)
 }
 
-func (m *RealAuthMgr) Check(uid int, name, idNum string) (string, error) {
-	ai := utils.Md5(utils.IntToString(uid))
+func (m *RealAuthMgr) Check(uid int64, name, idNum string) (string, error) {
+	ai := utils.Md5(utils.Int64ToString(uid))
 	info := &RequestInfo{
 		Ai:    ai,
 		Name:  name,
@@ -566,4 +567,22 @@ func (m *RealAuthMgr) ReportLoginoutCheck(item ReportItem, code string) (*Report
 		return nil, err
 	}
 	return res, nil
+}
+
+func (m *RealAuthMgr) IdDecode(idcard string) (string, string, string, bool) {
+	sex, birthday, address, isAdult := "男", "", "", false
+	nowTime := time.Now()
+	id := chinaid.IDCard(idcard)
+	if result, err := id.Decode(); err == nil {
+		if result.Sex == 0 {
+			sex = "女"
+		}
+		startTime := nowTime.AddDate(-18, 0, 0)
+		if startTime.Unix() > result.Birthday.Unix() {
+			isAdult = true
+		}
+	} else {
+		logger.Errorf("chinaid error idcard:%v, err:%v", idcard, err)
+	}
+	return sex, birthday, address, isAdult
 }
