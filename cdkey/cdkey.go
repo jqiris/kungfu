@@ -48,13 +48,13 @@ func (m *CdkeyProducer) GenCode(max, cur int) (string, error) {
 	return code, nil
 }
 
-func (m *CdkeyProducer) GenCodes(num, max, cur int) ([]string, error) {
+func (m *CdkeyProducer) GenCodes(num, max int) ([]string, error) {
 	if num < 1 {
 		return nil, ErrMinNumOne
 	}
 	var codes []string
 	for i := 0; i < num; i++ {
-		code, err := m.GenCode(max, cur)
+		code, err := m.GenCode(max, 0)
 		if err != nil {
 			return nil, err
 		}
