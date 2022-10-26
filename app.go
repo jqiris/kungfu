@@ -741,6 +741,7 @@ func (m *MicroApp) goVersionSet(c *cli.Context) error {
 	version := c.Args().Get(0)
 	if len(version) > 0 {
 		m.setGlobalVar(cfg, goVersion, version)
+		m.removeDockerFile()
 		fmt.Println("go版本设置成功")
 	} else {
 		version = m.getGlobalVar(cfg, goVersion)
