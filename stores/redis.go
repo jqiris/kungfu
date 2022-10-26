@@ -467,6 +467,18 @@ func (s *StoreRedis) SMembers(key string) []string {
 	return s.Client.SMembers(ctx, s.GetKey(key)).Val()
 }
 
+func (s *StoreRedis) SRandMember(key string) string {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.SRandMember(ctx, s.GetKey(key)).Val()
+}
+
+func (s *StoreRedis) SRandMemberN(key string, count int64) []string {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.SRandMemberN(ctx, s.GetKey(key), count).Val()
+}
+
 func (s *StoreRedis) SIsMember(key string, member interface{}) bool {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
