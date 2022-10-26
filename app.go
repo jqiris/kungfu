@@ -37,8 +37,10 @@ var (
 	defaultLabelAuthor  = "jqiris"
 	labelVersion        = "LabelVersion"
 	defaultLabelVersion = "1.0.0"
+	goVersion           = "goVersion"
+	defaultGoVersion    = "1.19.2"
 	dockerTml           = `
-FROM golang:1.19.1 AS builder
+FROM golang:%s AS builder
 
 COPY . /src
 WORKDIR /src
@@ -82,6 +84,7 @@ type MicroApp struct {
 	project      string
 	labelAuthor  string
 	labelVersion string
+	goVersion    string
 	store        *ini.File
 }
 
@@ -495,7 +498,7 @@ func (m *MicroApp) build(c *cli.Context) error {
 			return err
 		}
 		defer fp.Close()
-		dockerFile := fmt.Sprintf(dockerTml, m.labelAuthor, m.labelVersion, m.remoteCfg)
+		dockerFile := fmt.Sprintf(dockerTml, m.goVersion, m.labelAuthor, m.labelVersion, m.remoteCfg)
 		_, err = fp.Write([]byte(dockerFile))
 		if err != nil {
 			return err
@@ -565,8 +568,9 @@ func (m *MicroApp) prepare(c *cli.Context) error {
 	prefix := m.getPrefix(store, c)
 	la := m.getLabelAuthor(store, c)
 	lv := m.getLabelVersion(store, c)
-	m.store, m.ver, m.data, m.cfg, m.network, m.prefix, m.remoteCfg, m.project, m.labelAuthor, m.labelVersion = store, version, data, cfg, network, prefix, remoteCfg, project, la, lv
-	fmt.Printf("project:%v,ver:%v,data:%v,cfg:%v,remoteCfg:%v,network:%v,labelAuthor:%v,labelVersion:%v,prefix:%v \n", project, version, data, cfg, remoteCfg, network, la, lv, prefix)
+	gv := m.getGoVersion(store, c)
+	m.store, m.ver, m.data, m.cfg, m.network, m.prefix, m.remoteCfg, m.project, m.labelAuthor, m.labelVersion, m.goVersion = store, version, data, cfg, network, prefix, remoteCfg, project, la, lv, gv
+	fmt.Printf("project:%v,ver:%v,data:%v,cfg:%v,remoteCfg:%v,network:%v,labelAuthor:%v,labelVersion:%v,goVersion:%v,prefix:%v \n", project, version, data, cfg, remoteCfg, network, la, lv, gv, prefix)
 	return nil
 }
 
@@ -725,6 +729,25 @@ func (m *MicroApp) labelVersionSet(c *cli.Context) error {
 			version = defaultLabelVersion
 		}
 		fmt.Printf("当前docker版本为:%v\n", version)
+	}
+	return nil
+}
+
+func (m *MicroApp) goVersionSet(c *cli.Context) error {
+	cfg, err := ini.Load(storePath)
+	if err != nil {
+		return err
+	}
+	version := c.Args().Get(0)
+	if len(version) > 0 {
+		m.setGlobalVar(cfg, goVersion, version)
+		fmt.Println("go版本设置成功")
+	} else {
+		version = m.getGlobalVar(cfg, goVersion)
+		if len(version) == 0 {
+			version = defaultGoVersion
+		}
+		fmt.Printf("当前go版本为:%v\n", version)
 	}
 	return nil
 }
@@ -1001,6 +1024,17 @@ func (m *MicroApp) getLabelVersion(cfg *ini.File, c *cli.Context) string {
 	}
 	if len(version) == 0 {
 		version = defaultLabelVersion
+	}
+	return version
+}
+
+func (m *MicroApp) getGoVersion(cfg *ini.File, c *cli.Context) string {
+	version := m.getGlobalVar(cfg, goVersion)
+	if tmp := c.String("goVersion"); len(tmp) > 0 {
+		version = tmp
+	}
+	if len(version) == 0 {
+		version = defaultGoVersion
 	}
 	return version
 }

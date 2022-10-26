@@ -31,6 +31,11 @@ func main() {
 				Usage:   "set the label docker version",
 			},
 			&cli.StringFlag{
+				Name:    "goVersion",
+				Aliases: []string{"gv"},
+				Usage:   "set the golang version",
+			},
+			&cli.StringFlag{
 				Name:    "config",
 				Aliases: []string{"c"},
 				Usage:   "set the config file",
@@ -137,6 +142,13 @@ func main() {
 				Usage: "view or set label docker version",
 				Action: func(c *cli.Context) error {
 					return service.labelVersionSet(c)
+				},
+			},
+			{
+				Name:  "goVersion",
+				Usage: "view or set go version",
+				Action: func(c *cli.Context) error {
+					return service.goVersionSet(c)
 				},
 			},
 			{
