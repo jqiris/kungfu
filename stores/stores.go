@@ -59,6 +59,8 @@ type StoreKeeper interface {
 	SMembers(key string) []string
 	SRandMember(key string) string
 	SRandMemberN(key string, count int64) []string
+	SPop(key string) string
+	SPopN(key string, count int64) []string
 	SIsMember(key string, member interface{}) bool
 	ZAdd(key string, members ...*redis.Z) error
 	ZRangeWithScores(key string, start, stop int64) ([]redis.Z, error)
@@ -244,6 +246,14 @@ func SRandMember(key string) string {
 
 func SRandMemberN(key string, count int64) []string {
 	return defStoreKeeper.SRandMemberN(key, count)
+}
+
+func SPop(key string) string {
+	return defStoreKeeper.SPop(key)
+}
+
+func SPopN(key string, count int64) []string {
+	return defStoreKeeper.SPopN(key, count)
 }
 
 func SIsMember(key string, member interface{}) bool {
