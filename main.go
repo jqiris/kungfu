@@ -100,6 +100,11 @@ func main() {
 				Aliases: []string{"r"},
 				Usage:   "remote registry",
 			},
+			&cli.StringFlag{
+				Name:    "exclude",
+				Aliases: []string{"ex"},
+				Usage:   "exclude server",
+			},
 		},
 		Commands: []*cli.Command{
 			{
@@ -212,6 +217,13 @@ func main() {
 				Usage: "start servers",
 				Action: func(c *cli.Context) error {
 					return service.start(c)
+				},
+			},
+			{
+				Name:  "restart",
+				Usage: "restart servers",
+				Action: func(c *cli.Context) error {
+					return service.restart(c)
 				},
 			},
 			{

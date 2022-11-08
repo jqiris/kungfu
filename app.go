@@ -116,7 +116,11 @@ func (m *MicroApp) clear(c *cli.Context) error {
 	sort.Slice(launchArr, func(i, j int) bool {
 		return launchArr[i].ShutWeight < launchArr[j].ShutWeight
 	})
+	ex := m.getExcludeServer(c)
 	for _, server := range launchArr {
+		if utils.InSlice(ex, server.ServerId) {
+			continue
+		}
 		m.clearServer(server)
 	}
 	return nil
@@ -127,29 +131,37 @@ func (m *MicroApp) rmi(c *cli.Context) error {
 		return err
 	}
 	servers := config.GetServersConf()
+	var launchArr []*treaty.Server
 	if c.NArg() == 0 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.rmiServer(server); err != nil {
-					return err
-				} else {
-					fmt.Printf("image rm result:%v\n", string(bs))
-				}
+				launchArr = append(launchArr, server)
 			}
 		}
 	} else {
 		for _, specialServer := range c.Args().Slice() {
 			if server, ok := servers[specialServer]; ok {
-				if bs, err := m.rmiServer(server); err != nil {
-					return err
-				} else {
-					fmt.Printf("image rm result:%v\n", string(bs))
-				}
+				launchArr = append(launchArr, server)
 			} else {
 				log.Fatalf("can't find the rm image: %v\n", specialServer)
 			}
 		}
 	}
+	sort.Slice(launchArr, func(i, j int) bool {
+		return launchArr[i].ShutWeight < launchArr[j].ShutWeight
+	})
+	ex := m.getExcludeServer(c)
+	for _, server := range launchArr {
+		if utils.InSlice(ex, server.ServerId) {
+			continue
+		}
+		if bs, err := m.rmiServer(server); err != nil {
+			return err
+		} else {
+			fmt.Printf("image rm result:%v\n", string(bs))
+		}
+	}
+
 	return nil
 }
 func (m *MicroApp) prune(c *cli.Context) error {
@@ -204,7 +216,11 @@ func (m *MicroApp) rm(c *cli.Context) error {
 	sort.Slice(launchArr, func(i, j int) bool {
 		return launchArr[i].ShutWeight < launchArr[j].ShutWeight
 	})
+	ex := m.getExcludeServer(c)
 	for _, server := range launchArr {
+		if utils.InSlice(ex, server.ServerId) {
+			continue
+		}
 		if bs, err := m.rmServer(server); err != nil {
 			return err
 		} else {
@@ -237,7 +253,11 @@ func (m *MicroApp) stop(c *cli.Context) error {
 	sort.Slice(launchArr, func(i, j int) bool {
 		return launchArr[i].ShutWeight < launchArr[j].ShutWeight
 	})
+	ex := m.getExcludeServer(c)
 	for _, server := range launchArr {
+		if utils.InSlice(ex, server.ServerId) {
+			continue
+		}
 		if bs, err := m.stopServer(server); err != nil {
 			return err
 		} else {
@@ -273,7 +293,11 @@ func (m *MicroApp) run(c *cli.Context) error {
 	sort.Slice(launchArr, func(i, j int) bool {
 		return launchArr[i].LaunchWeight < launchArr[j].LaunchWeight
 	})
+	ex := m.getExcludeServer(c)
 	for _, server := range launchArr {
+		if utils.InSlice(ex, server.ServerId) {
+			continue
+		}
 		if bs, err := m.runServer(mem, memSwap, memKernel, cpu, cpuSet, server); err != nil {
 			return err
 		} else {
@@ -307,7 +331,62 @@ func (m *MicroApp) start(c *cli.Context) error {
 	sort.Slice(launchArr, func(i, j int) bool {
 		return launchArr[i].LaunchWeight < launchArr[j].LaunchWeight
 	})
+	ex := m.getExcludeServer(c)
 	for _, server := range launchArr {
+		if utils.InSlice(ex, server.ServerId) {
+			continue
+		}
+		if bs, err := m.startServer(server); err != nil {
+			return err
+		} else {
+			fmt.Printf("server start result:%v\n", string(bs))
+		}
+	}
+	return nil
+}
+
+func (m *MicroApp) restart(c *cli.Context) error {
+	if err := m.prepare(c); err != nil {
+		return err
+	}
+	servers := config.GetServersConf()
+	var launchArr []*treaty.Server
+	if c.NArg() == 0 {
+		for _, cfg := range servers {
+			if cfg.IsLaunch {
+				launchArr = append(launchArr, cfg)
+			}
+		}
+	} else {
+		for _, specialServer := range c.Args().Slice() {
+			if server, ok := servers[specialServer]; ok {
+				launchArr = append(launchArr, server)
+			} else {
+				log.Fatalf("can't find the stop server: %v", specialServer)
+			}
+		}
+	}
+	sort.Slice(launchArr, func(i, j int) bool {
+		return launchArr[i].ShutWeight < launchArr[j].ShutWeight
+	})
+	ex := m.getExcludeServer(c)
+	for _, server := range launchArr {
+		if utils.InSlice(ex, server.ServerId) {
+			continue
+		}
+		if bs, err := m.stopServer(server); err != nil {
+			return err
+		} else {
+			fmt.Printf("server stop result:%v\n", string(bs))
+		}
+	}
+	sort.Slice(launchArr, func(i, j int) bool {
+		return launchArr[i].LaunchWeight < launchArr[j].LaunchWeight
+	})
+	for _, server := range launchArr {
+		if utils.InSlice(ex, server.ServerId) {
+			continue
+		}
 		if bs, err := m.startServer(server); err != nil {
 			return err
 		} else {
@@ -335,27 +414,34 @@ func (m *MicroApp) registryPush(c *cli.Context) error {
 		return err
 	}
 	servers := config.GetServersConf()
+	var launchArr []*treaty.Server
 	if c.NArg() == 0 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.pushServer(server); err != nil {
-					return err
-				} else {
-					fmt.Printf("registry push result:%v\n", string(bs))
-				}
+				launchArr = append(launchArr, server)
 			}
 		}
 	} else {
 		for _, specialServer := range c.Args().Slice() {
 			if server, ok := servers[specialServer]; ok {
-				if bs, err := m.pushServer(server); err != nil {
-					return err
-				} else {
-					fmt.Printf("registry push result:%v\n", string(bs))
-				}
+				launchArr = append(launchArr, server)
 			} else {
 				log.Fatalf("can't find the registry push server: %v", specialServer)
 			}
+		}
+	}
+	sort.Slice(launchArr, func(i, j int) bool {
+		return launchArr[i].LaunchWeight < launchArr[j].LaunchWeight
+	})
+	ex := m.getExcludeServer(c)
+	for _, server := range launchArr {
+		if utils.InSlice(ex, server.ServerId) {
+			continue
+		}
+		if bs, err := m.pushServer(server); err != nil {
+			return err
+		} else {
+			fmt.Printf("registry push result:%v\n", string(bs))
 		}
 	}
 	return nil
@@ -366,27 +452,34 @@ func (m *MicroApp) registryPull(c *cli.Context) error {
 		return err
 	}
 	servers := config.GetServersConf()
+	var launchArr []*treaty.Server
 	if c.NArg() == 0 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.pullServer(server); err != nil {
-					return err
-				} else {
-					fmt.Printf("registry pull result:%v\n", string(bs))
-				}
+				launchArr = append(launchArr, server)
 			}
 		}
 	} else {
 		for _, specialServer := range c.Args().Slice() {
 			if server, ok := servers[specialServer]; ok {
-				if bs, err := m.pullServer(server); err != nil {
-					return err
-				} else {
-					fmt.Printf("registry pull result:%v\n", string(bs))
-				}
+				launchArr = append(launchArr, server)
 			} else {
 				log.Fatalf("can't find the registry pull server: %v", specialServer)
 			}
+		}
+	}
+	sort.Slice(launchArr, func(i, j int) bool {
+		return launchArr[i].LaunchWeight < launchArr[j].LaunchWeight
+	})
+	ex := m.getExcludeServer(c)
+	for _, server := range launchArr {
+		if utils.InSlice(ex, server.ServerId) {
+			continue
+		}
+		if bs, err := m.pullServer(server); err != nil {
+			return err
+		} else {
+			fmt.Printf("registry pull result:%v\n", string(bs))
 		}
 	}
 	return nil
@@ -509,27 +602,34 @@ func (m *MicroApp) build(c *cli.Context) error {
 		buildPath = v
 	}
 	servers := config.GetServersConf()
+	var launchArr []*treaty.Server
 	if c.NArg() == 0 {
 		for _, server := range servers {
 			if server.IsLaunch {
-				if bs, err := m.buildServer(buildPath, server); err != nil {
-					return err
-				} else {
-					fmt.Printf("server build result:%v\n", string(bs))
-				}
+				launchArr = append(launchArr, server)
 			}
 		}
 	} else {
 		for _, specialServer := range c.Args().Slice() {
 			if server, ok := servers[specialServer]; ok {
-				if bs, err := m.buildServer(buildPath, server); err != nil {
-					return err
-				} else {
-					fmt.Printf("server build result:%v\n", string(bs))
-				}
+				launchArr = append(launchArr, server)
 			} else {
 				log.Fatalf("can't find the build server: %v", specialServer)
 			}
+		}
+	}
+	sort.Slice(launchArr, func(i, j int) bool {
+		return launchArr[i].LaunchWeight < launchArr[j].LaunchWeight
+	})
+	ex := m.getExcludeServer(c)
+	for _, server := range launchArr {
+		if utils.InSlice(ex, server.ServerId) {
+			continue
+		}
+		if bs, err := m.buildServer(buildPath, server); err != nil {
+			return err
+		} else {
+			fmt.Printf("server build result:%v\n", string(bs))
 		}
 	}
 	return nil
@@ -1104,4 +1204,12 @@ func (m *MicroApp) readConf(data, cfgPath string) {
 	if err := config.InitFrameConf(frameCfg); err != nil {
 		logger.Fatal(err)
 	}
+}
+
+func (m *MicroApp) getExcludeServer(c *cli.Context) []string {
+	data := c.String("exclude")
+	if len(data) > 0 {
+		logger.Infof("exclude servers:%v", data)
+	}
+	return strings.Split(data, ",")
 }

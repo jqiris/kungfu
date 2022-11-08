@@ -239,3 +239,12 @@ func MapListToStruct(src any, dist any) error {
 	}
 	return errors.New("no suit type to struct")
 }
+
+func InSlice[T comparable](arr []T, ele T) bool {
+	for _, item := range arr {
+		if item == ele {
+			return true
+		}
+	}
+	return false
+}
