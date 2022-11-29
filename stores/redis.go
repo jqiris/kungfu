@@ -521,6 +521,11 @@ func (s *StoreRedis) ZRevRank(key, member string) (int64, error) {
 	return s.Client.ZRevRank(ctx, s.GetKey(key), member).Result()
 }
 
+func (s *StoreRedis) ZRank(key, member string) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.ZRank(ctx, s.GetKey(key), member).Result()
+}
 func (s *StoreRedis) ZScore(key, member string) float64 {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
@@ -537,6 +542,12 @@ func (s *StoreRedis) ZRem(key string, members ...any) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
 	return s.Client.ZRem(ctx, s.GetKey(key), members...).Err()
+}
+
+func (s *StoreRedis) ZRemRangeByScore(key string, min, max string) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.ZRemRangeByScore(ctx, s.GetKey(key), min, max).Err()
 }
 
 func (s *StoreRedis) ZCard(key string) int64 {

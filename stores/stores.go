@@ -65,10 +65,12 @@ type StoreKeeper interface {
 	ZAdd(key string, members ...*redis.Z) error
 	ZRangeWithScores(key string, start, stop int64) ([]redis.Z, error)
 	ZRevRangeWithScores(key string, start, stop int64) ([]redis.Z, error)
+	ZRank(key, member string) (int64, error)
 	ZRevRank(key, member string) (int64, error)
 	ZScore(key, member string) float64
 	ZIncrBy(key string, increment float64, member string) (float64, error)
 	ZRem(key string, members ...any) error
+	ZRemRangeByScore(key string, min, max string) error
 	ZCard(key string) int64
 	LPush(key string, values ...any) error
 	RPush(key string, values ...any) error
@@ -274,6 +276,9 @@ func ZRevRank(key, member string) (int64, error) {
 	return defStoreKeeper.ZRevRank(key, member)
 }
 
+func ZRank(key, member string) (int64, error) {
+	return defStoreKeeper.ZRank(key, member)
+}
 func ZScore(key, member string) float64 {
 	return defStoreKeeper.ZScore(key, member)
 }
@@ -284,6 +289,10 @@ func ZIncrBy(key string, increment float64, member string) (float64, error) {
 
 func ZRem(key string, members ...any) error {
 	return defStoreKeeper.ZRem(key, members...)
+}
+
+func ZRemRangeByScore(key string, min, max string) error {
+	return defStoreKeeper.ZRemRangeByScore(key, min, max)
 }
 
 func ZCard(key string) int64 {
