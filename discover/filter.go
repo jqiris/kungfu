@@ -13,12 +13,14 @@ const (
 type Filter struct {
 	maintainType MaintainType
 	version      int64
+	ignore       bool //忽略具体状态检查
 }
 
 func NewFilter(options ...FilterOption) *Filter {
 	filter := &Filter{
 		maintainType: MaintainTypeFalse,
 		version:      0,
+		ignore:       false,
 	}
 	for _, option := range options {
 		option(filter)
@@ -28,6 +30,9 @@ func NewFilter(options ...FilterOption) *Filter {
 
 func (f *Filter) apply(s *treaty.Server) bool {
 	if f.maintainType > MaintainTypeAll {
+		if f.ignore {
+			return true
+		}
 		if f.maintainType == MaintainTypeFalse && s.Maintained {
 			return false
 		}
@@ -52,5 +57,11 @@ func FilterMaintained(maintained MaintainType) FilterOption {
 func FilterVersion(version int64) FilterOption {
 	return func(f *Filter) {
 		f.version = version
+	}
+}
+
+func FilterIgnore(ignore bool) FilterOption {
+	return func(f *Filter) {
+		f.ignore = ignore
 	}
 }
