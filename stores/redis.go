@@ -243,6 +243,15 @@ func (s *StoreRedis) HSet(key, field string, val any) error {
 	return nil
 }
 
+func (s *StoreRedis) HSetRaw(key, field string, val any) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	if _, err := s.Client.HSet(ctx, s.GetKey(key), field, val).Result(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *StoreRedis) HSetNx(key, field string, val any) error {
 	bs, err := json.Marshal(val)
 	if err != nil {
@@ -271,6 +280,12 @@ func (s *StoreRedis) HGet(key, field string, val any) error {
 		return err
 	}
 	return json.Unmarshal(bs, val)
+}
+
+func (s *StoreRedis) HGetRaw(key, field string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.HGet(ctx, s.GetKey(key), field).Bytes()
 }
 
 func (s *StoreRedis) HDel(key string, fields ...string) error {

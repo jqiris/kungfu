@@ -44,9 +44,11 @@ type StoreKeeper interface {
 	DelPattern(pattern string) (int64, error)
 	Exists(keys ...string) bool
 	HSet(key, field string, val any) error
+	HSetRaw(key, field string, val any) error
 	HSetNx(key, field string, val any) error
 	HIncrBy(key, field string, incr int64) int64
 	HGet(key, field string, val any) error
+	HGetRaw(key, field string) ([]byte, error)
 	HGetAll(key string) (map[string]string, error)
 	HDel(key string, fields ...string) error
 	HDelAll(key string)
@@ -138,6 +140,9 @@ func Exists(keys ...string) bool {
 func HSet(key, field string, val any) error {
 	return defStoreKeeper.HSet(key, field, val)
 }
+func HSetRaw(key, field string, val any) error {
+	return defStoreKeeper.HSetRaw(key, field, val)
+}
 func HSetNx(key, field string, val any) error {
 	return defStoreKeeper.HSetNx(key, field, val)
 }
@@ -148,6 +153,10 @@ func HIncrBy(key, field string, incr int64) int64 {
 
 func HGet(key, field string, val any) error {
 	return defStoreKeeper.HGet(key, field, val)
+}
+
+func HGetRaw(key, field string) ([]byte, error) {
+	return defStoreKeeper.HGetRaw(key, field)
 }
 
 func HGetAll(key string) (map[string]string, error) {

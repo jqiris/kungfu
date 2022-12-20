@@ -15,7 +15,7 @@ func TestJwtEncode(t *testing.T) {
 
 func TestJwtDecode(t *testing.T) {
 	// sample token string taken from the New example
-	tokenString := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoxLCJ1c2VyX2lkIjoxMjM0NTYsInN0YXJ0IjoxNjY5NjkyMzM3LCJleHBpcmUiOjE2Njk2OTIzOTd9.5RRcwdlNfrMnYFYiucu9OFEZ-GMeBJFVAD3PIjGvwqE"
+	tokenString := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjowLCJ1c2VyX2lkIjozMDMxMjMsInN0YXJ0IjoxNjcwNTg1NjY1LCJleHBpcmUiOjE2NzA4NDQ4NjV9.SxtEq6oIKfV2rUReD0iVU150nryWg70c5DM3qnNPi3A"
 	data, err := JwtDecode(tokenString, hmacSampleSecret)
 	fmt.Println(data, err)
 }
