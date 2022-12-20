@@ -38,6 +38,12 @@ func WithAesIv(aesIv string) Option {
 	}
 }
 
+func WithUnencrypt(val bool) Option {
+	return func(e *Encipherer) {
+		e.unencrypt = val
+	}
+}
+
 func WithSerializer(serializer serialize.Serializer) Option {
 	return func(e *Encipherer) {
 		e.serializer = serializer

@@ -15,11 +15,13 @@ type Encipherer struct {
 	aesKey     []byte
 	aesIv      []byte
 	serializer serialize.Serializer
+	unencrypt  bool
 }
 
 func NewEncipherer(options ...Option) *Encipherer {
 	encipherer := &Encipherer{
 		serializer: serialize.NewJsonSerializer(),
+		unencrypt:  false,
 	}
 	for _, option := range options {
 		option(encipherer)
@@ -89,6 +91,7 @@ const (
 	DecryptTypeAes                   //1-aes解密
 	DecryptTypeRsaPrikey             //2-rsa私钥解密
 	DecryptTypeRsaPubkey             //2-rsa公钥解密
+	DecryptTypeNone                  //2-none
 )
 
 type EncryptType int
@@ -98,9 +101,13 @@ const (
 	EncryptTypeAes                   //1-aes加密
 	EncryptTypeRsaPrikey             //2-rsa私钥加密
 	EncryptTypeRsaPubkey             //2-rsag公钥加密
+	EncryptTypeNone                  //-none
 )
 
 func DecryptData(ep *Encipherer, typ DecryptType, src string, res any) error {
+	if ep.unencrypt {
+		typ = DecryptTypeNone
+	}
 	var data []byte
 	var err error
 	switch typ {
@@ -119,6 +126,8 @@ func DecryptData(ep *Encipherer, typ DecryptType, src string, res any) error {
 		if err != nil {
 			return err
 		}
+	case DecryptTypeNone:
+		data = []byte(src)
 	}
 	err = ep.serializer.Unmarshal(data, res)
 	if err != nil {
@@ -128,6 +137,9 @@ func DecryptData(ep *Encipherer, typ DecryptType, src string, res any) error {
 }
 
 func EncryptData(ep *Encipherer, typ EncryptType, src any) (string, error) {
+	if ep.unencrypt {
+		typ = EncryptTypeNone
+	}
 	data, err := ep.serializer.Marshal(src)
 	if err != nil {
 		return "", err
@@ -139,6 +151,8 @@ func EncryptData(ep *Encipherer, typ EncryptType, src any) (string, error) {
 		return ep.RsaPrikeyEncrypt(data)
 	case EncryptTypeRsaPubkey:
 		return ep.RsaPubkeyEncrypt(data)
+	case EncryptTypeNone:
+		return string(data), nil
 	}
 	return "", errors.New("no suit type")
 }
