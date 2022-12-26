@@ -45,6 +45,7 @@ type JobItem struct {
 	StartTime int64     //开始时间
 	Debug     bool      //是否调试
 	Id        string    //任务唯一标识
+	Replace   bool      //同jobid是否替换
 }
 
 func (s *JobItem) ExecJob() {
@@ -98,6 +99,7 @@ func NewJobItem(delay time.Duration, worker JobWorker, options ...ItemOption) *J
 		StartTime: startTime.UnixMilli(),
 		BeginTime: startTime.UnixMilli(),
 		Worker:    worker,
+		Replace:   true,
 	}
 	for _, option := range options {
 		option(job)
@@ -242,6 +244,9 @@ func (k *JobKeeper) ExecJob() {
 					default:
 						break priority
 					}
+				}
+				if jobItem.JobId > 0 && jobItem.Replace {
+					k.delJob(jobItem.JobId) //删除同jobid任务
 				}
 				sTime := jobItem.StartTime
 				if q, ok := k.Index[sTime]; ok {

@@ -37,3 +37,8 @@ func WithItemDebug(debug bool) ItemOption {
 		j.Debug = debug
 	}
 }
+func WithItemReplace(replace bool) ItemOption {
+	return func(j *JobItem) {
+		j.Replace = replace
+	}
+}
