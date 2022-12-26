@@ -21,7 +21,7 @@ type VerifyUserResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    struct {
-		SdkOpenId int64  `json:"sdk_open_id"`
+		SdkOpenId string `json:"sdk_open_id"`
 		Nickname  string `json:"nickname"`
 		AvatarUrl string `json:"avatar_url"`
 		AgeType   int32  `json:"age_type"`
@@ -79,7 +79,7 @@ func (t *TiktokClient) VerifyUser(token string) (*VerifyUserResponse, error) {
 	}
 	sign := t.GetSign(params)
 	params["sign"] = sign
-	var data url.Values
+	data := url.Values{}
 	for k, v := range params {
 		data.Add(k, v)
 	}
