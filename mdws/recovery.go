@@ -9,11 +9,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jqiris/kungfu/v2/logger"
+	"github.com/jqiris/kungfu/v2/utils"
 )
 
 func GinRecovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
+			if utils.GetQuickCrash() {
+				c.Abort()
+				return
+			}
 			if err := recover(); err != nil {
 				// Check for a broken connection, as it is not really a
 				// condition that warrants a panic stack trace.

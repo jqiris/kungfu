@@ -27,6 +27,10 @@ func SetQuickCrash(crash bool) {
 	quickCrash = crash
 }
 
+func GetQuickCrash() bool {
+	return quickCrash
+}
+
 func StringToInt(s string) int {
 	if res, err := strconv.Atoi(s); err != nil {
 		logger.Debug(err)

@@ -13,8 +13,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/jqiris/kungfu/v2/utils"
 )
 
 type VerifyUserResponse struct {
@@ -30,18 +28,18 @@ type VerifyUserResponse struct {
 }
 
 type TiktokClient struct {
-	appId     string
+	appId     int32
 	secretKey string
 }
 
-func NewTiktokClient(appId string, secretKey string) *TiktokClient {
+func NewTiktokClient(appId int32, secretKey string) *TiktokClient {
 	return &TiktokClient{
 		appId:     appId,
 		secretKey: secretKey,
 	}
 }
 
-func (t *TiktokClient) GetSign(params map[string]string) string {
+func (t *TiktokClient) GetSign(params map[string]any) string {
 	//将key排序
 	keys := []string{}
 	for k := range params {
@@ -72,16 +70,16 @@ func (t *TiktokClient) GetSign(params map[string]string) string {
 
 func (t *TiktokClient) VerifyUser(token string) (*VerifyUserResponse, error) {
 	targetUrl := "https://gsdk.snssdk.com/gsdk/usdk/account/verify_user"
-	params := map[string]string{
+	params := map[string]any{
 		"app_id":       t.appId,
 		"access_token": token,
-		"ts":           utils.Int64ToString(time.Now().Unix()),
+		"ts":           time.Now().Unix(),
 	}
 	sign := t.GetSign(params)
 	params["sign"] = sign
 	data := url.Values{}
 	for k, v := range params {
-		data.Add(k, v)
+		data.Add(k, fmt.Sprintf("%v", v))
 	}
 	resp, err := http.PostForm(targetUrl, data)
 	if err != nil {
