@@ -45,7 +45,7 @@ FROM golang:%s AS builder
 COPY . /src
 WORKDIR /src
 
-RUN GOPROXY=https://goproxy.cn CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o buildsrv
+RUN GOPROXY=https://goproxy.cn CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o buildsrc
 
 FROM alpine
 MAINTAINER %s
@@ -63,7 +63,7 @@ RUN echo "http://mirrors.aliyun.com/alpine/v3.4/main/" > /etc/apk/repositories \
 ENV run_mode docker
 ENV run_server ${run_server}
 
-COPY --from=builder /src/buildsrv /app/
+COPY --from=builder /src/buildsrc /app/buildsrv
 
 WORKDIR /app
 
