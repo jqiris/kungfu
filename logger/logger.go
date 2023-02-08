@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-//支持日志分级，支持按照天转存，支持并发写入
+// 支持日志分级，支持按照天转存，支持并发写入
 var err error
 
 type LogItem struct {

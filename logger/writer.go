@@ -41,7 +41,7 @@ func newWriter() *Writer {
 		outType:    OutStd,
 		logDump:    false,
 		logFile:    &os.File{},
-		stdColor:   false,
+		stdColor:   true,
 		zipStart:   nowTime,
 		zipTime:    nowTime,
 		fileLock:   new(sync.Mutex),

@@ -108,6 +108,13 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			{
+				Name:  "appName",
+				Usage: "view or set app name",
+				Action: func(c *cli.Context) error {
+					return service.appName(c)
+				},
+			},
+			{
 				Name:  "data",
 				Usage: "view or set data dir",
 				Action: func(c *cli.Context) error {
@@ -143,10 +150,10 @@ func main() {
 				},
 			},
 			{
-				Name:  "labelVersion",
-				Usage: "view or set label docker version",
+				Name:  "alpineVersion",
+				Usage: "view or set alpine version",
 				Action: func(c *cli.Context) error {
-					return service.labelVersionSet(c)
+					return service.alpineVersionSet(c)
 				},
 			},
 			{
