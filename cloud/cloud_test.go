@@ -28,3 +28,19 @@ func TestSmsSend(t *testing.T) {
 	// 输出json格式的字符串回包
 	fmt.Printf("%s", response.ToJsonString())
 }
+
+func TestBilibiliSign(t *testing.T) {
+	cfg := BilibiliConfig{
+		SecretKey: "pHcNbNb4vtvn8HXT",
+	}
+	params := map[string]any{
+		"out_trade_no": "BILIBILI-1234567890",
+		"money":        600,
+		"game_money":   1200,
+		"product_id":   "com.bilibili.test.item01",
+		"notify_url":   "http://demo.com/notify/bilibili",
+	}
+	client := NewBilibiliClient(cfg)
+	res := client.GetSign(params)
+	fmt.Println(res)
+}
