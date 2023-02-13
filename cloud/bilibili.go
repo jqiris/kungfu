@@ -42,6 +42,12 @@ type BilibiliAuthResp struct {
 		AgeRange   string `json:"age_range"`
 	} `json:"data"`
 }
+type BilibiliLogoutReq struct {
+	VoucherNo string `json:"voucher_no"`
+	Uid       int    `json:"uid"`
+	GameId    int    `json:"game_id"`
+	Sign      string `json:"sign"`
+}
 
 type BilibiliClient struct {
 	config BilibiliConfig
