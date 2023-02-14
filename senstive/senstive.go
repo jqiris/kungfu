@@ -17,6 +17,8 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"github.com/syyongx/go-wordsfilter"
 )
 
 type SenstiveFilter struct {
