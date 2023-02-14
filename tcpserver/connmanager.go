@@ -1,3 +1,15 @@
+/*
+ * +----------------------------------------------------------------------
+ *  | kungfu [ A FAST GAME FRAMEWORK ]
+ *  +----------------------------------------------------------------------
+ *  | Copyright (c) 2023-2029 All rights reserved.
+ *  +----------------------------------------------------------------------
+ *  | Licensed ( http:www.apache.org/licenses/LICENSE-2.0 )
+ *  +----------------------------------------------------------------------
+ *  | Author: jqiris <1920624985@qq.com>
+ *  +----------------------------------------------------------------------
+ */
+
 package tcpserver
 
 import (
@@ -57,7 +69,7 @@ func (connMgr *ConnManager) Get(connID int) (tcpface.IConnection, error) {
 	}
 }
 
-//获取所有连接
+// 获取所有连接
 func (connMgr *ConnManager) GetAll() map[int]tcpface.IConnection {
 	connMgr.connLock.RLock()
 	defer connMgr.connLock.RUnlock()
