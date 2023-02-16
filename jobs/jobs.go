@@ -196,7 +196,7 @@ func NewJobKeeper(name string) *JobKeeper {
 		IdList:   make(map[int64]map[int64]int),
 		AddChan:  make(chan *JobItem, 20),
 		DelChan:  make(chan int64, 20),
-		StopChan: make(chan struct{}, 1),
+		StopChan: make(chan struct{}),
 	}
 }
 
