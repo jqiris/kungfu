@@ -21,8 +21,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	filelock "github.com/MichaelS11/go-file-lock"
 )
 
 var (
@@ -30,38 +28,28 @@ var (
 )
 
 type Writer struct {
-	outType    OutType
-	logDir     string
-	logName    string
-	logDump    bool   //是否转储
-	dumpDate   string //转储日期
-	logFile    *os.File
-	stdColor   bool //是否标准输出显示彩色
-	fileLock   *sync.Mutex
-	zipDay     int       //zip转储天数
-	zipStart   time.Time //zip开始时间
-	zipTime    time.Time //zip转储时间
-	logChan    chan *LogItem
-	zipChan    <-chan time.Time //zip通道
-	dumpChan   <-chan time.Time //dump通道
-	changeChan chan ChangChanType
+	outType  OutType
+	logDir   string
+	logName  string
+	logDump  bool   //是否转储
+	dumpDate string //转储日期
+	logFile  *os.File
+	stdColor bool //是否标准输出显示彩色
+	fileLock *sync.Mutex
+	logChan  chan *LogItem
+	dumpChan <-chan time.Time //dump通道
 }
 
 func newWriter() *Writer {
 	nowTime := time.Now()
 	w := &Writer{
-		outType:    OutStd,
-		logDump:    false,
-		logFile:    &os.File{},
-		stdColor:   true,
-		zipStart:   nowTime,
-		zipTime:    nowTime,
-		fileLock:   new(sync.Mutex),
-		logChan:    make(chan *LogItem, 300),
-		zipDay:     7,
-		changeChan: make(chan ChangChanType, 2),
+		outType:  OutStd,
+		logDump:  false,
+		logFile:  &os.File{},
+		stdColor: true,
+		fileLock: new(sync.Mutex),
+		logChan:  make(chan *LogItem, 300),
 	}
-	w.nextZipTime(nowTime)
 	w.nextDumpTime(nowTime)
 	go w.logWriting()
 	return w
@@ -75,13 +63,6 @@ func (w *Writer) initLogger() {
 	case OutAll:
 		w.OpenFile()
 	}
-}
-func (w *Writer) nextZipTime(now time.Time) {
-	next := now.Add(time.Hour * 24 * time.Duration(w.zipDay))
-	next = time.Date(next.Year(), next.Month(), next.Day(), 0, 0, 0, 1, next.Location())
-	w.zipStart = now
-	w.zipTime = next
-	w.zipChan = time.After(next.Sub(now))
 }
 
 func (w *Writer) nextDumpTime(now time.Time) {
@@ -123,24 +104,6 @@ func (w *Writer) getLogFile() string {
 	return path.Join(w.logDir, logName)
 }
 
-func (w *Writer) getLogFileByTime(dt time.Time) (*os.File, error) {
-	nowDate := dt.Format("20060102")
-	logName := strings.TrimSuffix(w.logName, logSuffix)
-	if w.outType > OutStd && w.logDump {
-		logName = logName + "_" + nowDate
-	}
-	logName = logName + logSuffix
-	file := path.Join(w.logDir, logName)
-	return os.OpenFile(file, os.O_RDWR, 7)
-}
-
-func (w *Writer) getZipFileName(start, end time.Time) string {
-	s, e := start.Format("20060102"), end.Format("20060102")
-	logName := strings.TrimSuffix(w.logName, logSuffix)
-	file := fmt.Sprintf("%s_%s_%s%s", logName, s, e, zipSuffix)
-	return path.Join(w.logDir, file)
-}
-
 func (w *Writer) OutStd(level LogLevel, txt string) {
 	if w.stdColor {
 		printer := LevelColorMap[level]
@@ -177,60 +140,12 @@ func (w *Writer) logWriting() {
 			if item.logLevel == FATAL {
 				os.Exit(1)
 			}
-		case now := <-w.zipChan:
-			w.zipFile(now) //压缩文件
-			w.nextZipTime(now)
 		case now := <-w.dumpChan:
 			w.dumpFile(now) //转储文件
 			w.nextDumpTime(now)
-		case typ := <-w.changeChan:
-			now := time.Now()
-			if typ == ChangChanZip {
-				w.nextZipTime(now)
-			} else if typ == ChangChanDump {
-				w.nextDumpTime(now)
-			}
 		case <-ctx.Done():
 			fmt.Println("关闭日志写入器")
 			return
-		}
-	}
-}
-
-func (w *Writer) zipFile(nowTime time.Time) {
-	if w.outType <= OutStd || !w.logDump {
-		return
-	}
-	nowDate := nowTime.Format("20060102")
-	zipFiles := make([]*os.File, 0)
-	start, end := w.zipStart, w.zipTime
-	for s := start; s.Before(end); s = s.Add(defDayDuration) {
-		if s.Format("20060102") == nowDate {
-			continue
-		}
-		if file, err := w.getLogFileByTime(s); err == nil {
-			zipFiles = append(zipFiles, file)
-		}
-	}
-	if len(zipFiles) > 0 {
-		dest := w.getZipFileName(start, end)
-		//分布式加锁处理
-		lockHandle, err := filelock.New(dest + lockSuffix)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		defer lockHandle.Unlock()
-		if err := Compress(zipFiles, dest); err != nil {
-			fmt.Println(err)
-		} else {
-			//删除压缩文件
-			for _, file := range zipFiles {
-				_ = file.Close()
-				if err = os.Remove(file.Name()); err != nil {
-					fmt.Println(err)
-				}
-			}
 		}
 	}
 }

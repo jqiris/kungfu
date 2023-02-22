@@ -72,10 +72,3 @@ func WithStdColor(show bool) Option {
 		writer.stdColor = show
 	}
 }
-
-func WithZipDay(d int) Option {
-	return func(l *Logger) {
-		writer.zipDay = d
-		writer.changeChan <- ChangChanZip
-	}
-}
