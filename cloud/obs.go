@@ -62,6 +62,10 @@ func NewObsClient(cfg config.TecentOBS) *ObsClient {
 	}
 }
 
+func (c *ObsClient) GetUrl(key string) *url.URL {
+	return c.cosClient.Object.GetObjectURL(key)
+}
+
 func (c *ObsClient) PutString(key, val string) error {
 	f := strings.NewReader(val)
 	_, err := c.cosClient.Object.Put(context.Background(), key, f, nil)
