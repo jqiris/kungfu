@@ -20,8 +20,8 @@ func SetLogger(l *Logger) {
 	defLogger = l
 }
 
-func WithSuffix(prefix string) *Logger {
-	return defLogger.WithSuffix(prefix)
+func WithSuffix(suffix string) *Logger {
+	return defLogger.WithSuffix(suffix)
 }
 
 func Fatal(txt ...any) {
