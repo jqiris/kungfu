@@ -15,13 +15,14 @@ package tests
 import (
 	"context"
 	"fmt"
-	"github.com/jqiris/kungfu/v2/logger"
 	"testing"
 	"time"
+
+	"github.com/jqiris/kungfu/v2/logger"
 )
 
 var (
-//client, cancel = NewRouteClient("client default")
+// client, cancel = NewRouteClient("client default")
 )
 
 //func SetClient(c *RouteClient) {

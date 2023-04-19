@@ -226,11 +226,13 @@ func (k *JobKeeper) Stop() {
 
 func (k *JobKeeper) ExecJob() {
 	go utils.SafeRun(func() {
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
 		for {
 			select {
 			case delId := <-k.DelChan:
 				k.delJob(delId)
-			case now := <-time.After(100 * time.Millisecond):
+			case now := <-ticker.C:
 				nowUnix := now.UnixMilli()
 				var jobQueue *JobQueue
 				index, left := -1, false
