@@ -60,6 +60,7 @@ type StoreKeeper interface {
 	HSetNx(key, field string, val any) error
 	HIncrBy(key, field string, incr int64) int64
 	HGet(key, field string, val any) error
+	HMGet(key string, fields []string) []any
 	HGetRaw(key, field string) ([]byte, error)
 	HGetAll(key string) (map[string]string, error)
 	HDel(key string, fields ...string) error
@@ -165,6 +166,9 @@ func HIncrBy(key, field string, incr int64) int64 {
 
 func HGet(key, field string, val any) error {
 	return defStoreKeeper.HGet(key, field, val)
+}
+func HMGet(key string, fields []string) []any {
+	return defStoreKeeper.HMGet(key, fields)
 }
 
 func HGetRaw(key, field string) ([]byte, error) {

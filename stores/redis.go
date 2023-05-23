@@ -294,6 +294,12 @@ func (s *StoreRedis) HGet(key, field string, val any) error {
 	return json.Unmarshal(bs, val)
 }
 
+func (s *StoreRedis) HMGet(key string, fields []string) []any {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
+	defer cancel()
+	return s.Client.HMGet(ctx, s.GetKey(key), fields...).Val()
+}
+
 func (s *StoreRedis) HGetRaw(key, field string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.DialTimeout)
 	defer cancel()
