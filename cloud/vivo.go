@@ -19,6 +19,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/jqiris/kungfu/v2/logger"
@@ -67,7 +68,11 @@ func (b *VivoClient) Req(api string, tryTimes, apiKey int, params map[string]str
 	}
 	apiKey = apiKey % b.apiLen
 	apiUrl := b.apiList[apiKey] + api
-	req, err := http.NewRequest(http.MethodPost, apiUrl, nil)
+	data := url.Values{}
+	for k, v := range params {
+		data.Set(k, v)
+	}
+	req, err := http.NewRequest(http.MethodPost, apiUrl, strings.NewReader(data.Encode()))
 	if err != nil {
 		logger.Errorf("vivo请求失败 NewRequest,tryTimes:%v,apiKey:%v,params:%v,err:%v", tryTimes, apiKey, params, err)
 		return b.Req(api, tryTimes+1, apiKey+1, params)
@@ -75,14 +80,9 @@ func (b *VivoClient) Req(api string, tryTimes, apiKey int, params map[string]str
 	headers := map[string]string{
 		"Content-Type": "application/x-www-form-urlencoded",
 	}
-	data := url.Values{}
-	for k, v := range params {
-		data.Set(k, v)
-	}
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
-	req.PostForm = data
 	client := &http.Client{Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}}
