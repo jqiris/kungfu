@@ -57,7 +57,7 @@ func (c *OppoClient) Login(fileId, token string) (*OppoLoginResponse, error) {
 
 	dataParams := url.Values{}
 	dataParams.Set("oauthConsumerKey", appvKey)
-	dataParams.Set("oauthToken", token)
+	dataParams.Set("oauthToken", url.QueryEscape(token))
 	dataParams.Set("oauthSignatureMethod", "HMAC-SHA1")
 	dataParams.Set("oauthTimestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
 	dataParams.Set("oauthNonce", strconv.Itoa(int(time.Now().Unix())+rand.Intn(10)))
