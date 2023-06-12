@@ -51,13 +51,14 @@ func NewOppoClient(config OppoConfig) *OppoClient {
 }
 
 func (c *OppoClient) Login(fileId, token string) (*OppoLoginResponse, error) {
+	token = url.QueryEscape(token)
 	requestServerUrl := fmt.Sprintf("%s?fileId=%s&token=%s", c.config.ApiUrl, fileId, token)
 	appvKey := c.config.AppKey
 	appSecret := c.config.AppSecret
 
 	dataParams := url.Values{}
 	dataParams.Set("oauthConsumerKey", appvKey)
-	dataParams.Set("oauthToken", url.QueryEscape(token))
+	dataParams.Set("oauthToken", token)
 	dataParams.Set("oauthSignatureMethod", "HMAC-SHA1")
 	dataParams.Set("oauthTimestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
 	dataParams.Set("oauthNonce", strconv.Itoa(int(time.Now().Unix())+rand.Intn(10)))
