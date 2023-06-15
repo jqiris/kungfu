@@ -35,7 +35,7 @@ type OppoConfig struct {
 type OppoLoginResponse struct {
 	ResultCode string `json:"resultCode"`
 	ResultMsg  string `json:"resultMsg"`
-	SsoID      int    `json:"ssoid"`
+	SsoID      string `json:"ssoid"`
 	UserName   string `json:"userName"`
 	Email      string `json:"email"`
 	Mobile     string `json:"mobileNumber"`
@@ -95,6 +95,7 @@ func (c *OppoClient) Login(fileId, token string) (*OppoLoginResponse, error) {
 	for i := 1; i < len(dataParams); i++ {
 		requestString += "&" + dataParams[i].String()
 	}
+	requestString += "&"
 	oauthSignature := appSecret + "&"
 	sign := c.signatureNew(oauthSignature, requestString)
 	body, err := c.oauthPostExecuteNew(sign, requestString, requestServerUrl)
