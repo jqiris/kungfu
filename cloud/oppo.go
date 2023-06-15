@@ -18,7 +18,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -43,6 +43,14 @@ type OppoLoginResponse struct {
 type OppoClient struct {
 	config OppoConfig
 }
+type OppoLoginItem struct {
+	key   string
+	value string
+}
+
+func (item *OppoLoginItem) String() string {
+	return fmt.Sprintf("%s=%s", item.key, item.value)
+}
 
 func NewOppoClient(config OppoConfig) *OppoClient {
 	return &OppoClient{
@@ -53,18 +61,40 @@ func NewOppoClient(config OppoConfig) *OppoClient {
 func (c *OppoClient) Login(fileId, token string) (*OppoLoginResponse, error) {
 	token = url.QueryEscape(token)
 	requestServerUrl := fmt.Sprintf("%s?fileId=%s&token=%s", c.config.ApiUrl, fileId, token)
-	appvKey := c.config.AppKey
+	appKey := c.config.AppKey
 	appSecret := c.config.AppSecret
 
-	dataParams := url.Values{}
-	dataParams.Set("oauthConsumerKey", appvKey)
-	dataParams.Set("oauthToken", token)
-	dataParams.Set("oauthSignatureMethod", "HMAC-SHA1")
-	dataParams.Set("oauthTimestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
-	dataParams.Set("oauthNonce", strconv.Itoa(int(time.Now().Unix())+rand.Intn(10)))
-	dataParams.Set("oauthVersion", "1.0")
+	dataParams := []OppoLoginItem{
+		{
+			key:   "oauthConsumerKey",
+			value: appKey,
+		},
+		{
+			key:   "oauthToken",
+			value: token,
+		},
+		{
+			key:   "oauthSignatureMethod",
+			value: "HMAC-SHA1",
+		},
+		{
+			key:   "oauthTimestamp",
+			value: strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10),
+		},
+		{
+			key:   "oauthNonce",
+			value: strconv.Itoa(int(time.Now().Unix()) + rand.Intn(10)),
+		},
+		{
+			key:   "oauthVersion",
+			value: "1.0",
+		},
+	}
 
-	requestString := dataParams.Encode()
+	requestString := dataParams[0].String()
+	for i := 1; i < len(dataParams); i++ {
+		requestString += "&" + dataParams[i].String()
+	}
 	oauthSignature := appSecret + "&"
 	sign := c.signatureNew(oauthSignature, requestString)
 	body, err := c.oauthPostExecuteNew(sign, requestString, requestServerUrl)
@@ -96,13 +126,13 @@ func (c *OppoClient) oauthPostExecuteNew(sign, requestString, requestServerUrl s
 		return nil, err
 	}
 	req.Header.Set("param", requestString)
-	req.Header.Set("oauthsignature", sign)
+	req.Header.Set("oauthSignature", sign)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
