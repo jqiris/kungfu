@@ -168,3 +168,20 @@ func EncryptData(ep *Encipherer, typ EncryptType, src any) (string, error) {
 	}
 	return "", errors.New("no suit type")
 }
+
+func EncryptDataRaw(ep *Encipherer, typ EncryptType, data []byte) (string, error) {
+	if ep.unencrypt {
+		typ = EncryptTypeNone
+	}
+	switch typ {
+	case EncryptTypeAes:
+		return ep.AesCbcEncrypt(data)
+	case EncryptTypeRsaPrikey:
+		return ep.RsaPrikeyEncrypt(data)
+	case EncryptTypeRsaPubkey:
+		return ep.RsaPubkeyEncrypt(data)
+	case EncryptTypeNone:
+		return string(data), nil
+	}
+	return "", errors.New("no suit type")
+}
