@@ -1,35 +1,35 @@
 version: '3'
 networks:
-  xg-net:
+  kf-net:
     external: true
 services:
   nats1:
     image: nats:2.1.9
     container_name: nats1
     ports:
-      - 4222:4222
+      - 4322:4222
       - 8222:8222
     networks:
-      - xg-net
-    command: -m 8222 --user "nats" --pass "@kungfu2021" --cluster nats://0.0.0.0:6222 --routes nats://nats3:6222
+      - kf-net
+    command: -m 8222 --user "nats" --pass "@kf2021" --cluster nats://0.0.0.0:6222 --routes nats://nats3:6222
   nats2:
     image: nats:2.1.9
     container_name: nats2
     ports:
-      - 4223:4222
+      - 4323:4222
       - 8223:8222
     networks:
-      - xg-net
-    command: -m 8222 --user "nats" --pass "@kungfu2021" --cluster nats://0.0.0.0:6222 --routes nats://nats1:6222
+      - kf-net
+    command: -m 8222 --user "nats" --pass "@kf2021" --cluster nats://0.0.0.0:6222 --routes nats://nats1:6222
   nats3:
     image: nats:2.1.9
     container_name: nats3
     ports:
-      - 4224:4222
+      - 4324:4222
       - 8224:8222
     networks:
-      - xg-net
-    command: -m 8222 --user "nats" --pass "@kungfu2021" --cluster nats://0.0.0.0:6222 --routes nats://nats2:6222
+      - kf-net
+    command: -m 8222 --user "nats" --pass "@kf2021" --cluster nats://0.0.0.0:6222 --routes nats://nats2:6222
 
   nats-streaming1:
     image: nats-streaming:0.20.0
@@ -39,11 +39,11 @@ services:
       - nats2
       - nats3
     networks:
-      - xg-net
+      - kf-net
     volumes:
       - ./streaming1/data:/nats/data
       - ./streaming1/log:/nats/log
-    command: "--store file --dir /nats/data -clustered --cluster_log_path /nats/log --cluster_id nats-cluster --cluster_node_id nats-streaming1  --cluster_peers nats-streaming2,nats-streaming3 --cluster_sync --nats_server nats://nats:@kungfu2021@nats1:4222,nats://nats:@kungfu2021@nats2:4222,nats://nats:@kungfu2021@nats3:4222"
+    command: "--store file --dir /nats/data -clustered --cluster_log_path /nats/log --cluster_id nats-cluster --cluster_node_id nats-streaming1  --cluster_peers nats-streaming2,nats-streaming3 --cluster_sync --nats_server nats://nats:@kf2021@nats1:4222,nats://nats:@kf2021@nats2:4222,nats://nats:@kf2021@nats3:4222"
 
   nats-streaming2:
     image: nats-streaming:0.20.0
@@ -53,11 +53,11 @@ services:
       - nats2
       - nats3
     networks:
-      - xg-net
+      - kf-net
     volumes:
       - ./streaming2/data:/nats/data
       - ./streaming2/log:/nats/log
-    command: "--store file --dir /nats/data -clustered --cluster_log_path /nats/log --cluster_id nats-cluster --cluster_node_id nats-streaming2 --cluster_peers nats-streaming1,nats-streaming3 --cluster_sync --nats_server nats://nats:@kungfu2021@nats1:4222,nats://nats:@kungfu2021@nats2:4222,nats://nats:@kungfu2021@nats3:4222"
+    command: "--store file --dir /nats/data -clustered --cluster_log_path /nats/log --cluster_id nats-cluster --cluster_node_id nats-streaming2 --cluster_peers nats-streaming1,nats-streaming3 --cluster_sync --nats_server nats://nats:@kf2021@nats1:4222,nats://nats:@kf2021@nats2:4222,nats://nats:@kf2021@nats3:4222"
 
   nats-streaming3:
     image: nats-streaming:0.20.0
@@ -67,8 +67,8 @@ services:
       - nats2
       - nats3
     networks:
-      - xg-net
+      - kf-net
     volumes:
       - ./streaming3/data:/nats/data
       - ./streaming3/log:/nats/log
-    command: "--store file --dir /nats/data -clustered --cluster_log_path /nats/log --cluster_id nats-cluster --cluster_node_id nats-streaming3 --cluster_peers nats-streaming1,nats-streaming2 --cluster_sync --nats_server nats://nats:@kungfu2021@nats1:4222,nats://nats:@kungfu2021@nats2:4222,nats://nats:@kungfu2021@nats3:4222"
+    command: "--store file --dir /nats/data -clustered --cluster_log_path /nats/log --cluster_id nats-cluster --cluster_node_id nats-streaming3 --cluster_peers nats-streaming1,nats-streaming2 --cluster_sync --nats_server nats://nats:@kf2021@nats1:4222,nats://nats:@kf2021@nats2:4222,nats://nats:@kf2021@nats3:4222"

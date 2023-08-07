@@ -1,34 +1,34 @@
 version: '3'
 networks:
-  xg-net:
+  kf-net:
     external: true
 services:
   etcd1:
     image: quay.io/coreos/etcd
     container_name: etcd1
-    command: etcd -name etcd1 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379 -listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380" -initial-cluster-state new
+    command: etcd -name etcd1 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379 -listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380" -initial-cluster-state new --heartbeat-interval 1000 --auto-compaction-retention 1 --auto-compaction-mode periodic --quota-backend-bytes 8589934592 --election-timeout 5000
     ports:
       - "23791:2379"
       - "23801:2380"
     networks:
-      - xg-net
+      - kf-net
 
   etcd2:
     image: quay.io/coreos/etcd
     container_name: etcd2
-    command: etcd -name etcd2 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379 -listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380" -initial-cluster-state new
+    command: etcd -name etcd2 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379 -listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380" -initial-cluster-state new --heartbeat-interval 1000 --auto-compaction-retention 1 --auto-compaction-mode periodic --quota-backend-bytes 8589934592 --election-timeout 5000
     ports:
       - "23792:2379"
       - "23802:2380"
     networks:
-      - xg-net
+      - kf-net
 
   etcd3:
     image: quay.io/coreos/etcd
     container_name: etcd3
-    command: etcd -name etcd3 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379 -listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380" -initial-cluster-state new
+    command: etcd -name etcd3 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379 -listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380" -initial-cluster-state new --heartbeat-interval 1000 --auto-compaction-retention 1 --auto-compaction-mode periodic --quota-backend-bytes 8589934592 --election-timeout 5000
     ports:
       - "23793:2379"
       - "23803:2380"
     networks:
-      - xg-net
+      - kf-net
